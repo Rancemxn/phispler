@@ -479,7 +479,7 @@ class JudgeLine:
         lineRotate = sum(self.getEventValue(t, layer.rotateEvents) for layer in self.eventLayers)
         lineScaleX = self.getEventValue(t, self.extended.scaleXEvents, 1.0) if lineAlpha > 0.0 and self.extended else 1.0
         lineScaleY = self.getEventValue(t, self.extended.scaleYEvents, 1.0) if lineAlpha > 0.0 and self.extended else 1.0
-        lineText = self.getEventValue(t, self.extended.textEvents, "") if lineAlpha > 0.0 and self.extended else None
+        lineText = self.getEventValue(t, self.extended.textEvents, "") if lineAlpha > 0.0 and self.extended and self.extended.textEvents else None
         lineColor = (
             (255, 255, 255)
             if self.Texture != "line.png" or self.attachUI or (self.extended and self.extended.textEvents) else
