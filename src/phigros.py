@@ -5317,7 +5317,6 @@ def challengeModeSettlementRender(
         
         # 重试
         if tool_funcs.inrect(x, y, (0, 0, ButtonWidth, ButtonHeight)) and now_t > 4.8 and not showingCMR:
-            mixer.music.fadeout(500)
             unregEvents()
             nextUI_Bak = nextUI
             nextUI, tonextUI, tonextUISt = lambda: challengeModeRender(songs, nextUI_Bak), True, time.time()
@@ -5471,8 +5470,9 @@ def challengeModeSettlementRender(
         elif tonextUI:
             clearCanvas(wait_execute = True)
             root.run_js_wait_code()
-            Thread(target=nextUI, daemon=True).start()
+            mixer.music.fadeout(500)
             root.run_js_code("mask.style.backdropFilter = '';", wait_execute = True)
+            Thread(target=nextUI, daemon=True).start()
             break
         
         root.run_js_wait_code()
