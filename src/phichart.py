@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import typing
 import json
 import logging
@@ -8,6 +10,71 @@ import rpe_easing
 import light_tool_funcs
 
 type eventValueType = float|str|tuple[float, float, float]
+
+def _init_events(es: list[LineEvent], *, is_speed: bool = False):
+    if not es: return
+    
+    es.sort(key = lambda e: e.startTime)
+    
+    aes = []
+    for i, e in enumerate(es):
+        if i != len(es) - 1:
+            ne = es[i + 1]
+            if e.endTime < ne.startTime:
+                aes.append(LineEvent(
+                    startTime = e.endTime,
+                    endTime = ne.startTime,
+                    start = e.end,
+                    end = ne.start,
+                    isFill = True
+                ))
+            elif e.endTime > ne.startTime:
+                logging.warning(f"Event overlap: {e} {ne}")
+    
+    es.extend(aes)
+    es.sort(key = lambda e: e.startTime)
+    es.append(LineEvent(
+        startTime = es[-1].endTime,
+        endTime = es[-1].endTime + const.INFBEAT,
+        start = es[-1].end,
+        end = es[-1].end,
+        isFill = True
+    ))
+    
+    if not is_speed:
+        es.insert(0, LineEvent(
+            startTime = -const.INFBEAT,
+            endTime = es[0].startTime,
+            start = es[0].start,
+            end = es[0].start,
+            isFill = True
+        ))
+
+def findevent(es: list[LineEvent], t: float):
+    if not es:
+        return None
+    
+    l, r = 0, len(es) - 1
+    
+    while l <= r:
+        m = (l + r) // 2
+        e = es[m]
+        st, et = e.startTime, e.endTime
+        if st <= t < et: return e
+        elif st > t: r = m - 1
+        else: l = m + 1
+    
+    return es[-1] if t >= es[-1].endTime else None
+
+def split_notes(notes: list[Note]) -> list[list[Note]]:
+    tempmap: dict[int, list[Note]] = {}
+    
+    for n in notes:
+        h = hash((n.speed, n.yOffset, n.isAbove))
+        if h not in tempmap: tempmap[h] = []
+        tempmap[h].append(n)
+    
+    return list(tempmap.values())
 
 class ChartFormat:
     unset = object()
@@ -128,7 +195,15 @@ class ChartFormat:
         ...
 
 @dataclass
-class Note:
+class MemEq:
+    def __hash__(self):
+        return id(self)
+    
+    def __eq__(self, value: typing.Any):
+        return self is value
+
+@dataclass
+class Note(MemEq):
     type: int
     time: float
     holdTime: float
@@ -142,9 +217,15 @@ class Note:
     width: float = 1.0
     alpha: float = 1.0
     hitsound: typing.Optional[str] = None
+    
+    def __post_init__(self):
+        self.ishold = self.type == const.NOTE_TYPE.HOLD
+    
+    def init(self, master: JudgeLine):
+        self.master = master
 
 @dataclass
-class LineEvent:
+class LineEvent(MemEq):
     startTime: float
     endTime: float
     start: eventValueType
@@ -154,26 +235,37 @@ class LineEvent:
     isFill: bool = False
 
 @dataclass
-class EventLayerItem:
+class EventLayerItem(MemEq):
     alphaEvents: list[LineEvent] = field(default_factory=list)
     moveXEvents: list[LineEvent] = field(default_factory=list)
     moveYEvents: list[LineEvent] = field(default_factory=list)
     rotateEvents: list[LineEvent] = field(default_factory=list)
     speedEvents: list[LineEvent] = field(default_factory=list)
     
-    def init_fill(self):
-        ...
+    def init(self):
+        _init_events(self.alphaEvents)
+        _init_events(self.moveXEvents)
+        _init_events(self.moveYEvents)
+        _init_events(self.rotateEvents)
+        _init_events(self.speedEvents, is_speed=True)
 
 @dataclass
-class ExtendEventsItem:
+class ExtendEventsItem(MemEq):
     colorEvents: list[LineEvent] = field(default_factory=list)
     scaleXEvents: list[LineEvent] = field(default_factory=list)
     scaleYEvents: list[LineEvent] = field(default_factory=list)
     textEvents: list[LineEvent] = field(default_factory=list)
     gifEvents: list[LineEvent] = field(default_factory=list)
+    
+    def init(self):
+        _init_events(self.colorEvents)
+        _init_events(self.scaleXEvents)
+        _init_events(self.scaleYEvents)
+        _init_events(self.textEvents)
+        _init_events(self.gifEvents, is_speed=True)
 
 @dataclass
-class JudgeLine:
+class JudgeLine(MemEq):
     notes: list[Note] = field(default_factory=list)
     eventLayers: list[EventLayerItem] = field(default_factory=list)
     extendEvents: ExtendEventsItem = field(default_factory=ExtendEventsItem)
@@ -185,6 +277,17 @@ class JudgeLine:
     attachUI: typing.Optional[str] = None
     
     enableCover: bool = True
+    
+    def init(self, master: CommonChart):
+        self.master = master
+        
+        for el in self.eventLayers:
+            el.init()
+        
+        self.extendEvents.init()
+        
+        for note in self.notes:
+            note.init(self)
 
 @dataclass
 class CommonChartOptions:
@@ -199,6 +302,10 @@ class CommonChart:
     
     options: CommonChartOptions = field(default_factory=CommonChartOptions)
     type: object = field(default=lambda: ChartFormat.unset)
+    
+    def init(self):
+        for line in self.lines:
+            line.init(self)
 
 def load(data: bytes):
     def _unknow_type():
