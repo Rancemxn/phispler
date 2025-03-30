@@ -28,9 +28,9 @@ def excepthook(etype, value, tb):
         if platform.system() == "Windows":
             from ctypes import windll
             windll.user32.MessageBoxW(
-            0, f"很抱歉, phispler 发生了错误\n已生成错误文件到: {os.path.abspath(errorfile)}\n请将错误文件发送给开发者以获得帮助\nhttps://github.com/qaqFei/phispler\n\n\n{errortext}",
-            "phispler 发生错误", 0x00000010 | 0x00010000
-        )
+                0, f"很抱歉, phispler 发生了错误\n已生成错误文件到: {os.path.abspath(errorfile)}\n请将错误文件发送给开发者以获得帮助\nhttps://github.com/qaqFei/phispler\n\n\n{errortext}",
+                "phispler 发生错误", 0x00000010 | 0x00010000
+            )
             
         exitfunc(0)
     except (Exception, KeyboardInterrupt) as e:
