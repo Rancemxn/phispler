@@ -13,6 +13,12 @@ class NOTE_JUDGE_RANGE:
     BAD = 0.18
     MISS = 0.2
 
+class NOTE_JUDGE_RANGE_CHALL:
+    PERFECT = 0.04
+    GOOD = 0.075
+    BAD = 0.18
+    MISS = 0.2
+
 class CHART_TYPE:
     PHI = 1
     RPE = 2

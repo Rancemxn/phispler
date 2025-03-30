@@ -3612,7 +3612,8 @@ def chartPlayerRender(
             getUserData("setting-enableClickSound"),
             lambda ts: Resource["Note_Click_Audio"][ts].play(),
             globalNoteWidth * const.MPBJUDGE_RANGE_X,
-            w, h
+            w, h,
+            challengeMode
         )
         
         convertTime2Chart = lambda t: (t - globals().get("show_start_time", time.time())) - (0.0 if CHART_TYPE == const.CHART_TYPE.PHI else chart_obj.META.offset / 1000)

@@ -515,7 +515,8 @@ class PhigrosPlayLogicManager:
             enable_cksound: bool,
             psound: typing.Callable[[str], typing.Any],
             mobjudge_range: float,
-            w: int, h: int
+            w: int, h: int,
+            is_chall: bool = False
         ) -> None:
         
         self.pp = pplm_proxy
@@ -525,6 +526,7 @@ class PhigrosPlayLogicManager:
         self.mobjudge_range = mobjudge_range
         self.w, self.h = w, h
         self.enable_mob: bool = False
+        self.njr = const.NOTE_JUDGE_RANGE if not is_chall else const.NOTE_JUDGE_RANGE_CHALL
         
         self.pc_clicks: list[PPLM_PC_ClickEvent] = []
         self.pc_keymap: dict[str, bool] = {i: False for i in const.ALL_LETTER}
@@ -573,7 +575,7 @@ class PhigrosPlayLogicManager:
     ):
         abs_offset = abs(offset)
         
-        if 0.0 <= abs_offset <= const.NOTE_JUDGE_RANGE.PERFECT:
+        if 0.0 <= abs_offset <= self.njr.PERFECT:
             state = const.NOTE_STATE.PERFECT
             
             self.pp.nproxy_set_ckstate(n, state)
@@ -584,7 +586,7 @@ class PhigrosPlayLogicManager:
             else:
                 self.ppps.addEvent("P")
                 
-        elif const.NOTE_JUDGE_RANGE.PERFECT < abs_offset <= const.NOTE_JUDGE_RANGE.GOOD:
+        elif self.njr.PERFECT < abs_offset <= self.njr.GOOD:
             state = const.NOTE_STATE.GOOD
             self.pp.nproxy_set_ckstate(n, state)
             
@@ -594,7 +596,7 @@ class PhigrosPlayLogicManager:
             else:
                 self.ppps.addEvent("G", offset)
         
-        elif const.NOTE_JUDGE_RANGE.GOOD < abs_offset <= const.NOTE_JUDGE_RANGE.BAD: # only tap can goto there
+        elif self.njr.GOOD < abs_offset <= self.njr.BAD: # only tap can goto there
             if can_use_safe_notes and offset < 0.0:
                 drag, _ = can_use_safe_notes[0]
                 if not self.pp.nproxy_get_wclick(drag):
@@ -641,7 +643,7 @@ class PhigrosPlayLogicManager:
                 keydown and
                 not self.pp.nproxy_get_wclick(i) and
                 self.pp.nproxy_typein(i, (const.NOTE_TYPE.DRAG, const.NOTE_TYPE.FLICK)) and
-                abs((self.pp.nproxy_stime(i) - t)) <= const.NOTE_JUDGE_RANGE.GOOD
+                abs((self.pp.nproxy_stime(i) - t)) <= self.njr.GOOD
             ):
                 self.pp.nproxy_set_wclick(i, True)
             
@@ -667,7 +669,7 @@ class PhigrosPlayLogicManager:
             if ( # miss judge
                 not self.pp.nproxy_get_pclicked(i) and
                 not self.pp.nproxy_get_missed(i) and
-                self.pp.nproxy_stime(i) - t < -const.NOTE_JUDGE_RANGE.MISS
+                self.pp.nproxy_stime(i) - t < -self.njr.MISS
             ):
                 self.pp.nproxy_set_missed(i, True)
                 self.ppps.addEvent("M")
@@ -718,11 +720,11 @@ class PhigrosPlayLogicManager:
                     else:
                         break
             
-            if self.pp.nproxy_typeisnot(i, const.NOTE_TYPE.HOLD) and self.pp.nproxy_stime(i) - t < - const.NOTE_JUDGE_RANGE.MISS * 2:
+            if self.pp.nproxy_typeisnot(i, const.NOTE_TYPE.HOLD) and self.pp.nproxy_stime(i) - t < - self.njr.MISS * 2:
                 self.pp.remove_pnote(i)
-            elif self.pp.nproxy_typeis(i, const.NOTE_TYPE.HOLD) and self.pp.nproxy_etime(i) - t < - const.NOTE_JUDGE_RANGE.MISS * 2:
+            elif self.pp.nproxy_typeis(i, const.NOTE_TYPE.HOLD) and self.pp.nproxy_etime(i) - t < - self.njr.MISS * 2:
                 self.pp.remove_pnote(i)
-            elif self.pp.nproxy_stime(i) > t + const.NOTE_JUDGE_RANGE.BAD * 2:
+            elif self.pp.nproxy_stime(i) > t + self.njr.BAD * 2:
                 break
         
         while self.pc_clicks:
@@ -736,9 +738,9 @@ class PhigrosPlayLogicManager:
                     not self.pp.nproxy_get_pclicked(i) and
                     self.pp.nproxy_typein(i, (const.NOTE_TYPE.TAP, const.NOTE_TYPE.HOLD)) and
                     abs((offset := (self.pp.nproxy_stime(i) - cke.time))) <= (
-                        const.NOTE_JUDGE_RANGE.BAD \
+                        self.njr.BAD \
                             if self.pp.nproxy_typeis(i, const.NOTE_TYPE.TAP) else \
-                                const.NOTE_JUDGE_RANGE.GOOD
+                                self.njr.GOOD
                     )
                 ):
                     can_judge_notes.append((i, offset))
@@ -746,11 +748,11 @@ class PhigrosPlayLogicManager:
                 if (
                     self.pp.nproxy_typein(i, (const.NOTE_TYPE.DRAG, const.NOTE_TYPE.FLICK)) and
                     not self.pp.nproxy_get_safe_used(i) and
-                    abs((offset := (self.pp.nproxy_stime(i) - cke.time))) <= const.NOTE_JUDGE_RANGE.GOOD
+                    abs((offset := (self.pp.nproxy_stime(i) - cke.time))) <= self.njr.GOOD
                 ):
                     can_use_safe_notes.append((i, offset))
 
-                if self.pp.nproxy_stime(i) > cke.time + const.NOTE_JUDGE_RANGE.BAD * 2:
+                if self.pp.nproxy_stime(i) > cke.time + self.njr.BAD * 2:
                     break
             
             can_judge_notes.sort(key = lambda x: abs(x[1]))
@@ -807,11 +809,11 @@ class PhigrosPlayLogicManager:
         pnotes = self.pp.get_all_pnotes()
         
         for touch in self.mob_touches.copy():
-            if touch.released and time.time() - touch.release_time > const.NOTE_JUDGE_RANGE.GOOD:
+            if touch.released and time.time() - touch.release_time > self.njr.GOOD:
                 self.mob_touches.remove(touch)
         
         for mf in self.mob_flicks.copy():
-            if time.time() - mf[0] > const.NOTE_JUDGE_RANGE.GOOD:
+            if time.time() - mf[0] > self.njr.GOOD:
                 self.mob_flicks.remove(mf)
         
         for i in pnotes.copy():
@@ -833,17 +835,17 @@ class PhigrosPlayLogicManager:
                 innoterange and
                 not self.pp.nproxy_get_wclick(i) and
                 self.pp.nproxy_typeis(i, const.NOTE_TYPE.DRAG) and
-                abs((self.pp.nproxy_stime(i) - t)) <= const.NOTE_JUDGE_RANGE.GOOD
+                abs((self.pp.nproxy_stime(i) - t)) <= self.njr.GOOD
             ):
                 self.pp.nproxy_set_wclick(i, True)
             
             if (
                 not self.pp.nproxy_get_wclick(i) and
                 self.pp.nproxy_typeis(i, const.NOTE_TYPE.FLICK) and
-                abs((self.pp.nproxy_stime(i) - t)) <= const.NOTE_JUDGE_RANGE.GOOD
+                abs((self.pp.nproxy_stime(i) - t)) <= self.njr.GOOD
             ):
                 for mf in self.mob_flicks.copy():
-                    if (time.time() - mf[0]) > const.NOTE_JUDGE_RANGE.GOOD:
+                    if (time.time() - mf[0]) > self.njr.GOOD:
                         continue
                     
                     if pointInPolygon(self._mobjudge_polygon(
@@ -862,7 +864,7 @@ class PhigrosPlayLogicManager:
             ):
                 self.pp.nproxy_set_last_testholdmiss_time(i, t)
             
-            if self.pp.nproxy_stime(i) > t + const.NOTE_JUDGE_RANGE.BAD * 2:
+            if self.pp.nproxy_stime(i) > t + self.njr.BAD * 2:
                 break
         
         for touch in self.mob_touches:
@@ -883,9 +885,9 @@ class PhigrosPlayLogicManager:
                     not self.pp.nproxy_get_pclicked(i) and
                     self.pp.nproxy_typein(i, (const.NOTE_TYPE.TAP, const.NOTE_TYPE.HOLD)) and
                     abs((offset := (self.pp.nproxy_stime(i) - touch.time))) <= (
-                        const.NOTE_JUDGE_RANGE.BAD \
+                        self.njr.BAD \
                             if self.pp.nproxy_typeis(i, const.NOTE_TYPE.TAP) else \
-                                const.NOTE_JUDGE_RANGE.GOOD
+                                self.njr.GOOD
                     )
                 ):
                     can_judge_notes.append((i, offset))
@@ -894,11 +896,11 @@ class PhigrosPlayLogicManager:
                     innoterange and
                     self.pp.nproxy_typein(i, (const.NOTE_TYPE.DRAG, const.NOTE_TYPE.FLICK)) and
                     not self.pp.nproxy_get_safe_used(i) and
-                    abs((offset := (self.pp.nproxy_stime(i) - touch.time))) <= const.NOTE_JUDGE_RANGE.GOOD
+                    abs((offset := (self.pp.nproxy_stime(i) - touch.time))) <= self.njr.GOOD
                 ):
                     can_use_safe_notes.append((i, offset))
 
-                if self.pp.nproxy_stime(i) > touch.time + const.NOTE_JUDGE_RANGE.BAD * 2:
+                if self.pp.nproxy_stime(i) > touch.time + self.njr.BAD * 2:
                     break
     
             can_judge_notes.sort(key = lambda x: abs(x[1]))
