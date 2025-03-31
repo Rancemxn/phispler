@@ -3,6 +3,7 @@ from __future__ import annotations
 import typing
 import json
 import logging
+import math
 from dataclasses import dataclass, field
 
 import const
@@ -292,6 +293,7 @@ class JudgeLine(MemEq):
     notes: list[Note] = field(default_factory=list)
     eventLayers: list[EventLayerItem] = field(default_factory=list)
     extendEvents: ExtendEventsItem = field(default_factory=ExtendEventsItem)
+    father: typing.Optional[JudgeLine]|int = None
     
     isTextureLine: bool = False
     texture: typing.Optional[str] = None
@@ -304,6 +306,9 @@ class JudgeLine(MemEq):
     def init(self, master: CommonChart):
         self.master = master
         
+        if self.father is not None:
+            self.father = master.lines[self.father]
+        
         for el in self.eventLayers:
             el.init()
         
@@ -313,8 +318,6 @@ class JudgeLine(MemEq):
             note.init(self)
     
     def getFloorPosition(self, t: float):
-        "t: second"
-        
         fp = 0.0
         
         for el in self.eventLayers:
@@ -325,15 +328,73 @@ class JudgeLine(MemEq):
         return fp
     
     def getRangeFloorPosition(self, s: float, e: float):
-        "s: second, e: second"
-        
         return self.getFloorPosition(e) - self.getFloorPosition(s)
+
+    def getEventsValue(self, es: list[LineEvent], t: float, default: float = 0.0):
+        e = findevent(es, t)
+        return e.get(t) if e is not None else default
+    
+    def getPos(self, t: float):
+        linePos = (
+            sum(self.getEventsValue(el.moveXEvents, t) for el in self.eventLayers),
+            sum(self.getEventsValue(el.moveYEvents, t) for el in self.eventLayers)
+        )
+        
+        if self.father is not None:
+            fatherPos = self.father.getPos(t)
+            fatherRotate = sum(self.father.getEventsValue(el.rotateEvents, t) for el in self.father.eventLayers)
+            
+            if fatherRotate == 0.0:
+                return list(map(lambda v1, v2: v1 + v2, fatherPos, linePos))
+            
+            return list(map(lambda v1, v2: v1 + v2, fatherPos,
+                tool_funcs.rotate_point(
+                    0.0, 0.0,
+                    90 - (math.degrees(math.atan2(*linePos)) + fatherRotate),
+                    tool_funcs.getLineLength(*linePos, 0.0, 0.0)
+                )
+            ))
+        
+        return linePos
+    
+    def getState(self, t: float, defaultColor: tuple[int, int, int]):
+        lineAlpha = sum(self.getEventsValue(el.alphaEvents, t) for el in self.eventLayers) if t >= 0.0 or self.attachUI is not None else 0.0
+        lineRotate = sum(self.getEventsValue(el.rotateEvents, t) for el in self.eventLayers)
+        lineScaleX = self.getEventsValue(self.extendEvents.scaleXEvents, t, 1.0) if lineAlpha > 0.0 else 1.0
+        lineScaleY = self.getEventsValue(self.extendEvents.scaleYEvents, t, 1.0) if lineAlpha > 0.0 else 1.0
+        lineText = self.getEventsValue(t, self.extendEvents.textEvents, "") if lineAlpha > 0.0 and self.extendEvents.textEvents else None
+        lineColor = (
+            (255, 255, 255)
+            if (
+                self.texture is not None or
+                self.attachUI is not None or
+                self.extendEvents.textEvents
+            ) else
+            defaultColor
+        )
+        linePos = self.getPos(t)
+        
+        if lineAlpha > 0.0 and self.extendEvents.colorEvents:
+            lineColor = self.getEventsValue(self.extendEvents.colorEvents, t, lineColor)
+        
+        return (
+            self.master.options.posConverter(linePos),
+            lineAlpha,
+            lineRotate,
+            
+            lineScaleX,
+            lineScaleY,
+            lineText,
+            lineColor
+        )
 
 @dataclass
 class CommonChartOptions:
     holdIndependentSpeed: bool = True
     holdCoverAtHead: bool = True
     rpeVersion: int = -1
+    
+    posConverter: typing.Callable[[tuple[float, float]], tuple[float, float]] = lambda pos: pos
 
 @dataclass
 class CommonChart:
