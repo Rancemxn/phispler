@@ -228,6 +228,7 @@ class Note(MemEq):
     def __post_init__(self):
         self.ishold = self.type == const.NOTE_TYPE.HOLD
         self.isontime = False
+        self.morebets = False
     
     def init(self, master: JudgeLine):
         self.master = master
@@ -404,9 +405,26 @@ class CommonChart:
     options: CommonChartOptions = field(default_factory=CommonChartOptions)
     type: object = field(default=lambda: ChartFormat.unset)
     
+    def __post_init__(self):
+        self.combotimes = []
+    
     def init(self):
         for line in self.lines:
             line.init(self)
+        
+        self.check_morebets()
+    
+    def check_morebets(self):
+        all_notes = [j for i in self.lines for j in i.notes]
+        all_notes.sort(key=lambda note: note.time)
+        
+        last_note = None
+        for note in all_notes:
+            if last_note is not None and last_note.time == note.time:
+                last_note.morebets = True
+                note.morebets = True
+            
+            last_note = note
 
 def load(data: str):
     def _unknow_type():
