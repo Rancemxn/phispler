@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 import const
 import rpe_easing
-import light_tool_funcs
+import tool_funcs
 
 type eventValueType = float|str|tuple[float, float, float]
 
@@ -49,6 +49,12 @@ def _init_events(es: list[LineEvent], *, is_speed: bool = False):
             end = es[0].start,
             isFill = True
         ))
+    
+    if is_speed:
+        fp = 0.0
+        for e in es:
+            e.floorPosotion = fp
+            fp += (e.start + e.end) * (e.endTime - e.startTime) / 2
 
 def findevent(es: list[LineEvent], t: float):
     if not es:
@@ -137,7 +143,7 @@ class ChartFormat:
             formatVersion = 3
         
         if formatVersion == 2:
-            data = light_tool_funcs.SaveAsNewFormat(data)
+            data = tool_funcs.SaveAsNewFormat(data)
         
         result = CommonChart()
         result.type = ChartFormat.phi
@@ -167,8 +173,8 @@ class ChartFormat:
             
             if formatVersion == 1:
                 for json_e in json_line.get("judgeLineMoveEvents", []):
-                    json_e["start"], json_e["start2"] = light_tool_funcs.unpack_pos(json_e.get("start", 0))
-                    json_e["end"], json_e["end2"] = light_tool_funcs.unpack_pos(json_e.get("end", 0))
+                    json_e["start"], json_e["start2"] = tool_funcs.unpack_pos(json_e.get("start", 0))
+                    json_e["end"], json_e["end2"] = tool_funcs.unpack_pos(json_e.get("end", 0))
             
             elayer = EventLayerItem()
             _put_events(elayer.alphaEvents, json_line.get("judgeLineDisappearEvents", []), lambda x: x)
@@ -180,19 +186,19 @@ class ChartFormat:
             
             result.lines.append(line)
             
+        result.init()
         return result
     
     @staticmethod
     def load_rpe(data: dict):
-        ...
+        result = CommonChart()
+        
+        result.init()
+        return result
     
     @staticmethod
     def load_pec(data: str):
-        ...
-
-    @staticmethod
-    def load_pbc(data: bytes):
-        ...
+        return ChartFormat.load_rpe(tool_funcs.pec2rpe(data))
 
 @dataclass
 class MemEq:
@@ -220,9 +226,12 @@ class Note(MemEq):
     
     def __post_init__(self):
         self.ishold = self.type == const.NOTE_TYPE.HOLD
+        self.isontime = False
     
     def init(self, master: JudgeLine):
         self.master = master
+        self.floorPosition = self.master.getFloorPosition(self.time)
+        self.holdLength = self.master.getRangeFloorPosition(self.time, self.time + self.holdTime) if self.ishold else 0.0
 
 @dataclass
 class LineEvent(MemEq):
@@ -233,6 +242,20 @@ class LineEvent(MemEq):
     ease: typing.Callable[[float], float] = rpe_easing.ease_funcs[0]
     
     isFill: bool = False
+    floorPosotion: typing.Optional[float] = None # only for speed event
+    
+    def __post_init__(self):
+        if isinstance(self.start, int|float):
+            self.get = lambda t: tool_funcs.easing_interpolation(t, self.startTime, self.endTime, self.start, self.end, self.ease)
+        elif isinstance(self.start, str):
+            self.get = lambda t: tool_funcs.rpe_text_tween(self.start, self.end, tool_funcs.easing_interpolation(t, 0.0, 1.0, 0.0, 1.0, self.ease), self.isFill)
+        elif isinstance(self.start, typing.Iterable):
+            self.get = lambda t: tuple(tool_funcs.easing_interpolation(t, self.startTime, self.endTime, self.start[i], self.end[i], self.ease) for i in range(len(self.start)))
+        else:
+            raise ValueError(f"Invalid event value type: {type(self.start)}")
+    
+    def speed_get(self, t: float):
+        return (t - self.startTime) * (self.start + self.get(t)) / 2
 
 @dataclass
 class EventLayerItem(MemEq):
@@ -288,6 +311,23 @@ class JudgeLine(MemEq):
         
         for note in self.notes:
             note.init(self)
+    
+    def getFloorPosition(self, t: float):
+        "t: second"
+        
+        fp = 0.0
+        
+        for el in self.eventLayers:
+            e = findevent(el.speedEvents, t)
+            if e is not None:
+                fp += e.speed_get(t)
+        
+        return fp
+    
+    def getRangeFloorPosition(self, s: float, e: float):
+        "s: second, e: second"
+        
+        return self.getFloorPosition(e) - self.getFloorPosition(s)
 
 @dataclass
 class CommonChartOptions:
@@ -307,14 +347,9 @@ class CommonChart:
         for line in self.lines:
             line.init(self)
 
-def load(data: bytes):
+def load(data: str):
     def _unknow_type():
         raise ValueError("Unknown chart type")
-    
-    try:
-        str_data = data.decode("utf-8")
-    except Exception:
-        return ChartFormat.load_pbc(data)
     
     try:
         json_data = json.loads(data)
@@ -332,4 +367,9 @@ def load(data: bytes):
             _unknow_type()
         
     except json.JSONDecodeError:
-        return ChartFormat.load_pec(str_data)
+        return ChartFormat.load_pec(data)
+
+if __name__ == "__main__":
+    ct = load(open(r"C:\Users\QAQ\Desktop\a.json", "rb").read())
+    a = ct.lines[0].getRangeFloorPosition(0.5, 1.0)
+    print(a)
