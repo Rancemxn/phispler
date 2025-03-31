@@ -409,22 +409,30 @@ class CommonChart:
         self.combotimes = []
     
     def init(self):
+        self.all_notes = [j for i in self.lines for j in i.notes]
+        self.all_notes.sort(key=lambda note: note.time)
+        
         for line in self.lines:
             line.init(self)
         
         self.check_morebets()
+        self.init_combotimes()
     
     def check_morebets(self):
-        all_notes = [j for i in self.lines for j in i.notes]
-        all_notes.sort(key=lambda note: note.time)
-        
         last_note = None
-        for note in all_notes:
+        for note in self.all_notes:
             if last_note is not None and last_note.time == note.time:
                 last_note.morebets = True
                 note.morebets = True
             
             last_note = note
+    
+    def init_combotimes(self):
+        self.combotimes.extend(
+            note.time if not note.ishold else max(note.time, note.time + note.holdTime - 0.2)
+            for note in self.all_notes
+            if not note.isFake
+        )
 
 def load(data: str):
     def _unknow_type():
