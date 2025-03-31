@@ -415,10 +415,10 @@ class CommonChart:
         for line in self.lines:
             line.init(self)
         
-        self.check_morebets()
-        self.init_combotimes()
+        self.checkMorebets()
+        self.initCombotimes()
     
-    def check_morebets(self):
+    def checkMorebets(self):
         last_note = None
         for note in self.all_notes:
             if last_note is not None and last_note.time == note.time:
@@ -427,12 +427,20 @@ class CommonChart:
             
             last_note = note
     
-    def init_combotimes(self):
+    def initCombotimes(self):
         self.combotimes.extend(
             note.time if not note.ishold else max(note.time, note.time + note.holdTime - 0.2)
             for note in self.all_notes
             if not note.isFake
         )
+    
+    def getCombo(self, t: float):
+        l, r = 0, len(self.combotimes)
+        while l < r:
+            m = (l + r) // 2
+            if self.combotimes[m] <= t: l = m + 1
+            else: r = m
+        return l
 
 def load(data: str):
     def _unknow_type():
