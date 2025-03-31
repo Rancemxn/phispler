@@ -229,6 +229,11 @@ class Note(MemEq):
         self.ishold = self.type == const.NOTE_TYPE.HOLD
         self.isontime = False
         self.morebets = False
+        self.holdEndTime = self.time + self.holdTime
+        self.giveComboTime = self.time if not self.ishold else max(self.time, self.holdEndTime - 0.2)
+        
+        self.nowpos = (0.0, 0.0)
+        self.nowrotate = 0.0
     
     def init(self, master: JudgeLine):
         self.master = master
@@ -412,6 +417,8 @@ class CommonChart:
         self.all_notes = [j for i in self.lines for j in i.notes]
         self.all_notes.sort(key=lambda note: note.time)
         
+        self.playerNotes = [i for i in self.all_notes if not i.isFake]
+        
         for line in self.lines:
             line.init(self)
         
@@ -428,11 +435,7 @@ class CommonChart:
             last_note = note
     
     def initCombotimes(self):
-        self.combotimes.extend(
-            note.time if not note.ishold else max(note.time, note.time + note.holdTime - 0.2)
-            for note in self.all_notes
-            if not note.isFake
-        )
+        self.combotimes.extend(note.giveComboTime for note in self.all_notes if not note.isFake)
     
     def getCombo(self, t: float):
         l, r = 0, len(self.combotimes)
@@ -441,6 +444,24 @@ class CommonChart:
             if self.combotimes[m] <= t: l = m + 1
             else: r = m
         return l
+
+class PPLMProxy_CommonChart(tool_funcs.PPLM_ProxyBase):
+    def __init__(self, cobj: CommonChart): self.cobj = cobj
+    
+    def get_lines(self) -> list[JudgeLine]: return self.cobj.lines
+    def get_all_pnotes(self) -> list[Note]: return self.cobj.playerNotes
+    def remove_pnote(self, n: Note): self.cobj.playerNotes.remove(n)
+    
+    def nproxy_stime(self, n: Note): return n.time
+    def nproxy_etime(self, n: Note): return n.holdEndTime
+    def nproxy_hcetime(self, n: Note): return n.giveComboTime
+    
+    def nproxy_typein(self, n: Note, ts: tuple[int]): return n.type in ts
+    def nproxy_typeis(self, n: Note, t: int): return n.type == t
+    def nproxy_phitype(self, n: Note): return n.type
+    
+    def nproxy_nowpos(self, n: Note): return n.nowpos
+    def nproxy_nowrotate(self, n: Note) -> float: return n.nowrotate
 
 def load(data: str):
     def _unknow_type():
