@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 import const
 import rpe_easing
 import tool_funcs
+import chartobj_rpe
 
 type eventValueType = float|str|tuple[float, float, float]
 
@@ -150,6 +151,8 @@ class ChartFormat:
         result.type = ChartFormat.phi
         
         result.offset = data.get("offset", 0.0)
+        result.options.lineWidthUnit = (0.0, 5.76)
+        result.options.lineHeightUnit = (0.0, const.LINEWIDTH.PHI)
         
         for json_line in data.get("judgeLineList", []):
             json_line: dict
@@ -400,18 +403,23 @@ class CommonChartOptions:
     holdCoverAtHead: bool = True
     rpeVersion: int = -1
     
+    lineWidthUnit: tuple[float, float] = (0.0, 0.0)
+    lineHeightUnit: tuple[float, float] = (0.0, 0.0)
+    
     posConverter: typing.Callable[[tuple[float, float]], tuple[float, float]] = lambda pos: pos
 
 @dataclass
 class CommonChart:
     offset: float = 0.0
     lines: list[JudgeLine] = field(default_factory=list)
+    extra: typing.Optional[chartobj_rpe.Extra] = None
     
     options: CommonChartOptions = field(default_factory=CommonChartOptions)
     type: object = field(default=lambda: ChartFormat.unset)
     
     def __post_init__(self):
         self.combotimes = []
+        self.playingFloorPosition = 0.0
     
     def init(self):
         self.all_notes = [j for i in self.lines for j in i.notes]

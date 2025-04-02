@@ -1309,6 +1309,144 @@ def renderChart_Rpe(now_t: float, clear: bool = True, rjc: bool = True, pplm: ty
     
     return extasks
 
+def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm: typing.Optional[tool_funcs.PhigrosPlayLogicManager] = None):
+    import phichart
+    chart_obj: phichart.CommonChart = chart_obj
+    
+    extasks = []
+    
+    if clear:
+        clearCanvas(wait_execute=True)
+    
+    rrmStart()
+    drawDeepBgAndClipScreen()
+    drawBg()
+    
+    if noplaychart:
+        extasks.append(("break", ))
+    
+    attachUIData = {}
+    
+    now_t *= speed
+    now_t -= chart_obj.offset
+    
+    if chart_obj.extra is not None and chart_obj.extra.videos:
+        for video, progress in chart_obj.extra.getVideoEffect(now_t):
+            video_ratio = video.size[0] / video.size[1]
+            user_ratio = w / h
+            
+            match video.scale:
+                case "cropCenter":
+                    if video_ratio > user_ratio:
+                        video_size = (h * video_ratio, h)
+                    else:
+                        video_size = (w, w / video_ratio)
+                
+                case "inside":
+                    if video_ratio > user_ratio:
+                        video_size = (w, w / video_ratio)
+                    else:
+                        video_size = (h * video_ratio, h)
+                
+                case "fit":
+                    video_size = (w, h)
+                
+                case _:
+                    assert False, f"Unknown video scale: {video.scale}"
+            
+            video_pos = (
+                (w - video_size[0]) / 2,
+                (h - video_size[1]) / 2
+            )
+            root.wait_jspromise(f"setVideoTime({root.get_img_jsvarname(video.unqique_id)}, {progress});")
+            drawImage(
+                video.unqique_id,
+                *video_pos,
+                *video_size,
+                wait_execute = True
+            )
+    
+    noautoplay = pplm is not None
+    
+    if noautoplay:
+        pplm.mob_update(now_t)
+        pplm.pc_update(now_t)
+    
+    nowLineColor = (phira_respack.globalPack.perfectRGB if not noautoplay else pplm.ppps.getLineColor()) if FCAPIndicator else (255, 255, 255)
+    nowLineWidth, nowLineHeight = (
+        w * chart_obj.options.lineWidthUnit[0] + h * chart_obj.options.lineWidthUnit[1],
+        w * chart_obj.options.lineHeightUnit[0] + h * chart_obj.options.lineHeightUnit[1]
+    )
+    
+    for lineIndex, line in enumerate(chart_obj.lines):
+        (
+            linePos,
+            lineAlpha,
+            lineRotate,
+            
+            lineScaleX,
+            lineScaleY,
+            lineText,
+            lineColor
+        ) = line.getState(now_t, nowLineColor)
+        
+        linePos = (linePos[0] * w, linePos[1] * h)
+        lineDrawPos = (
+            *tool_funcs.rotate_point(*linePos, lineRotate, nowLineWidth / 2),
+            *tool_funcs.rotate_point(*linePos, lineRotate, -nowLineWidth / 2)
+        )
+        lineColor = (*((phira_respack.globalPack.perfectRGB if not noautoplay else pplm.ppps.getLineColor()) if FCAPIndicator else (255, 255, 255)), lineAlpha)
+        lineWebColor = f"rgba{lineColor}"
+        lineWidth = nowLineHeight * lineScaleY
+        
+        if line.isAttachUI:
+            if line.attachUI in ("combonumber", "combo", "score", "name", "level", "pause", "bar"): # cannot merge with above if statement
+                attachUIData.update({
+                    f"{line.attachUI}UI_dx": linePos[0] - w / 2,
+                    f"{line.attachUI}UI_dy": linePos[1] - h / 2,
+                    f"{line.attachUI}UI_scaleX": lineScaleX,
+                    f"{line.attachUI}UI_scaleY": lineScaleY,
+                    f"{line.attachUI}UI_color": lineWebColor,
+                    f"{line.attachUI}UI_rotate": lineRotate
+                })
+        elif lineAlpha > 0.0:
+            if line.isTextureLine:
+                ...
+            elif lineText is not None:
+                ...
+            elif tool_funcs.lineInScreen(w, h, lineDrawPos):
+                root.run_js_code(
+                    f"ctx.drawLineEx(\
+                        {",".join(map(str, lineDrawPos))},\
+                        {lineWidth},\
+                        '{lineWebColor}'\
+                    );",
+                    wait_execute = True,
+                    order = const.CHART_RENDER_ORDERS.LINE
+                )
+        
+        if debug:
+            drawDebugText(f"{lineIndex}", *linePos, lineRotate - 90, "rgba(255, 255, 170, 0.5)")
+                            
+            root.run_js_code(
+                f"ctx.fillRectEx(\
+                    {linePos[0] - (w + h) / 250},\
+                    {linePos[1] - (w + h) / 250},\
+                    {(w + h) / 250 * 2},\
+                    {(w + h) / 250 * 2},\
+                    'rgb(238, 130, 238)'\
+                );",
+                wait_execute = True,
+                order = const.CHART_RENDER_ORDERS.DEBUG
+            )
+        
+        line.playingFloorPosition = line.getFloorPosition(now_t)
+        
+        for notesChildren in ...:
+            ...
+    
+    root.run_jscode_orders()
+        
 def doShader(
     name: str,
     values: dict,
