@@ -1528,11 +1528,11 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                     if not note.ishold
                     else tool_funcs.noteCanRender(w, h, -1, x, y, holdrect)
                 ) and now_t >= 0.0 and (
-                    note.visibleTime is not None and
+                    note.visibleTime is None or
                     note.time - now_t <= note.visibleTime
                 )
                 
-                if noteCanRender or 1:
+                if noteCanRender:
                     noteRotate = lineRotate + note.rotate_add
                     noteHeight = noteWidth / noteImg.width * noteImg.height
                     
