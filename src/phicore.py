@@ -1708,11 +1708,15 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
             ) + 0.2 < now_t:
                 line.effectNotes.remove(note)
     
+    if chart_obj.extra is not None:
+        extra_values = chart_obj.extra.getShaderEffect(now_t, False)
+        for name, values in extra_values:
+            doShader(name, values)
+            
     if enableMirror:
         root.run_js_code("ctx.mirror();", wait_execute=True)
         
     combo = chart_obj.getCombo(now_t) if not noautoplay else pplm.ppps.getCombo()
-    now_t /= speed
     draw_ui(
         process = now_t / audio_length,
         score = stringifyScore((combo * (1000000 / chart_obj.note_num)) if chart_obj.note_num != 0 else 1000000) if not noautoplay else stringifyScore(pplm.ppps.getScore()),
@@ -1720,9 +1724,18 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
         combo = combo,
         acc = "100.00%" if not noautoplay else f"{(pplm.ppps.getAcc() * 100):>05.2f}%",
         clear = False,
-        background = False
+        background = False,
+        **delDrawuiDefaultVals(attachUIData)
     )
     undoClipScreen()
+    
+    if chart_obj.extra is not None:
+        extra_values = chart_obj.extra.getShaderEffect(now_t, True)
+        for name, values in extra_values:
+            doShader(name, values)
+    
+    now_t /= speed
+    now_t += chart_obj.offset
     
     rrmEnd()
     
