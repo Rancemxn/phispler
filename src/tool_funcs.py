@@ -11,7 +11,7 @@ from os import environ, popen
 from os.path import isfile
 from dataclasses import dataclass
 
-from PIL import Image, ImageDraw
+from PIL import Image
 
 import const
 import rpe_easing
