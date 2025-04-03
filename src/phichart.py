@@ -564,8 +564,8 @@ class JudgeLine(MemEq):
             note.init(self)
         
         self.renderNotes = split_notes(self.notes)
-        self.effectNotes = self.notes.copy()
-    
+        self.effectNotes = [i for i in self.notes if not i.isFake]
+        
     def getFloorPosition(self, t: float):
         fp = 0.0
         
