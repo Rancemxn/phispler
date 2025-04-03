@@ -1431,9 +1431,172 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
         
         line.playingFloorPosition = line.getFloorPosition(now_t)
         
-        # for notesChildren in ...:
-        #     ...
-    
+        for notesChildren in line.renderNotes.copy():
+            for note in notesChildren.copy():
+                note_isontime = note.time < now_t
+                
+                if note_isontime and not note.isontime:
+                    note.isontime = True
+                    if enable_clicksound and not note.isFake and not noautoplay:
+                        extasks.append(("psound", note.hitsound_reskey))
+                
+                if not note.ishold and note.isontime:
+                    notesChildren.remove(note)
+                    continue
+                elif note.ishold and note.holdEndTime < now_t:
+                    notesChildren.remove(note)
+                    continue
+                elif noautoplay and note.state == const.NOTE_STATE.BAD:
+                    notesChildren.remove(note)
+                    continue
+                elif noautoplay and not note.ishold and note.player_clicked:
+                    notesChildren.remove(note)
+                    continue
+                
+                noteFloorPosition = (
+                    (note.floorPosition - (
+                        line.playingFloorPosition
+                        if not (chart_obj.options.holdIndependentSpeed and note.ishold and note.isontime) else
+                        (note.floorPosition + tool_funcs.linear_interpolation(
+                            now_t, note.time, note.holdEndTime, 0.0, note.holdLength
+                        ))
+                    ))
+                    * h * (
+                        note.speed 
+                        if not (note.ishold and chart_obj.options.holdIndependentSpeed) else
+                        1.0
+                    )
+                    + note.yOffset * h
+                )
+                
+                if line.enableCover and noteFloorPosition < const.FLOAT_LESSZERO_MAGIC and not note.isontime:
+                    if not note.ishold or (note.ishold and chart_obj.options.holdCoverAtHead):
+                        notesChildren.remove(note)
+                        continue
+
+                noteAtLinePos = tool_funcs.rotate_point(*linePos, lineRotate, note.positionX * w)
+                lineToNoteRotate = lineRotate + (-90 if note.isAbove else 90)
+                x, y = tool_funcs.rotate_point(*noteAtLinePos, lineToNoteRotate, noteFloorPosition)
+                
+                noteAlpha = note.alpha
+                noteWidthX = note.width
+                
+                note.nowpos = (x / w, y / h)
+                note.nowrotate = lineToNoteRotate + 90
+                
+                noteImg = Resource["Notes"][note.img_keyname]
+                noteWidth = globalNoteWidth * (phira_respack.globalPack.dub_fixscale if note.morebets else 1.0)
+                noteHadHead = not (note.ishold and note.isontime) or phira_respack.globalPack.holdKeepHead
+                
+                if note.ishold:
+                    noteEndImg = Resource["Notes"][note.img_end_keyname]
+                    holdLength = note.holdLength * h * note.speed
+                    holdEndFloorPosition = noteFloorPosition + holdLength
+                    bodyLength = holdEndFloorPosition if note.isontime else holdLength
+                    
+                    if not chart_obj.options.holdCoverAtHead and line.enableCover and holdEndFloorPosition < 0:
+                        continue
+                    
+                    headpos, bodypos, endpos, holdrect = getHoldDrawPosition(
+                        *(noteAtLinePos if note.isontime else (x, y)),
+                        noteWidth, bodyLength,
+                        noteImg, noteEndImg,
+                        lineToNoteRotate,
+                        noteHadHead
+                    )
+                
+                if noteFloorPosition > note_max_size_half:
+                    nlOutOfScreen_nohold = tool_funcs.noteLineOutOfScreen(
+                        x, y, noteAtLinePos,
+                        noteFloorPosition,
+                        lineRotate, nowLineWidth,
+                        lineToNoteRotate,
+                        w, h, note_max_size_half
+                    )
+                    
+                    nlOutOfScreen_hold = True if not note.ishold else tool_funcs.noteLineOutOfScreen(
+                        x, y, noteAtLinePos,
+                        holdEndFloorPosition, lineRotate, nowLineWidth,
+                        lineToNoteRotate, w, h, note_max_size_half
+                    )
+                    
+                    if nlOutOfScreen_nohold and nlOutOfScreen_hold:
+                        break
+                
+                noteCanRender = (
+                    tool_funcs.noteCanRender(w, h, note_max_size_half, x, y)
+                    if not note.ishold
+                    else tool_funcs.noteCanRender(w, h, -1, x, y, holdrect)
+                ) and now_t >= 0.0 and (
+                    note.visibleTime is not None and
+                    note.time - now_t <= note.visibleTime
+                )
+                
+                if noteCanRender or 1:
+                    noteRotate = lineRotate + note.rotate_add
+                    noteHeight = noteWidth / noteImg.width * noteImg.height
+                    
+                    if noteHadHead:
+                        setOrder(note.draworder)
+                        drawRotateImage(
+                            note.imgname,
+                            *(headpos if note.ishold else (x, y)),
+                            noteWidth * noteWidthX,
+                            noteHeight,
+                            noteRotate,
+                            noteAlpha,
+                            wait_execute = True
+                        )
+                        setOrder(None)
+                    
+                    if note.ishold:
+                        noteEndHeight = noteWidth / noteEndImg.width * noteEndImg.height
+                        missAlpha = 0.5 if noautoplay and note.player_missed else 1.0
+                        
+                        setOrder(note.draworder)
+                        drawRotateImage(
+                            note.imgname_end,
+                            *endpos,
+                            noteWidth * noteWidthX,
+                            noteEndHeight,
+                            noteRotate,
+                            missAlpha * missAlpha,
+                            wait_execute = True
+                        )
+                        setOrder(None)
+                        
+                        if bodyLength > 0.0:
+                            root.run_js_code(
+                                f"ctx.drawAnchorESRotateImage(\
+                                    {root.get_img_jsvarname(note.imgname_body)},\
+                                    {bodypos[0]}, {bodypos[1]},\
+                                    {noteWidth * noteWidthX},\
+                                    {bodyLength},\
+                                    {noteRotate},\
+                                    {noteAlpha * missAlpha}\
+                                );",
+                                wait_execute = True,
+                                order = note.draworder
+                            )
+                    
+                    if debug:
+                        drawDebugText(f"{line.index}+{note.master_index}", x, y, lineToNoteRotate, "rgba(0, 255, 255, 0.5)")
+                        
+                        root.run_js_code(
+                            f"ctx.fillRectEx(\
+                                {x - (w + h) / 250},\
+                                {y - (w + h) / 250},\
+                                {(w + h) / 250 * 2},\
+                                {(w + h) / 250 * 2},\
+                                'rgb(0, 255, 0)'\
+                            );",
+                            wait_execute = True,
+                            order = const.CHART_RENDER_ORDERS.DEBUG
+                        )
+        
+            if not notesChildren:
+                line.renderNotes.remove(notesChildren)
+
     root.run_jscode_orders()
     
     if rjc:

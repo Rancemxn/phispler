@@ -154,26 +154,29 @@ class ChartFormat:
         result.options.lineWidthUnit = (0.0, 5.76)
         result.options.lineHeightUnit = (0.0, const.LINEWIDTH.PHI)
         
-        for json_line in data.get("judgeLineList", []):
+        for line_i, json_line in enumerate(data.get("judgeLineList", [])):
             json_line: dict
             
             line = JudgeLine()
+            line.index = line_i
             
-            for json_note in json_line.get("notesAbove", []):
+            for i, json_note in enumerate(json_line.get("notesAbove", [])):
                 _put_note(
                     json_line = json_line,
                     line = line,
                     json_note = json_note,
                     isAbove = True
                 )
+                line.notes[-1].master_index = i
             
-            for json_note in json_line.get("notesBelow", []):
+            for i, json_note in enumerate(json_line.get("notesBelow", [])):
                 _put_note(
                     json_line = json_line,
                     line = line,
                     json_note = json_note,
                     isAbove = False
                 )
+                line.notes[-1].master_index = i
             
             if formatVersion == 1:
                 for json_e in json_line.get("judgeLineMoveEvents", []):
@@ -235,14 +238,40 @@ class Note(MemEq):
         self.holdEndTime = self.time + self.holdTime
         self.giveComboTime = self.time if not self.ishold else max(self.time, self.holdEndTime - 0.2)
         self.hitsound_reskey = self.type if self.hitsound is None else hash(tuple(map(ord, self.hitsound)))
+        self.type_string = const.TYPE_STRING_MAP[self.type]
+        self.rotate_add = 0 if self.isAbove else 180
+        self.draworder = const.NOTE_RORDER_MAP[self.type]
         
+        self.master_index = -1
         self.nowpos = (0.0, 0.0)
         self.nowrotate = 0.0
+        
+        self.state = const.NOTE_STATE.MISS
+        self.player_clicked = False
+        self.player_missed = False
     
     def init(self, master: JudgeLine):
         self.master = master
         self.floorPosition = self.master.getFloorPosition(self.time)
-        self.holdLength = self.master.getRangeFloorPosition(self.time, self.time + self.holdTime) if self.ishold else 0.0
+        self.holdLength = (
+            self.master.getRangeFloorPosition(self.time, self.time + self.holdTime)
+            if not self.master.master.options.holdIndependentSpeed
+            else self.holdTime * self.speed
+        ) if self.ishold else 0.0
+        
+        dub_text = "_dub" if self.morebets else ""
+        if not self.ishold:
+            self.img_keyname = f"{self.type_string}{dub_text}"
+            self.imgname = f"Note_{self.img_keyname}"
+        else:
+            self.img_keyname = f"{self.type_string}_Head{dub_text}"
+            self.imgname = f"Note_{self.img_keyname}"
+            
+            self.img_body_keyname = f"{self.type_string}_Body{dub_text}"
+            self.imgname_body = f"Note_{self.img_body_keyname}"
+            
+            self.img_end_keyname = f"{self.type_string}_End{dub_text}"
+            self.imgname_end = f"Note_{self.img_end_keyname}"
 
 @dataclass
 class LineEvent(MemEq):
@@ -316,6 +345,7 @@ class JudgeLine(MemEq):
     
     def __post_init__(self):
         self.playingFloorPosition = 0.0
+        self.index = -1
     
     def init(self, master: CommonChart):
         self.master = master
@@ -330,6 +360,8 @@ class JudgeLine(MemEq):
         
         for note in self.notes:
             note.init(self)
+        
+        self.renderNotes = split_notes(self.notes)
     
     def getFloorPosition(self, t: float):
         fp = 0.0
