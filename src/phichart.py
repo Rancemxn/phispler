@@ -314,6 +314,9 @@ class JudgeLine(MemEq):
     
     enableCover: bool = True
     
+    def __post_init__(self):
+        self.playingFloorPosition = 0.0
+    
     def init(self, master: CommonChart):
         self.master = master
         
@@ -430,7 +433,6 @@ class CommonChart:
     
     def __post_init__(self):
         self.combotimes = []
-        self.playingFloorPosition = 0.0
     
     def init(self):
         self.all_notes = [j for i in self.lines for j in i.notes]

@@ -1302,9 +1302,6 @@ def renderChart_Rpe(now_t: float, clear: bool = True, rjc: bool = True, pplm: ty
     return extasks
 
 def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm: typing.Optional[tool_funcs.PhigrosPlayLogicManager] = None):
-    import phichart
-    chart_obj: phichart.CommonChart = chart_obj
-    
     extasks = []
     
     if clear:

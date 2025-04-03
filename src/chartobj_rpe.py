@@ -412,7 +412,6 @@ class JudgeLine:
     
     master: typing.Optional[Chart] = None
     index: int = -1
-    playingFloorPosition: float = 0.0
     textureSize: tuple[int|float, int|float] = (0.0, 0.0)
     effectNotes: typing.Optional[list[Note]] = None
     renderNotes: typing.Optional[list[list[Note]]] = None
