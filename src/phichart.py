@@ -291,6 +291,8 @@ class ChartFormat:
                 line.isAttachUI = True
                 line.attachUI = attachUI
             
+            line.father = json_line.get("father", -1)
+            
             for bpm_json in data.get("BPMList", []):
                 bpm_json: dict
                 
@@ -541,12 +543,17 @@ class JudgeLine(MemEq):
         self.playingFloorPosition = 0.0
         self.index = -1
     
-    def init(self, master: CommonChart):
+    def preinit(self, master: CommonChart):
         self.master = master
-        self.notes.sort(key=lambda note: note.time)
+        
+        if self.father == -1:
+            self.father = None
         
         if self.father is not None:
             self.father = master.lines[self.father]
+            
+    def init(self):
+        self.notes.sort(key=lambda note: note.time)
         
         for el in self.eventLayers:
             el.init()
@@ -730,7 +737,10 @@ class CommonChart:
         self.initCombotimes()
         
         for line in self.lines:
-            line.init(self)
+            line.preinit(self)
+        
+        for line in self.lines:
+            line.init()
     
     def checkMorebets(self):
         last_note = None

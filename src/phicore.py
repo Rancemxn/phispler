@@ -1381,8 +1381,8 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
         
         linePos = (linePos[0] * w, linePos[1] * h)
         lineDrawPos = (
-            *tool_funcs.rotate_point(*linePos, lineRotate, nowLineWidth / 2),
-            *tool_funcs.rotate_point(*linePos, lineRotate, -nowLineWidth / 2)
+            *tool_funcs.rotate_point(*linePos, lineRotate, nowLineWidth / 2 * lineScaleX),
+            *tool_funcs.rotate_point(*linePos, lineRotate, -nowLineWidth / 2 * lineScaleX)
         )
         lineWebColor = f"rgba{(*lineColor, lineAlpha)}"
         lineWidth = nowLineHeight * lineScaleY
