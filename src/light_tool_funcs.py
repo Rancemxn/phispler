@@ -193,16 +193,10 @@ def runByThread(f, needjoin: bool = False):
         if needjoin: t.join()
     return wrapper
 
-def conrpepos(x: float, y: float):
+def conrpepos(pos: tuple[float, float]):
     return (
-        (x + const.RPE_WIDTH / 2) / const.RPE_WIDTH,
-        1.0 - (y + const.RPE_HEIGHT / 2) / const.RPE_HEIGHT
-    )
-
-def aconrpepos(x: float, y: float):
-    return (
-        x * const.RPE_WIDTH - const.RPE_WIDTH / 2,
-        (1.0 - y) * const.RPE_HEIGHT - const.RPE_HEIGHT / 2
+        (pos[0] + const.RPE_WIDTH / 2) / const.RPE_WIDTH,
+        1.0 - (pos[1] + const.RPE_HEIGHT / 2) / const.RPE_HEIGHT
     )
         
 def Format_Time(t: int|float) -> str:

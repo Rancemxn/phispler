@@ -92,7 +92,7 @@ class ChartFormat:
     
     notetype_map: dict[object, dict[int, int]] = {
         phi: {1: 1, 2: 2, 3: 3, 4: 4}, # standard
-        rpe: ...
+        rpe: {1: 1, 2: 3, 3: 4, 4: 2}
     }
     
     @staticmethod
@@ -198,8 +198,96 @@ class ChartFormat:
     
     @staticmethod
     def load_rpe(data: dict):
-        result = CommonChart()
+        def _beat2num(beat: list[int, int, int]):
+            return beat[0] + beat[1] / beat[2]
         
+        def _beat2sec(line: JudgeLine, beat: list[int, int, int]):
+            return line.beat2sec(_beat2num(beat))
+        
+        def _pos_coverter_x(x: float):
+            return (x + const.RPE_WIDTH / 2) / const.RPE_WIDTH
+        
+        def _pos_coverter_y(y: float):
+            return 1.0 - (y + const.RPE_HEIGHT / 2) / const.RPE_HEIGHT
+        
+        rpe_meta = data.get("META", {})
+        
+        result = CommonChart()
+        result.type = ChartFormat.rpe
+        
+        result.offset = rpe_meta.get("offset", 0.0)
+        
+        result.options.alwaysLineOpenAnimation = False
+        result.options.holdCoverAtHead = False
+        result.options.holdIndependentSpeed = False
+        result.options.posConverter = tool_funcs.conrpepos
+        
+        result.options.lineWidthUnit = (0.0, 4000 / 1350)
+        result.options.lineHeightUnit = (0.0, const.LINEWIDTH.RPE)
+        
+        def _put_events(es: list[LineEvent], json_es: list[dict], converter: typing.Callable[[eventValueType], eventValueType], default: eventValueType = 0.0):
+            for json_e in json_es:
+                if not isinstance(json_e, dict):
+                    logging.warning(f"Unsupported event type: {type(json_e)}")
+                    continue
+
+                es.append(LineEvent(
+                    startTime = _beat2sec(line, json_e.get("startTime", [0, 0, 1])),
+                    endTime = _beat2sec(line, json_e.get("endTime", [0, 0, 1])),
+                    start = converter(json_e.get("start", default)),
+                    end = converter(json_e.get("end", default)),
+                ))
+
+        for line_i, json_line in enumerate(data.get("judgeLineList", [])):
+            json_line: dict
+
+            line = JudgeLine()
+            line.index = line_i
+            
+            for bpm_json in data.get("BPMList", []):
+                bpm_json: dict
+                
+                line.bpms.append(BPMEvent(
+                    _beat2num(bpm_json.get("startTime", [0, 0, 1])),
+                    bpm_json.get("bpm", 140.0) / json_line.get("bpmfactor", 1.0)
+                ))
+            
+            for i, json_note in enumerate(json_line.get("notes", [])):
+                if not isinstance(json_note, dict):
+                    logging.warning(f"Unsupported note type: {type(json_note)}")
+                    continue
+                
+                note_type = ChartFormat.notetype_map[result.type].get(json_note.get("type", 1), const.NOTE_TYPE.TAP)
+                note_start_time = _beat2sec(line, json_note.get("startTime", [0, 0, 1]))
+                note_end_time = _beat2sec(line, json_note.get("endTime", [0, 0, 1]))
+                
+                note = Note(
+                    type = note_type,
+                    time = note_start_time,
+                    holdTime = note_start_time - note_end_time,
+                    positionX = _pos_coverter_x(json_note.get("positionX", 0.0)),
+                    speed = json_note.get("speed", 1.0),
+                    isAbove = json_note.get("above", 1) == 1
+                )
+                
+                note.master_index = i
+                line.notes.append(note)
+            
+            for el_json in json_line.get("eventLayers", []):
+                if el_json is None:
+                    continue
+                
+                el_json: dict
+                elayer = EventLayerItem()
+                _put_events(elayer.alphaEvents, el_json.get("alphaEvents", []), lambda a: a / 255.0)
+                _put_events(elayer.moveXEvents, el_json.get("moveXEvents", []), _pos_coverter_x)
+                _put_events(elayer.moveYEvents, el_json.get("moveYEvents", []), _pos_coverter_y)
+                _put_events(elayer.rotateEvents, el_json.get("rotateEvents", []), lambda r: r)
+                _put_events(elayer.speedEvents, el_json.get("speedEvents", []), _pos_coverter_y)
+                line.eventLayers.append(elayer)
+            
+            result.lines.append(line)
+
         result.init()
         return result
     
