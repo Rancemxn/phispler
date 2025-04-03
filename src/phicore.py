@@ -1431,10 +1431,15 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
         
         line.playingFloorPosition = line.getFloorPosition(now_t)
         
-        for notesChildren in ...:
-            ...
+        # for notesChildren in ...:
+        #     ...
     
     root.run_jscode_orders()
+    
+    if rjc:
+        root.run_js_wait_code()
+    
+    return extasks
         
 def doShader(
     name: str,
@@ -1790,11 +1795,9 @@ def lineOpenAnimation(fcb: typing.Callable[[], typing.Any] = lambda: None):
         
     showLine = False
     
-    lineWidth = w * chart_obj.options.lineWidthUnit[0] + h * chart_obj.options.lineWidthUnit[1]
+    lineHeight = w * chart_obj.options.lineHeightUnit[0] + h * chart_obj.options.lineHeightUnit[1]
 
     if not chart_obj.options.alwaysLineOpenAnimation:
-        lineWidth = const.LINEWIDTH.RPE
-        
         for line in chart_obj.lines:
             (
                 linePos,
@@ -1837,7 +1840,7 @@ def lineOpenAnimation(fcb: typing.Callable[[], typing.Any] = lambda: None):
                 w / 2 - (val * w / 2), h / 2,
                 w / 2 + (val * w / 2), h / 2,
                 strokeStyle = const.JUDGELINE_PERFECT_COLOR if FCAPIndicator else "rgb(255, 255, 255)",
-                lineWidth = lineWidth / render_range_more_scale if render_range_more else lineWidth,
+                lineWidth = lineHeight / render_range_more_scale if render_range_more else lineHeight,
                 wait_execute = True
             )
         
