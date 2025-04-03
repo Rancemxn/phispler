@@ -1471,7 +1471,6 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                 
                 if line.enableCover and noteFloorPosition < const.FLOAT_LESSZERO_MAGIC and not note.isontime:
                     if not note.ishold or (note.ishold and chart_obj.options.holdCoverAtHead):
-                        notesChildren.remove(note)
                         continue
 
                 noteAtLinePos = tool_funcs.rotate_point(*linePos, lineRotate, note.positionX * w)

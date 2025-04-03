@@ -26,7 +26,7 @@ def _init_events(es: list[LineEvent], *, is_speed: bool = False):
                     startTime = e.endTime,
                     endTime = ne.startTime,
                     start = e.end,
-                    end = ne.start,
+                    end = e.end,
                     isFill = True
                 ))
             elif e.endTime > ne.startTime:
@@ -221,7 +221,7 @@ class ChartFormat:
         result = CommonChart()
         result.type = ChartFormat.rpe
         
-        result.offset = rpe_meta.get("offset", 0.0)
+        result.offset = rpe_meta.get("offset", 0.0) / 1000
         
         result.options.alwaysLineOpenAnimation = False
         result.options.holdCoverAtHead = False
