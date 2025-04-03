@@ -158,6 +158,7 @@ class ChartFormat:
             
             line = JudgeLine()
             line.index = line_i
+            line.bpms.append(BPMEvent(0.0, json_line.get("bpm", 140.0)))
             
             for i, json_note in enumerate(json_line.get("notesAbove", [])):
                 _put_note(
@@ -327,7 +328,13 @@ class ExtendEventsItem(MemEq):
         _init_events(self.gifEvents, is_speed=True)
 
 @dataclass
+class BPMEvent(MemEq):
+    time: float
+    bpm: float
+
+@dataclass
 class JudgeLine(MemEq):
+    bpms: list[BPMEvent] = field(default_factory=list)
     notes: list[Note] = field(default_factory=list)
     eventLayers: list[EventLayerItem] = field(default_factory=list)
     extendEvents: ExtendEventsItem = field(default_factory=ExtendEventsItem)
