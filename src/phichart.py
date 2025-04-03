@@ -81,7 +81,7 @@ def split_notes(notes: list[Note]) -> list[list[Note]]:
         if h not in tempmap: tempmap[h] = []
         tempmap[h].append(n)
     
-    return list(map(lambda notes: sorted(notes, key = lambda n: n.time), tempmap.values()))
+    return list(tempmap.values())
 
 class ChartFormat:
     unset = object()
@@ -508,6 +508,7 @@ class JudgeLine(MemEq):
     
     def init(self, master: CommonChart):
         self.master = master
+        self.notes.sort(key=lambda note: note.time)
         
         if self.father is not None:
             self.father = master.lines[self.father]
