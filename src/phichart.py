@@ -439,6 +439,47 @@ class JudgeLine(MemEq):
             lineText,
             lineColor
         )
+    
+    def sec2beat(self, t: float):
+        if len(self.bpms) == 1:
+            return t / (60 / self.bpms[0].bpm)
+        
+        beat = 0.0
+        for i, e in enumerate(self.bpms):
+            if i != len(self.bpms) - 1:
+                et_beat = self.bpms[i + 1].time - e.time
+                et_sec = et_beat * (60 / e.bpm)
+                
+                if t >= et_sec:
+                    brat += et_beat
+                    t -= et_sec
+                else:
+                    beat += t / (60 / e.bpm)
+                    break
+            else:
+                beat += t / (60 / e.bpm)
+        
+        return beat
+    
+    def beat2sec(self, t: float):
+        if len(self.bpms) == 1:
+            return t * (60 / self.bpms[0].bpm)
+
+        sec = 0.0
+        for i, e in enumerate(self.bpms):
+            if i != len(self.bpms) - 1:
+                et_beat = self.bpms[i + 1].time - e.time
+                
+                if t >= et_beat:
+                    sec += et_beat * (60 / e.bpm)
+                    t -= et_beat
+                else:
+                    sec += t * (60 / e.bpm)
+                    break
+            else:
+                sec += t * (60 / e.bpm)
+
+        return sec
 
 @dataclass
 class CommonChartOptions:
