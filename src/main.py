@@ -335,7 +335,7 @@ def loadResource():
         for line in chart_obj.lines:
             if not line.isTextureLine: continue
             if not line.isGifLine:
-                paths = [ # fuck charters
+                paths = [
                     f"{temp_dir}/{line.texture}",
                     f"{temp_dir}/{line.texture}.png",
                     f"{temp_dir}/{line.texture}.jpg",
@@ -346,13 +346,13 @@ def loadResource():
                     if tool_funcs.fileinlist(p, imfns):
                         texture_index = tool_funcs.findfileinlist(p, imfns)
                         texture: Image.Image = imobjs[texture_index]
-                        chart_res[line.Texture] = (texture.convert("RGBA"), texture.size)
+                        chart_res[line.texture] = (texture.convert("RGBA"), texture.size)
                         logging.info(f"Loaded line texture {line.texture}")
                         break
                 else:
                     logging.warning(f"Cannot find texture {line.texture}")
                     texture = Image.new("RGBA", (4, 4), (0, 0, 0, 0))
-                    chart_res[line.Texture] = (texture, texture.size)
+                    chart_res[line.texture] = (texture, texture.size)
                     
                 respacker.reg_img(chart_res[line.texture][0], f"lineTexture_{chart_obj.lines.index(line)}")
             else:

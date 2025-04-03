@@ -231,6 +231,14 @@ class ChartFormat:
         result.options.lineWidthUnit = (4000 / 1350, 0.0)
         result.options.lineHeightUnit = (0.0, const.LINEWIDTH.RPE)
         
+        result.options.res_ext_song = rpe_meta.get("song", "")
+        result.options.res_ext_background = rpe_meta.get("background", "")
+        
+        result.options.meta_ext_name = rpe_meta.get("name", "UK")
+        result.options.meta_ext_composer = rpe_meta.get("composer", "UK")
+        result.options.meta_ext_level = rpe_meta.get("level", "UK")
+        result.options.meta_ext_charter = rpe_meta.get("charter", "UK")
+        
         def _geteasing_func(t: int):
             try:
                 if not isinstance(t, int): t = 1
@@ -269,6 +277,19 @@ class ChartFormat:
 
             line = JudgeLine()
             line.index = line_i
+            
+            texture = json_line.get("Texture", "line.png")
+            if texture != "line.png":
+                line.isTextureLine = True
+                line.texture = texture
+            
+            if json_line.get("isGif", False):
+                line.isGifLine = True
+            
+            attachUI = json_line.get("attachUI", None)
+            if attachUI is not None:
+                line.isAttachUI = True
+                line.attachUI = attachUI
             
             for bpm_json in data.get("BPMList", []):
                 bpm_json: dict
