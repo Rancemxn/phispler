@@ -204,11 +204,17 @@ class ChartFormat:
         def _beat2sec(line: JudgeLine, beat: list[int, int, int]):
             return line.beat2sec(_beat2num(beat))
         
-        def _pos_coverter_x(x: float):
+        def _pos_converter_x(x: float):
             return (x + const.RPE_WIDTH / 2) / const.RPE_WIDTH
         
-        def _pos_coverter_y(y: float):
+        def _pos_converter_y(y: float):
             return 1.0 - (y + const.RPE_HEIGHT / 2) / const.RPE_HEIGHT
+        
+        def _converter_x(x: float):
+            return x / const.RPE_WIDTH
+
+        def _converter_y(y: float):
+            return y / const.RPE_HEIGHT
         
         rpe_meta = data.get("META", {})
         
@@ -222,7 +228,7 @@ class ChartFormat:
         result.options.holdIndependentSpeed = False
         result.options.posConverter = tool_funcs.conrpepos
         
-        result.options.lineWidthUnit = (0.0, 4000 / 1350)
+        result.options.lineWidthUnit = (4000 / 1350, 0.0)
         result.options.lineHeightUnit = (0.0, const.LINEWIDTH.RPE)
         
         def _geteasing_func(t: int):
@@ -234,7 +240,7 @@ class ChartFormat:
                 logging.warning(f"geteasing_func error: {e}")
                 return rpe_easing.ease_funcs[0]
     
-        def _put_events(es: list[LineEvent], json_es: list[dict], converter: typing.Callable[[eventValueType], eventValueType], default: eventValueType = 0.0):
+        def _put_events(es: list[LineEvent], json_es: list[dict], converter: typing.Callable[[eventValueType], eventValueType] = lambda x: x, default: eventValueType = 0.0):
             for json_e in json_es:
                 if not isinstance(json_e, dict):
                     logging.warning(f"Unsupported event type: {type(json_e)}")
@@ -285,7 +291,7 @@ class ChartFormat:
                     type = note_type,
                     time = note_start_time,
                     holdTime = note_start_time - note_end_time,
-                    positionX = _pos_coverter_x(json_note.get("positionX", 0.0)),
+                    positionX = _converter_x(json_note.get("positionX", 0.0)),
                     speed = json_note.get("speed", 1.0),
                     isAbove = json_note.get("above", 1) == 1
                 )
@@ -300,10 +306,10 @@ class ChartFormat:
                 el_json: dict
                 elayer = EventLayerItem()
                 _put_events(elayer.alphaEvents, el_json.get("alphaEvents", []), lambda a: a / 255.0)
-                _put_events(elayer.moveXEvents, el_json.get("moveXEvents", []), _pos_coverter_x)
-                _put_events(elayer.moveYEvents, el_json.get("moveYEvents", []), _pos_coverter_y)
-                _put_events(elayer.rotateEvents, el_json.get("rotateEvents", []), lambda r: r)
-                _put_events(elayer.speedEvents, el_json.get("speedEvents", []), _pos_coverter_y)
+                _put_events(elayer.moveXEvents, el_json.get("moveXEvents", []))
+                _put_events(elayer.moveYEvents, el_json.get("moveYEvents", []))
+                _put_events(elayer.rotateEvents, el_json.get("rotateEvents", []))
+                _put_events(elayer.speedEvents, el_json.get("speedEvents", []), lambda x: x * 120 / const.RPE_HEIGHT)
                 line.eventLayers.append(elayer)
             
             result.lines.append(line)
