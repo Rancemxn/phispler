@@ -37,6 +37,7 @@ import tempdir
 import socket_webviewbridge
 import wcv2matlike
 import needrelease
+import phichart
 from dxsmixer import mixer
 from exitfunc import exitfunc
 from graplib_webview import *
@@ -173,14 +174,6 @@ chart_index = file_loader.choosefile(
 )
 chart_fp, chart_json = files_dict["charts"][chart_index]
 
-if "formatVersion" in chart_json:
-    CHART_TYPE = const.CHART_TYPE.PHI
-elif "META" in chart_json:
-    CHART_TYPE = const.CHART_TYPE.RPE
-else:
-    logging.fatal("This is what format chart ???")
-    raise SystemExit
-
 if exists(f"{temp_dir}/extra.json"):
     try:
         logging.info("found extra.json, loading...")
@@ -192,31 +185,30 @@ if exists(f"{temp_dir}/extra.json"):
 if "extra" not in globals():
     extra = chartfuncs_rpe.loadExtra({})
     
+chart_obj = phichart.load(chart_json)
 def loadChartObject(first: bool = False):
     global chart_obj
+    chart_obj = phichart.load(chart_json)
     
-    if CHART_TYPE == const.CHART_TYPE.PHI:
-        chart_obj = chartfuncs_phi.loadChartObject(chart_json)
-    elif CHART_TYPE == const.CHART_TYPE.RPE:
-        chart_obj = chartfuncs_rpe.loadChartObject(chart_json)
-        
-        chart_obj.META.RPEVersion = (
+    if chart_obj.is_rpe():
+        chart_obj.options.rpeVersion = (
             sys.argv[sys.argv.index("--rpeversion") + 1]
             if "--rpeversion" in sys.argv
-            else chart_obj.META.RPEVersion
+            else chart_obj.options.rpeVersion
         )
+        
         chart_obj.extra = extra
-        chart_obj.extra.bpm = chart_obj.BPMList.copy() # ?
-    
+        # chart_obj.extra.bpm = chart_obj.BPMList.copy() # ?
+        
     if not first:
         updateCoreConfig()
-        
+
 loadChartObject(True)
 
 cimg_index = file_loader.choosefile(
     fns = map(lambda x: x[0], files_dict["images"]),
     prompt = "请选择背景图片: ", rawprocer = cfrfp_procer,
-    default = chart_obj.META.background if CHART_TYPE == const.CHART_TYPE.RPE else None
+    default = chart_obj.options.res_ext_background if chart_obj.is_rpe() else None
 )
 cimg_fp, chart_image = files_dict["images"][cimg_index]
 chart_image = chart_image.convert("RGB")
@@ -224,7 +216,7 @@ chart_image = chart_image.convert("RGB")
 audio_index = file_loader.choosefile(
     fns = files_dict["audio"],
     prompt = "请选择音频文件: ", rawprocer = cfrfp_procer,
-    default = chart_obj.META.song if CHART_TYPE == const.CHART_TYPE.RPE else None
+    default = chart_obj.options.res_ext_song if chart_obj.is_rpe() else None
 )
 audio_fp = files_dict["audio"][audio_index]
 
@@ -240,18 +232,18 @@ if speed != 1.0:
 
 mixer.music.load(audio_fp)
 raw_audio_length = mixer.music.get_length()
-audio_length = raw_audio_length + (chart_obj.META.offset / 1000 if CHART_TYPE == const.CHART_TYPE.RPE else chart_obj.offset)
+audio_length = raw_audio_length + chart_obj.offset
 all_inforamtion = {}
 logging.info("Loading Chart Information...")
 
 ChartInfoLoader = info_loader.InfoLoader([f"{temp_dir}/info.csv", f"{temp_dir}/info.txt", f"{temp_dir}/info.yml"])
 chart_information = ChartInfoLoader.get(basename(chart_fp), basename(raw_audio_fp), basename(cimg_fp))
 
-if CHART_TYPE == const.CHART_TYPE.RPE and chart_information is ChartInfoLoader.default_info:
-    chart_information["Name"] = chart_obj.META.name
-    chart_information["Artist"] = chart_obj.META.composer
-    chart_information["Level"] = chart_obj.META.level
-    chart_information["Charter"] = chart_obj.META.charter
+if chart_obj.is_rpe() and chart_information is ChartInfoLoader.default_info:
+    chart_information["Name"] = chart_obj.options.meta_ext_name
+    chart_information["Artist"] = chart_obj.options.meta_ext_composer
+    chart_information["Level"] = chart_obj.options.meta_ext_level
+    chart_information["Charter"] = chart_obj.options.meta_ext_charter
 
 logging.info("Loading Chart Information Successfully")
 logging.info("Chart Info: ")
@@ -336,18 +328,18 @@ def loadResource():
     
     chart_res = {}
     
-    if CHART_TYPE == const.CHART_TYPE.RPE:
+    if chart_obj.is_rpe():
         imfns: list[str] = list(map(lambda x: x[0], files_dict["images"]))
         imobjs: list[Image.Image] = list(map(lambda x: x[1], files_dict["images"]))
         
-        for line in chart_obj.judgeLineList:
-            if line.Texture == "line.png": continue
-            if not line.isGif:
+        for line in chart_obj.lines:
+            if not line.isTextureLine: continue
+            if not line.isGifLine:
                 paths = [ # fuck charters
-                    f"{temp_dir}/{line.Texture}",
-                    f"{temp_dir}/{line.Texture}.png",
-                    f"{temp_dir}/{line.Texture}.jpg",
-                    f"{temp_dir}/{line.Texture}.jpeg"
+                    f"{temp_dir}/{line.texture}",
+                    f"{temp_dir}/{line.texture}.png",
+                    f"{temp_dir}/{line.texture}.jpg",
+                    f"{temp_dir}/{line.texture}.jpeg"
                 ]
                 
                 for p in paths:
@@ -355,18 +347,18 @@ def loadResource():
                         texture_index = tool_funcs.findfileinlist(p, imfns)
                         texture: Image.Image = imobjs[texture_index]
                         chart_res[line.Texture] = (texture.convert("RGBA"), texture.size)
-                        logging.info(f"Loaded line texture {line.Texture}")
+                        logging.info(f"Loaded line texture {line.texture}")
                         break
                 else:
-                    logging.warning(f"Cannot find texture {line.Texture}")
+                    logging.warning(f"Cannot find texture {line.texture}")
                     texture = Image.new("RGBA", (4, 4), (0, 0, 0, 0))
                     chart_res[line.Texture] = (texture, texture.size)
                     
-                respacker.reg_img(chart_res[line.Texture][0], f"lineTexture_{chart_obj.judgeLineList.index(line)}")
+                respacker.reg_img(chart_res[line.texture][0], f"lineTexture_{chart_obj.lines.index(line)}")
             else:
-                h264data, size = tool_funcs.video2h264(f"{temp_dir}/{line.Texture}")
-                chart_res[line.Texture] = (None, size)
-                name = f"lineTexture_{chart_obj.judgeLineList.index(line)}"
+                h264data, size = tool_funcs.video2h264(f"{temp_dir}/{line.texture}")
+                chart_res[line.texture] = (None, size)
+                name = f"lineTexture_{chart_obj.lines.index(line)}"
                 root.reg_res(h264data, f"{name}.mp4")
                 root.wait_jspromise(f"loadvideo(\"{root.get_resource_path(f"{name}.mp4")}\", '{name}_img');")
 
@@ -411,8 +403,8 @@ def loadResource():
         "vignette": open("./shaders/vignette.glsl", "r", encoding="utf-8").read()
     }
     
-    if CHART_TYPE == const.CHART_TYPE.RPE:
-        for line in chart_obj.judgeLineList:
+    if chart_obj.is_rpe():
+        for line in chart_obj.lines:
             for note in line.notes:
                 if note.hitsound_reskey not in Resource["Note_Click_Audio"]:
                     try:
@@ -504,11 +496,9 @@ def playerStart():
         mixer.music.play()
         mixer.music.set_pos(skip_time)
         while not mixer.music.get_busy(): pass
+        
         if noautoplay:
-            if CHART_TYPE == const.CHART_TYPE.PHI:
-                pplm_proxy = chartobj_phi.PPLMPHI_Proxy(chart_obj)
-            elif CHART_TYPE == const.CHART_TYPE.RPE:
-                pplm_proxy = chartobj_rpe.PPLMRPE_Proxy(chart_obj)
+            pplm_proxy = phichart.PPLMProxy_CommonChart(chart_obj)
             
             pppsm = tool_funcs.PhigrosPlayManager(chart_obj.note_num)
             pplm = tool_funcs.PhigrosPlayLogicManager(
@@ -518,13 +508,15 @@ def playerStart():
                 w, h
             )
             
-            convertTime2Chart = lambda t: (t - show_start_time) * speed - (0.0 if CHART_TYPE == const.CHART_TYPE.PHI else chart_obj.META.offset / 1000)
+            convertTime2Chart = lambda t: (t - show_start_time) * speed - chart_obj.offset
             root.jsapi.set_attr("PhigrosPlay_KeyDown", lambda t, key: pplm.pc_click(convertTime2Chart(t if not webcv.disengage_webview else (now_t + show_start_time)), key))
             root.jsapi.set_attr("PhigrosPlay_KeyUp", lambda t, key: pplm.pc_release(convertTime2Chart(t if not webcv.disengage_webview else (now_t + show_start_time)), key))
             root.jsapi.set_attr("PhigrosPlay_TouchStart", lambda t, x, y, i: pplm.mob_touchstart(convertTime2Chart(t), x / w, y / h, i))
             root.jsapi.set_attr("PhigrosPlay_TouchMove", lambda t, x, y, i: pplm.mob_touchmove(convertTime2Chart(t), x / w, y / h, i))
             root.jsapi.set_attr("PhigrosPlay_TouchEnd", lambda i: pplm.mob_touchend(i))
             pplm.bind_events(root)
+        else:
+            pplm = None
             
         play_restart_flag = False
         pause_flag = False
@@ -576,10 +568,7 @@ def playerStart():
             
             now_t = time.time() - show_start_time
             checkOffset(now_t - skip_time)
-            if CHART_TYPE == const.CHART_TYPE.PHI:
-                extasks = phicore.renderChart_Phi(now_t, pplm = pplm if noautoplay else None)
-            elif CHART_TYPE == const.CHART_TYPE.RPE:
-                extasks = phicore.renderChart_Rpe(now_t, pplm = pplm if noautoplay else None)
+            extasks = phicore.renderChart_Common(now_t, pplm=pplm)
             
             break_flag = phicore.processExTask(extasks)
             
@@ -627,10 +616,7 @@ def playerStart():
         
         now_t = 0.0
         while now_t < audio_length:
-            if CHART_TYPE == const.CHART_TYPE.PHI:
-                extasks = phicore.renderChart_Phi(now_t, None)
-            elif CHART_TYPE == const.CHART_TYPE.RPE:
-                extasks = phicore.renderChart_Rpe(now_t, None)
+            extasks = phicore.renderChart_Common(now_t, None)
                 
             root.wait_jspromise(f"uploadFrame('http://127.0.0.1:{port}/');")
             now_t += 1 / render_video_fps
@@ -780,7 +766,7 @@ def init():
     root.run_js_code(f"lowquality_imjscvscale_x = {lowquality_imjscvscale_x};")
     root.run_js_code(f"lowquality_imjs_maxsize = {lowquality_imjs_maxsize};")
     root.run_js_code(f"enable_jscanvas_bitmap = {enable_jscanvas_bitmap};")
-    root.run_js_code(f"RPEVersion = {chart_obj.META.RPEVersion if CHART_TYPE == const.CHART_TYPE.RPE else -1};")
+    root.run_js_code(f"RPEVersion = {chart_obj.options.rpeVersion};")
     
     rw, rh = w, h
     if usu169:

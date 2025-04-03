@@ -234,6 +234,7 @@ class Note(MemEq):
         self.morebets = False
         self.holdEndTime = self.time + self.holdTime
         self.giveComboTime = self.time if not self.ishold else max(self.time, self.holdEndTime - 0.2)
+        self.hitsound_reskey = self.type if self.hitsound is None else hash(tuple(map(ord, self.hitsound)))
         
         self.nowpos = (0.0, 0.0)
         self.nowrotate = 0.0
@@ -305,6 +306,7 @@ class JudgeLine(MemEq):
     father: typing.Optional[JudgeLine]|int = None
     
     isTextureLine: bool = False
+    isGifLine: bool = False
     texture: typing.Optional[str] = None
     
     isAttachUI: bool = False
@@ -407,6 +409,14 @@ class CommonChartOptions:
     lineHeightUnit: tuple[float, float] = (0.0, 0.0)
     
     posConverter: typing.Callable[[tuple[float, float]], tuple[float, float]] = lambda pos: pos
+    
+    res_ext_song: typing.Optional[str] = None
+    res_ext_background: typing.Optional[str] = None
+    
+    meta_ext_name: typing.Optional[str] = None
+    meta_ext_composer: typing.Optional[str] = None
+    meta_ext_level: typing.Optional[str] = None
+    meta_ext_charter: typing.Optional[str] = None
 
 @dataclass
 class CommonChart:
@@ -426,6 +436,7 @@ class CommonChart:
         self.all_notes.sort(key=lambda note: note.time)
         
         self.playerNotes = [i for i in self.all_notes if not i.isFake]
+        self.note_num = len(self.playerNotes)
         
         for line in self.lines:
             line.init(self)
@@ -452,6 +463,16 @@ class CommonChart:
             if self.combotimes[m] <= t: l = m + 1
             else: r = m
         return l
+    
+    def is_phi(self): return self.type is ChartFormat.phi
+    def is_rpe(self): return self.type is ChartFormat.rpe
+    def is_pec(self): return self.type is ChartFormat.pec
+    def is_pbc(self): return self.type is ChartFormat.pbc
+    
+    def dump(self):
+        return {
+            
+        }
 
 class PPLMProxy_CommonChart(tool_funcs.PPLM_ProxyBase):
     def __init__(self, cobj: CommonChart): self.cobj = cobj
@@ -471,27 +492,21 @@ class PPLMProxy_CommonChart(tool_funcs.PPLM_ProxyBase):
     def nproxy_nowpos(self, n: Note): return n.nowpos
     def nproxy_nowrotate(self, n: Note) -> float: return n.nowrotate
 
-def load(data: str):
+def load(data: str) -> CommonChart:
     def _unknow_type():
         raise ValueError("Unknown chart type")
     
-    try:
-        json_data = json.loads(data)
+    if not isinstance(data, dict):
+        _unknow_type()
         
-        if not isinstance(json_data, dict):
-            _unknow_type()
-            
-        if "formatVersion" in json_data:
-            return ChartFormat.load_phi(json_data)
-        
-        elif "META" in json_data:
-            return ChartFormat.load_rpe(json_data)
-        
-        else:
-            _unknow_type()
-        
-    except json.JSONDecodeError:
-        return ChartFormat.load_pec(data)
+    if "formatVersion" in data:
+        return ChartFormat.load_phi(data)
+    
+    elif "META" in data:
+        return ChartFormat.load_rpe(data)
+    
+    else:
+        _unknow_type()
 
 if __name__ == "__main__":
     ct = load(open(r"C:\Users\QAQ\Desktop\a.json", "rb").read())
