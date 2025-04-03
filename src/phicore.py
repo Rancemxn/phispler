@@ -1664,7 +1664,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                         processClickEffect(*position(w, h), rotate, (now_t - eft) / effect_time, erbs, True)
             else:
                 if note.state == const.NOTE_STATE.MISS:
-                    if 0.0 <= now_t - note.sec <= miss_effect_time and note.type != const.NOTE_TYPE.HOLD:
+                    if 0.0 <= now_t - note.time <= miss_effect_time and note.type != const.NOTE_TYPE.HOLD:
                         process_miss(note)
             
             if note.effect_times[-1][0] + max(
