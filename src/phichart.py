@@ -314,7 +314,13 @@ class ChartFormat:
                     holdTime = note_end_time - note_start_time,
                     positionX = _converter_x(json_note.get("positionX", 0.0)),
                     speed = json_note.get("speed", 1.0),
-                    isAbove = json_note.get("above", 1) == 1
+                    isAbove = json_note.get("above", 1) == 1,
+                    isFake = json_note.get("isFake", 0) == 1,
+                    yOffset = _converter_y(json_note.get("yOffset", 0.0)),
+                    visibleTime = json_note.get("visibleTime", None),
+                    width = json_note.get("size", 1.0),
+                    alpha = json_note.get("alpha", 255.0) / 255.0,
+                    hitsound = json_note.get("hitsound", None),
                 )
                 
                 note.master_index = i

@@ -1384,7 +1384,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
             *tool_funcs.rotate_point(*linePos, lineRotate, nowLineWidth / 2),
             *tool_funcs.rotate_point(*linePos, lineRotate, -nowLineWidth / 2)
         )
-        lineWebColor = f"rgba{lineColor}"
+        lineWebColor = f"rgba{(*lineColor, lineAlpha)}"
         lineWidth = nowLineHeight * lineScaleY
         
         if line.isAttachUI:
