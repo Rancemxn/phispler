@@ -333,6 +333,14 @@ class ChartFormat:
                 _put_events(elayer.speedEvents, el_json.get("speedEvents", []), lambda x: x * 120 / const.RPE_HEIGHT)
                 line.eventLayers.append(elayer)
             
+            extended = json_line.get("extended", None)
+            if extended is not None:
+                _put_events(line.extendEvents.colorEvents, extended.get("colorEvents", []), tuple, (255, 255, 255))
+                _put_events(line.extendEvents.scaleXEvents, extended.get("scaleXEvents", []), default=1.0)
+                _put_events(line.extendEvents.scaleYEvents, extended.get("scaleYEvents", []), default=1.0)
+                _put_events(line.extendEvents.textEvents, extended.get("textEvents", []), default="")
+                _put_events(line.extendEvents.gifEvents, extended.get("gifEvents", []), default=10.0)
+            
             result.lines.append(line)
 
         result.init()
@@ -590,12 +598,12 @@ class JudgeLine(MemEq):
         lineRotate = sum(self.getEventsValue(el.rotateEvents, t) for el in self.eventLayers)
         lineScaleX = self.getEventsValue(self.extendEvents.scaleXEvents, t, 1.0) if lineAlpha > 0.0 else 1.0
         lineScaleY = self.getEventsValue(self.extendEvents.scaleYEvents, t, 1.0) if lineAlpha > 0.0 else 1.0
-        lineText = self.getEventsValue(t, self.extendEvents.textEvents, "") if lineAlpha > 0.0 and self.extendEvents.textEvents else None
+        lineText = self.getEventsValue(self.extendEvents.textEvents, t, "") if lineAlpha > 0.0 and self.extendEvents.textEvents else None
         lineColor = (
             (255, 255, 255)
             if (
-                self.texture is not None or
-                self.attachUI is not None or
+                self.isTextureLine or
+                self.isAttachUI or
                 self.extendEvents.textEvents
             ) else
             defaultColor
