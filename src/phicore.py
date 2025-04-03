@@ -1400,9 +1400,44 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                 })
         elif lineAlpha > 0.0:
             if line.isTextureLine:
-                ...
+                texture_width, texture_height = tool_funcs.conimgsize(*chart_res[line.texture][1], w, h)
+                texture_width *= lineScaleX; texture_height *= lineScaleY
+                if tool_funcs.TextureLine_CanRender(w, h, (texture_width ** 2 + texture_height ** 2) ** 0.5 / 2, *linePos):
+                    texturename = root.get_img_jsvarname(f"lineTexture_{line.index}")
+                    if line.isGifLine:
+                        root.run_js_code(
+                            f"{texturename}.currentTime = {now_t} % {texturename}.duration;",
+                            wait_execute = True
+                        )
+                    with ColorMultiplyFilter(lineColor, const.CHART_RENDER_ORDERS.LINE):
+                        root.run_js_code(
+                            f"ctx.drawRotateImage(\
+                                {texturename},\
+                                {linePos[0]},\
+                                {linePos[1]},\
+                                {texture_width},\
+                                {texture_height},\
+                                {lineRotate},\
+                                {lineAlpha}\
+                            );",
+                            wait_execute = True,
+                            order = const.CHART_RENDER_ORDERS.LINE
+                        )
             elif lineText is not None:
-                ...
+                root.run_js_code(
+                    f"ctx.drawRPEMultipleRotateText(\
+                        '{root.string2cstring(lineText)}',\
+                        {linePos[0]},\
+                        {linePos[1]},\
+                        {lineRotate},\
+                        {(w + h) / 75 * 1.35},\
+                        '{lineWebColor}',\
+                        {lineScaleX},\
+                        {lineScaleY}\
+                    );",
+                    wait_execute = True,
+                    order = const.CHART_RENDER_ORDERS.LINE
+                )
             elif tool_funcs.lineInScreen(w, h, lineDrawPos):
                 root.run_js_code(
                     f"ctx.drawLineEx(\
