@@ -225,17 +225,37 @@ class ChartFormat:
         result.options.lineWidthUnit = (0.0, 4000 / 1350)
         result.options.lineHeightUnit = (0.0, const.LINEWIDTH.RPE)
         
+        def _geteasing_func(t: int):
+            try:
+                if not isinstance(t, int): t = 1
+                t = 1 if t < 1 else (len(rpe_easing.ease_funcs) if t > len(rpe_easing.ease_funcs) else t)
+                return rpe_easing.ease_funcs[int(t) - 1]
+            except Exception as e:
+                logging.warning(f"geteasing_func error: {e}")
+                return rpe_easing.ease_funcs[0]
+    
         def _put_events(es: list[LineEvent], json_es: list[dict], converter: typing.Callable[[eventValueType], eventValueType], default: eventValueType = 0.0):
             for json_e in json_es:
                 if not isinstance(json_e, dict):
                     logging.warning(f"Unsupported event type: {type(json_e)}")
                     continue
-
+                
+                easingType = json_e.get("easingType", 1)
+                bezier = json_e.get("bezier", False)
+                bezierPoints = json_e.get("bezierPoints", [0.0])
+                easingFunc = _geteasing_func(easingType) if not bezier else tool_funcs.createBezierFunction(bezierPoints)
+                easingLeft = max(0.0, min(1.0, json_e.get("easingLeft", 0.0)))
+                easingRight = max(0.0, min(1.0, json_e.get("easingRight", 1.0)))
+                
+                if easingLeft != 0.0 or easingRight != 1.0:
+                    easingFunc = tool_funcs.createCuttingEasingFunction(easingFunc, easingLeft, easingRight)
+            
                 es.append(LineEvent(
                     startTime = _beat2sec(line, json_e.get("startTime", [0, 0, 1])),
                     endTime = _beat2sec(line, json_e.get("endTime", [0, 0, 1])),
                     start = converter(json_e.get("start", default)),
                     end = converter(json_e.get("end", default)),
+                    ease = easingFunc
                 ))
 
         for line_i, json_line in enumerate(data.get("judgeLineList", [])):
