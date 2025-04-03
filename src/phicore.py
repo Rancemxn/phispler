@@ -1384,7 +1384,6 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
             *tool_funcs.rotate_point(*linePos, lineRotate, nowLineWidth / 2),
             *tool_funcs.rotate_point(*linePos, lineRotate, -nowLineWidth / 2)
         )
-        lineColor = (*((phira_respack.globalPack.perfectRGB if not noautoplay else pplm.ppps.getLineColor()) if FCAPIndicator else (255, 255, 255)), lineAlpha)
         lineWebColor = f"rgba{lineColor}"
         lineWidth = nowLineHeight * lineScaleY
         
