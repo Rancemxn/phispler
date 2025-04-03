@@ -18,6 +18,7 @@ import chartobj_rpe
 import phi_tips
 import dxsound
 import phira_respack
+import phichart
 from dxsmixer import mixer
 from graplib_webview import *
 
@@ -69,7 +70,7 @@ class PhiCoreConfig:
     w: int; h: int
     
     chart_information: dict
-    chart_obj: chartobj_phi.Chart | chartobj_rpe.Chart
+    chart_obj: phichart.CommonChart
     
     Resource: dict
     globalNoteWidth: float
@@ -1792,33 +1793,17 @@ def lineOpenAnimation(fcb: typing.Callable[[], typing.Any] = lambda: None):
         
     showLine = False
     
-    if CHART_TYPE == const.CHART_TYPE.PHI:
-        lineWidth = const.LINEWIDTH.PHI
-        
-        # for line in chart_obj.judgeLineList:
-        #     linePos = line.getMove(0.0, w, h)
-        #     lineRotate = line.getRotate(0.0)
-        #     lineAlpha = line.getAlpha(0.0)
-            
-        #     if (
-        #         abs(linePos[1] - h / 2) <= 0.001 * h
-        #         and abs(lineRotate) <= 0.001
-        #         and abs(lineAlpha) >= 0.999
-        #     ):
-        #         showLine = True
-        #         break
-        
-        showLine = True
+    lineWidth = w * chart_obj.options.lineWidthUnit[0] + h * chart_obj.options.lineWidthUnit[1]
 
-    elif CHART_TYPE == const.CHART_TYPE.RPE:
+    if not chart_obj.options.alwaysLineOpenAnimation:
         lineWidth = const.LINEWIDTH.RPE
         
-        for line in chart_obj.judgeLineList:
+        for line in chart_obj.lines:
             (
                 linePos,
                 lineAlpha,
                 lineRotate
-            ) = line.GetState(0.0, (0, 0, 0))[:3]
+            ) = line.getState(0.0, (0, 0, 0))[:3]
             
             if (
                 abs(linePos[1] - 0.5) <= 0.001 * h
@@ -1827,8 +1812,8 @@ def lineOpenAnimation(fcb: typing.Callable[[], typing.Any] = lambda: None):
             ):
                 showLine = True
                 break
-        
-    lineWidth *= h
+    else:
+        showLine = True
     
     while True:
         p = (time.time() - st) / csat

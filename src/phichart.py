@@ -404,6 +404,7 @@ class CommonChartOptions:
     holdIndependentSpeed: bool = True
     holdCoverAtHead: bool = True
     rpeVersion: int = -1
+    alwaysLineOpenAnimation: bool = True
     
     lineWidthUnit: tuple[float, float] = (0.0, 0.0)
     lineHeightUnit: tuple[float, float] = (0.0, 0.0)
