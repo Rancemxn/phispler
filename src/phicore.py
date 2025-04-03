@@ -1490,7 +1490,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                 
                 if note.ishold:
                     noteEndImg = Resource["Notes"][note.img_end_keyname]
-                    holdLength = note.holdLength * h * note.speed
+                    holdLength = note.holdLength * h * (note.speed if not chart_obj.options.holdIndependentSpeed else 1.0)
                     holdEndFloorPosition = noteFloorPosition + holdLength
                     bodyLength = holdEndFloorPosition if note.isontime else holdLength
                     
