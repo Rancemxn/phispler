@@ -272,6 +272,45 @@ class Note(MemEq):
             
             self.img_end_keyname = f"{self.type_string}_End{dub_text}"
             self.imgname_end = f"Note_{self.img_end_keyname}"
+        
+        self.effect_times = []
+        self.effect_times.append((
+            self.time,
+            tool_funcs.newRandomBlocks(),
+            self.getNoteClickPos(self.time)
+        ))
+        
+        if self.ishold:
+            t = self.time
+            while t <= self.holdEndTime:
+                t += 1 / self.master.getBpm(self.time) * 30
+                if t > self.holdEndTime: break
+                
+                self.effect_times.append((
+                    t,
+                    tool_funcs.newRandomBlocks(),
+                    self.getNoteClickPos(t)
+                ))
+    
+    def getNoteClickPos(self, time: float) -> tuple[typing.Callable[[int, int], tuple[float, float]], float]:
+        linePos = self.master.master.options.posConverter(self.master.getPos(time))
+        lineRotate = sum(self.master.getEventsValue(el.rotateEvents, time) for el in self.master.eventLayers)
+        
+        cached: bool = False
+        cachedata: typing.Optional[tuple[float, float]] = None
+        
+        def callback(w: int, h: int):
+            nonlocal cached, cachedata
+            
+            if cached: return cachedata
+            cached, cachedata = True, tool_funcs.rotate_point(
+                linePos[0] * w, linePos[1] * h,
+                lineRotate, self.positionX * w
+            )
+            
+            return cachedata
+        
+        return callback, lineRotate
 
 @dataclass
 class LineEvent(MemEq):
@@ -368,6 +407,7 @@ class JudgeLine(MemEq):
             note.init(self)
         
         self.renderNotes = split_notes(self.notes)
+        self.effectNotes = self.notes.copy()
     
     def getFloorPosition(self, t: float):
         fp = 0.0
@@ -480,6 +520,22 @@ class JudgeLine(MemEq):
                 sec += t * (60 / e.bpm)
 
         return sec
+    
+    def getBpm(self, t: float):
+        if len(self.bpms) == 1:
+            return self.bpms[0].bpm
+        
+        for i, e in enumerate(self.bpms):
+            if i != len(self.bpms) - 1:
+                et_beat = self.bpms[i + 1].time - e.time
+                et_sec = et_beat * (60 / e.bpm)
+
+                if t < et_sec:
+                    return e.bpm
+            else:
+                return e.bpm
+        
+        assert False, "Unreachable"
 
 @dataclass
 class CommonChartOptions:

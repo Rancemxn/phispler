@@ -1599,6 +1599,103 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
 
     root.run_jscode_orders()
     
+    effect_time = phira_respack.globalPack.effectDuration
+    miss_effect_time = 0.2
+    bad_effect_time = 0.5
+    
+    effect_time *= speed
+    miss_effect_time *= speed
+    bad_effect_time *= speed
+    
+    if noautoplay:
+        def process_miss(note: phichart.Note):
+            p = (now_t - note.time) / miss_effect_time
+            linePos = note.master.getPos(now_t)
+            lineRotate = sum(note.master.getEventsValue(el.rotateEvents, now_t) for el in note.master.eventLayers)
+            pos = tool_funcs.rotate_point(
+                linePos[0] * w, linePos[1] * h,
+                lineRotate,
+                note.positionX * w
+            )
+            floorp = note.floorPosition - note.master.getFloorPosition(now_t)
+            x, y = tool_funcs.rotate_point(
+                *pos,
+                (-90 if note.isAbove else 90) + lineRotate,
+                floorp * h
+            )
+            note.nowpos = (x / w, y / h)
+            noteImg = Resource["Notes"][note.img_keyname]
+            noteWidth = globalNoteWidth * (phira_respack.globalPack.dub_fixscale if note.ishold else 1.0) * note.width
+            noteHeight = noteWidth / noteImg.width * noteImg.height
+            
+            drawRotateImage(
+                note.img_keyname,
+                x, y,
+                noteWidth, noteHeight,
+                lineRotate,
+                1 - p ** 0.5,
+                wait_execute = True
+            )
+    
+    if noautoplay:
+        for pplmckfi in pplm.clickeffects.copy():
+            perfect, eft, erbs, (position, rotate) = pplmckfi
+            if eft <= now_t <= eft + effect_time:
+                processClickEffect(*position(w, h), rotate, (now_t - eft) / effect_time, erbs, perfect)
+            
+            if eft + effect_time < now_t:
+                pplm.clickeffects.remove(pplmckfi)
+        
+        for pplmbdfi in pplm.badeffects.copy():
+            st, rotate, pos = pplmbdfi
+            if st <= now_t <= st + bad_effect_time:
+                processBadEffect(*pos, rotate, st, now_t, bad_effect_time)
+            
+            if st + bad_effect_time < now_t:
+                pplm.badeffects.remove(pplmbdfi)
+    
+    for line in chart_obj.lines:
+        for note in line.effectNotes.copy():
+            if not noautoplay and not note.isontime:
+                break
+            
+            if not noautoplay:
+                for eft, erbs, (position, rotate) in note.effect_times:
+                    if eft <= now_t <= eft + effect_time:
+                        processClickEffect(*position(w, h), rotate, (now_t - eft) / effect_time, erbs, True)
+            else:
+                if note.state == const.NOTE_STATE.MISS:
+                    if 0.0 <= now_t - note.sec <= miss_effect_time and note.type != const.NOTE_TYPE.HOLD:
+                        process_miss(note)
+            
+            if note.effect_times[-1][0] + max(
+                effect_time,
+                miss_effect_time,
+                bad_effect_time
+            ) + 0.2 < now_t:
+                line.effectNotes.remove(note)
+    
+    if enableMirror:
+        root.run_js_code("ctx.mirror();", wait_execute=True)
+        
+    combo = chart_obj.getCombo(now_t) if not noautoplay else pplm.ppps.getCombo()
+    now_t /= speed
+    draw_ui(
+        process = now_t / audio_length,
+        score = stringifyScore((combo * (1000000 / chart_obj.note_num)) if chart_obj.note_num != 0 else 1000000) if not noautoplay else stringifyScore(pplm.ppps.getScore()),
+        combo_state = combo >= 3,
+        combo = combo,
+        acc = "100.00%" if not noautoplay else f"{(pplm.ppps.getAcc() * 100):>05.2f}%",
+        clear = False,
+        background = False
+    )
+    undoClipScreen()
+    
+    rrmEnd()
+    
+    if now_t >= raw_audio_length:
+        extasks.append(("break", ))
+        
     if rjc:
         root.run_js_wait_code()
     
