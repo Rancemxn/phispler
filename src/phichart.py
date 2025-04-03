@@ -290,7 +290,7 @@ class ChartFormat:
                 note = Note(
                     type = note_type,
                     time = note_start_time,
-                    holdTime = note_start_time - note_end_time,
+                    holdTime = note_end_time - note_start_time,
                     positionX = _converter_x(json_note.get("positionX", 0.0)),
                     speed = json_note.get("speed", 1.0),
                     isAbove = json_note.get("above", 1) == 1
