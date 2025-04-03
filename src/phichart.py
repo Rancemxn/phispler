@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import typing
-import json
 import logging
 import math
 from dataclasses import dataclass, field
@@ -369,7 +368,7 @@ class JudgeLine(MemEq):
         for el in self.eventLayers:
             e = findevent(el.speedEvents, t)
             if e is not None:
-                fp += e.speed_get(t)
+                fp += e.floorPosotion + e.speed_get(t)
         
         return fp
     
@@ -473,11 +472,11 @@ class CommonChart:
         self.playerNotes = [i for i in self.all_notes if not i.isFake]
         self.note_num = len(self.playerNotes)
         
-        for line in self.lines:
-            line.init(self)
-        
         self.checkMorebets()
         self.initCombotimes()
+        
+        for line in self.lines:
+            line.init(self)
     
     def checkMorebets(self):
         last_note = None
