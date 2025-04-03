@@ -97,18 +97,10 @@ class PhiCoreConfig:
     musicsound_volume: float = 1.0
     enable_controls: bool = False
     
-    def __post_init__(self):
-        if isinstance(self.chart_obj, chartobj_phi.Chart):
-            self.CHART_TYPE = const.CHART_TYPE.PHI
-        elif isinstance(self.chart_obj, chartobj_rpe.Chart):
-            self.CHART_TYPE = const.CHART_TYPE.RPE
-        else:
-            self.CHART_TYPE = const.SPEC_VALS.RES_NOLOADED
-
 def CoreConfigure(config: PhiCoreConfig):
     global SETTER
     global root, w, h, chart_information
-    global chart_obj, CHART_TYPE
+    global chart_obj
     global Resource
     global globalNoteWidth
     global note_max_size_half, audio_length
@@ -128,7 +120,6 @@ def CoreConfigure(config: PhiCoreConfig):
     w, h = config.w, config.h
     chart_information = config.chart_information
     chart_obj = config.chart_obj
-    CHART_TYPE = config.CHART_TYPE
     Resource = config.Resource
     globalNoteWidth = config.globalNoteWidth
     note_max_size_half = config.note_max_size_half
