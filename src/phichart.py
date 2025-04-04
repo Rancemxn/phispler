@@ -12,7 +12,7 @@ import chartobj_rpe
 
 type eventValueType = float|str|tuple[float, float, float]
 
-def _init_events(es: list[LineEvent], *, is_speed: bool = False):
+def _init_events(es: list[LineEvent], *, is_speed: bool = False, default: eventValueType = 0.0):
     if not es: return
     
     es.sort(key = lambda e: e.startTime)
@@ -42,14 +42,13 @@ def _init_events(es: list[LineEvent], *, is_speed: bool = False):
         isFill = True
     ))
     
-    if not is_speed:
-        es.insert(0, LineEvent(
-            startTime = -const.INFBEAT,
-            endTime = es[0].startTime,
-            start = es[0].start,
-            end = es[0].start,
-            isFill = True
-        ))
+    es.insert(0, LineEvent(
+        startTime = -const.INFBEAT,
+        endTime = es[0].startTime,
+        start = default,
+        end = default,
+        isFill = True
+    ))
     
     if is_speed:
         fp = 0.0
@@ -152,6 +151,7 @@ class ChartFormat:
         result.offset = data.get("offset", 0.0)
         result.options.lineWidthUnit = (0.0, 5.76)
         result.options.lineHeightUnit = (0.0, const.LINEWIDTH.PHI)
+        result.options.featureFlags = CommonChartOptionFeatureFlags.PRELOADED_FEATURE_FLAGS[result.type]
         
         for line_i, json_line in enumerate(data.get("judgeLineList", [])):
             json_line: dict
@@ -227,6 +227,7 @@ class ChartFormat:
         result.options.holdCoverAtHead = False
         result.options.holdIndependentSpeed = False
         result.options.posConverter = tool_funcs.conrpepos
+        result.options.featureFlags = CommonChartOptionFeatureFlags.PRELOADED_FEATURE_FLAGS[result.type]
         
         result.options.lineWidthUnit = (4000 / 1350, 0.0)
         result.options.lineHeightUnit = (0.0, const.LINEWIDTH.RPE)
@@ -513,10 +514,10 @@ class ExtendEventsItem(MemEq):
     gifEvents: list[LineEvent] = field(default_factory=list)
     
     def init(self):
-        _init_events(self.colorEvents)
-        _init_events(self.scaleXEvents)
-        _init_events(self.scaleYEvents)
-        _init_events(self.textEvents)
+        _init_events(self.colorEvents, default=(255, 255, 255))
+        _init_events(self.scaleXEvents, default=1.0)
+        _init_events(self.scaleYEvents, default=1.0)
+        _init_events(self.textEvents, default="")
         _init_events(self.gifEvents, is_speed=True)
 
 @dataclass
