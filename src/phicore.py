@@ -1652,7 +1652,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
     if noautoplay:
         def process_miss(note: phichart.Note):
             p = (now_t - note.time) / miss_effect_time
-            linePos = note.master.getPos(now_t)
+            linePos = chart_obj.options.posConverter(note.master.getPos(now_t))
             lineRotate = sum(note.master.getEventsValue(el.rotateEvents, now_t) for el in note.master.eventLayers)
             pos = tool_funcs.rotate_point(
                 linePos[0] * w, linePos[1] * h,
@@ -1668,7 +1668,8 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
             noteImg = Resource["Notes"][note.img_keyname]
             noteWidth = globalNoteWidth * (phira_respack.globalPack.dub_fixscale if note.ishold else 1.0) * note.width
             noteHeight = noteWidth / noteImg.width * noteImg.height
-            
+            print(
+                x, y,)
             drawRotateImage(
                 note.imgname,
                 x, y,
