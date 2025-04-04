@@ -151,7 +151,6 @@ class ChartFormat:
         result.offset = data.get("offset", 0.0)
         result.options.lineWidthUnit = (0.0, 5.76)
         result.options.lineHeightUnit = (0.0, const.LINEWIDTH.PHI)
-        result.options.featureFlags = CommonChartOptionFeatureFlags.PRELOADED_FEATURE_FLAGS[result.type]
         
         for line_i, json_line in enumerate(data.get("judgeLineList", [])):
             json_line: dict
@@ -227,7 +226,6 @@ class ChartFormat:
         result.options.holdCoverAtHead = False
         result.options.holdIndependentSpeed = False
         result.options.posConverter = tool_funcs.conrpepos
-        result.options.featureFlags = CommonChartOptionFeatureFlags.PRELOADED_FEATURE_FLAGS[result.type]
         
         result.options.lineWidthUnit = (4000 / 1350, 0.0)
         result.options.lineHeightUnit = (0.0, const.LINEWIDTH.RPE)
@@ -761,7 +759,7 @@ class CommonChartOptions:
     meta_ext_charter: typing.Optional[str] = None
     
     def has_feature(self, flag: int):
-        return (self.featureFlags & flag) == 1
+        return (self.featureFlags & flag) != 0
 
 @dataclass
 class CommonChart:
@@ -776,6 +774,8 @@ class CommonChart:
         self.combotimes = []
     
     def init(self):
+        self.options.featureFlags |= CommonChartOptionFeatureFlags.PRELOADED_FEATURE_FLAGS[self.type]
+        
         self.all_notes = [j for i in self.lines for j in i.notes]
         self.all_notes.sort(key=lambda note: note.time)
         
