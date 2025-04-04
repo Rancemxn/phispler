@@ -1367,7 +1367,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
         w * chart_obj.options.lineHeightUnit[0] + h * chart_obj.options.lineHeightUnit[1]
     )
     
-    for lineIndex, line in enumerate(chart_obj.lines):
+    for line in chart_obj.sorted_lines:
         (
             linePos,
             lineAlpha,
@@ -1449,7 +1449,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                 )
         
         if debug:
-            drawDebugText(f"{lineIndex}", *linePos, lineRotate - 90, "rgba(255, 255, 170, 0.5)")
+            drawDebugText(f"{line.index}", *linePos, lineRotate - 90, "rgba(255, 255, 170, 0.5)")
                             
             root.run_js_code(
                 f"ctx.fillRectEx(\

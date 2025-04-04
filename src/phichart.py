@@ -743,6 +743,8 @@ class CommonChart:
         
         for line in self.lines:
             line.init()
+        
+        self.sorted_lines = sorted(self.lines, key=lambda line: line.zOrder)
     
     def checkMorebets(self):
         last_note = None

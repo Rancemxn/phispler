@@ -354,11 +354,11 @@ def loadResource():
                     texture = Image.new("RGBA", (4, 4), (0, 0, 0, 0))
                     chart_res[line.texture] = (texture, texture.size)
                     
-                respacker.reg_img(chart_res[line.texture][0], f"lineTexture_{chart_obj.lines.index(line)}")
+                respacker.reg_img(chart_res[line.texture][0], f"lineTexture_{line.index}")
             else:
                 h264data, size = tool_funcs.video2h264(f"{temp_dir}/{line.texture}")
                 chart_res[line.texture] = (None, size)
-                name = f"lineTexture_{chart_obj.lines.index(line)}"
+                name = f"lineTexture_{line.index}"
                 root.reg_res(h264data, f"{name}.mp4")
                 root.wait_jspromise(f"loadvideo(\"{root.get_resource_path(f"{name}.mp4")}\", '{name}_img');")
 
