@@ -127,7 +127,7 @@ python main.py <chart> --disengage-webview [args] [kwargs]
     - [x] global
     - [ ] targetRange (PhiZone)
     - [x] vars
-- [ ] phira resource pack
+- [x] phira resource pack
   - [x] click.png
   - [x] click_mh.png
   - [x] drag.png
