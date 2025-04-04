@@ -71,6 +71,7 @@ def findevent(es: list[LineEvent], t: float):
         elif st > t: r = m - 1
         else: l = m + 1
     
+    assert False
     return es[-1] if t >= es[-1].endTime else None
 
 def split_notes(notes: list[Note]) -> list[list[Note]]:
@@ -515,7 +516,10 @@ class EventLayerItem(MemEq):
     rotateEvents: list[LineEvent] = field(default_factory=list)
     speedEvents: list[LineEvent] = field(default_factory=list)
     
+    id: bool = False
+    
     def init(self):
+        self.id = True
         _init_events(self.alphaEvents)
         _init_events(self.moveXEvents)
         _init_events(self.moveYEvents)
@@ -573,14 +577,14 @@ class JudgeLine(MemEq):
         if self.father is not None:
             self.father = master.lines[self.father]
             
-    def init(self):
         self.notes.sort(key=lambda note: note.time)
         
         for el in self.eventLayers:
             el.init()
         
         self.extendEvents.init()
-        
+            
+    def init(self):
         for note in self.notes:
             note.init(self)
         
