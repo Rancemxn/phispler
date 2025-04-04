@@ -579,7 +579,7 @@ class JudgeLine(MemEq):
     def getRangeFloorPosition(self, s: float, e: float):
         return self.getFloorPosition(e) - self.getFloorPosition(s)
 
-    def getEventsValue(self, es: list[LineEvent], t: float, default: float = 0.0):
+    def getEventsValue(self, es: list[LineEvent], t: float, default: eventValueType = 0.0):
         e = findevent(es, t)
         return e.get(t) if e is not None else default
     
@@ -607,7 +607,7 @@ class JudgeLine(MemEq):
         return linePos
     
     def getState(self, t: float, defaultColor: tuple[int, int, int]):
-        lineAlpha = sum(self.getEventsValue(el.alphaEvents, t) for el in self.eventLayers) if t >= 0.0 or self.attachUI is not None else 0.0
+        lineAlpha = sum(self.getEventsValue(el.alphaEvents, t) for el in self.eventLayers) if t >= 0.0 or self.isAttachUI else 0.0
         lineRotate = sum(self.getEventsValue(el.rotateEvents, t) for el in self.eventLayers)
         lineScaleX = self.getEventsValue(self.extendEvents.scaleXEvents, t, 1.0) if lineAlpha > 0.0 else 1.0
         lineScaleY = self.getEventsValue(self.extendEvents.scaleYEvents, t, 1.0) if lineAlpha > 0.0 else 1.0
