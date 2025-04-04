@@ -645,17 +645,17 @@ class JudgeLine(MemEq):
         if bpms is None:
             bpms = self.bpms
             
-        if len(self.bpms) == 1:
-            return t / (60 / self.bpms[0].bpm)
+        if len(bpms) == 1:
+            return t / (60 / bpms[0].bpm)
         
         beat = 0.0
-        for i, e in enumerate(self.bpms):
-            if i != len(self.bpms) - 1:
-                et_beat = self.bpms[i + 1].time - e.time
+        for i, e in enumerate(bpms):
+            if i != len(bpms) - 1:
+                et_beat = bpms[i + 1].time - e.time
                 et_sec = et_beat * (60 / e.bpm)
                 
                 if t >= et_sec:
-                    brat += et_beat
+                    beat += et_beat
                     t -= et_sec
                 else:
                     beat += t / (60 / e.bpm)
@@ -669,13 +669,13 @@ class JudgeLine(MemEq):
         if bpms is None:
             bpms = self.bpms
             
-        if len(self.bpms) == 1:
-            return t * (60 / self.bpms[0].bpm)
+        if len(bpms) == 1:
+            return t * (60 / bpms[0].bpm)
 
         sec = 0.0
-        for i, e in enumerate(self.bpms):
-            if i != len(self.bpms) - 1:
-                et_beat = self.bpms[i + 1].time - e.time
+        for i, e in enumerate(bpms):
+            if i != len(bpms) - 1:
+                et_beat = bpms[i + 1].time - e.time
                 
                 if t >= et_beat:
                     sec += et_beat * (60 / e.bpm)
@@ -697,7 +697,9 @@ class JudgeLine(MemEq):
                 et_beat = self.bpms[i + 1].time - e.time
                 et_sec = et_beat * (60 / e.bpm)
 
-                if t < et_sec:
+                if t >= et_sec:
+                    t -= et_sec
+                else:
                     return e.bpm
             else:
                 return e.bpm
@@ -956,3 +958,93 @@ class Extra:
                 result.append((video, t - JudgeLine.beat2sec(None, video.time, self.bpm)))
         
         return result
+
+def loadExtra(extra_json: dict):
+    def _beat2num(beat: list[int]):
+        return beat[0] + beat[1] / beat[2]
+    
+    extra = Extra(
+        bpm = [
+            BPMEvent(
+                time = _beat2num(bpme.get("startTime", [0, 0, 1])),
+                bpm = bpme.get("bpm", 140)
+            )
+            for bpme in extra_json.get("bpm", [])
+        ],
+        effects = [
+            ExtraEffect(
+                start = _beat2num(ete.get("start", [0, 0, 1])),
+                end = _beat2num(ete.get("end", [0, 0, 1])),
+                shader = ete.get("shader", "default"),
+                global_ = ete.get("global", False),
+                vars = {
+                    k: [
+                        (
+                            ExtraVar(
+                                startTime = _beat2num(v.get("startTime", [0, 0, 1])),
+                                endTime = _beat2num(v.get("endTime", [0, 0, 1])),
+                                start = v.get("start", 0),
+                                end = v.get("end", 0),
+                                easingType = v.get("easingType", 1)
+                            ) 
+                        )
+                        for v in vars
+                    ] if isinstance(vars, list) and isinstance(vars[0], dict) else [ExtraVar(
+                        startTime = _beat2num(ete.get("start", [0, 0, 1])),
+                        endTime = _beat2num(ete.get("end", [0, 0, 1])),
+                        start = vars,
+                        end = vars,
+                        easingType = 1
+                    )]
+                    for k, vars in ete.get("vars", {}).items()
+                }
+            )
+            for ete in extra_json.get("effects", [])
+        ],
+        videos = [
+            ExtraVideo(
+                path = video.get("path", ""),
+                time = _beat2num(video.get("time", [0, 0, 1])),
+                scale = video.get("scale", "cropCenter"),
+                alpha = ([
+                    (
+                        ExtraVar(
+                            startTime = _beat2num(v.get("startTime", [0, 0, 1])),
+                            endTime = _beat2num(v.get("endTime", [0, 0, 1])),
+                            start = v.get("start", 0),
+                            end = v.get("end", 0),
+                            easingType = v.get("easingType", 1)
+                        ) 
+                    )
+                    for v in video["alpha"]
+                ] if isinstance(video["alpha"], list) and isinstance(video["alpha"][0], dict) else [ExtraVar(
+                    startTime = 0.0,
+                    endTime = const.INFBEAT,
+                    start = video["alpha"],
+                    end = video["alpha"],
+                    easingType = 1
+                )]) if "alpha" in video else 1.0,
+                dim = ([
+                    (
+                        ExtraVar(
+                            startTime = _beat2num(v.get("startTime", [0, 0, 1])),
+                            endTime = _beat2num(v.get("endTime", [0, 0, 1])),
+                            start = v.get("start", 0),
+                            end = v.get("end", 0),
+                            easingType = v.get("easingType", 1)
+                        ) 
+                    )
+                    for v in video["dim"]
+                ] if isinstance(video["dim"], list) and isinstance(video["dim"][0], dict) else [ExtraVar(
+                    startTime = 0.0,
+                    endTime = const.INFBEAT,
+                    start = video["dim"],
+                    end = video["dim"],
+                    easingType = 1
+                )]) if "dim" in video else 1.0,
+            )
+            for video in extra_json.get("videos", [])
+        ]
+    )
+    
+    return extra

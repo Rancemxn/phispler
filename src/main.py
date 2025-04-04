@@ -21,10 +21,6 @@ from pydub import AudioSegment
 
 import webcv
 import dxsound
-import chartobj_phi
-import chartobj_rpe
-import chartfuncs_phi
-import chartfuncs_rpe
 import const
 import tool_funcs
 import dialog
@@ -177,13 +173,13 @@ chart_fp, chart_json = files_dict["charts"][chart_index]
 if exists(f"{temp_dir}/extra.json"):
     try:
         logging.info("found extra.json, loading...")
-        extra = chartfuncs_rpe.loadExtra(json.load(open(f"{temp_dir}/extra.json", "r", encoding="utf-8")))
+        extra = phichart.loadExtra(json.load(open(f"{temp_dir}/extra.json", "r", encoding="utf-8")))
         logging.info("loading extra.json successfully")
     except SystemExit as e:
         logging.error("loading extra.json failed")
         
 if "extra" not in globals():
-    extra = chartfuncs_rpe.loadExtra({})
+    extra = phichart.loadExtra({})
     
 chart_obj = phichart.load(chart_json)
 def loadChartObject(first: bool = False):
