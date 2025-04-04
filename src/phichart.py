@@ -293,6 +293,7 @@ class ChartFormat:
             
             line.father = json_line.get("father", -1)
             line.zOrder = json_line.get("zOrder", 0)
+            line.enableCover = json_line.get("isCover", 1) == 1
             
             for bpm_json in data.get("BPMList", []):
                 bpm_json: dict
