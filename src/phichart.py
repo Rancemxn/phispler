@@ -292,6 +292,7 @@ class ChartFormat:
                 line.attachUI = attachUI
             
             line.father = json_line.get("father", -1)
+            line.zOrder = json_line.get("zOrder", 0)
             
             for bpm_json in data.get("BPMList", []):
                 bpm_json: dict
@@ -529,6 +530,7 @@ class JudgeLine(MemEq):
     eventLayers: list[EventLayerItem] = field(default_factory=list)
     extendEvents: ExtendEventsItem = field(default_factory=ExtendEventsItem)
     father: typing.Optional[JudgeLine]|int = None
+    zOrder: int = 0
     
     isTextureLine: bool = False
     isGifLine: bool = False
