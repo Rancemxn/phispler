@@ -111,7 +111,7 @@ python main.py <chart> --disengage-webview [args] [kwargs]
 - [x] pec
   - [x] 读取转换为 `rpe` 格式
 - [x] extra
-  - [x] bpm (仍然使用原谱面的 `BPMList`)
+  - [x] bpm
   - [x] videos
     - [x] path
     - [x] time
