@@ -1386,6 +1386,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
         )
         lineWebColor = f"rgba{(*lineColor, max(0.0, lineAlpha))}"
         lineWidth = nowLineHeight * lineScaleY
+        negAlpha = lineAlpha < 0.0
         
         if line.isAttachUI:
             if line.attachUI in ("combonumber", "combo", "score", "name", "level", "pause", "bar"): # cannot merge with above if statement
@@ -1480,6 +1481,8 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                 elif note.ishold and note.holdEndTime < now_t:
                     notesChildren.remove(note)
                     continue
+                elif chart_obj.options.has_feature(phichart.CommonChartOptionFeatureFlags.ZERO_SPPED_HOLD_HIDDEN) and note.ishold and note.speed == 0.0:
+                    continue
                 elif noautoplay and note.state == const.NOTE_STATE.BAD:
                     notesChildren.remove(note)
                     continue
@@ -1502,6 +1505,12 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                     )
                     + note.yOffset * h
                 )
+                
+                if chart_obj.options.has_feature(phichart.CommonChartOptionFeatureFlags.HIGH_NOTE_FP_HIDDEN) and noteFloorPosition > h * 2:
+                    continue
+                
+                if chart_obj.options.has_feature(phichart.CommonChartOptionFeatureFlags.NEG_LINE_ALPHA_HIDDEN) and negAlpha:
+                    continue
                 
                 if line.enableCover and noteFloorPosition < const.FLOAT_LESSZERO_MAGIC and not note.isontime:
                     if not note.ishold or (note.ishold and chart_obj.options.holdCoverAtHead):

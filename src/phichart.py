@@ -697,12 +697,54 @@ class JudgeLine(MemEq):
         
         assert False, "Unreachable"
 
+class BinaryFlagsGeneric:
+    def __init__(self):
+        self.val = 0b01
+    
+    def next(self):
+        ret = self.val
+        self.val <<= 1
+        return ret
+
+class CommonChartOptionFeatureFlags:
+    generic = BinaryFlagsGeneric()
+    
+    """
+    在官谱中, hold 的 spped 为 0 时, 不渲染
+    """
+    ZERO_SPPED_HOLD_HIDDEN = generic.next()
+    
+    """
+    在官谱中, note 的 floorPosition > h * 2 时, 不渲染
+    """
+    HIGH_NOTE_FP_HIDDEN = generic.next()
+    
+    """
+    在 rpe 中, 当 line 的 alpha < 0 时, 该线的 note 不渲染
+    """
+    NEG_LINE_ALPHA_HIDDEN = generic.next()
+    
+    PRELOADED_FEATURE_FLAGS = {
+        ChartFormat.phi: (
+            ZERO_SPPED_HOLD_HIDDEN |
+            HIGH_NOTE_FP_HIDDEN |
+            0
+        ),
+        ChartFormat.rpe: (
+            NEG_LINE_ALPHA_HIDDEN |
+            0
+        ),
+        ChartFormat.pec: 0,
+        ChartFormat.pbc: 0
+    }
+    
 @dataclass
 class CommonChartOptions:
     holdIndependentSpeed: bool = True
     holdCoverAtHead: bool = True
     rpeVersion: int = -1
     alwaysLineOpenAnimation: bool = True
+    featureFlags: int = 0
     
     lineWidthUnit: tuple[float, float] = (0.0, 0.0)
     lineHeightUnit: tuple[float, float] = (0.0, 0.0)
@@ -716,6 +758,9 @@ class CommonChartOptions:
     meta_ext_composer: typing.Optional[str] = None
     meta_ext_level: typing.Optional[str] = None
     meta_ext_charter: typing.Optional[str] = None
+    
+    def has_feature(self, flag: int):
+        return (self.featureFlags & flag) == 1
 
 @dataclass
 class CommonChart:
