@@ -1659,11 +1659,10 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                 lineRotate,
                 note.positionX * w
             )
-            floorp = note.floorPosition - note.master.getFloorPosition(now_t)
             x, y = tool_funcs.rotate_point(
                 *pos,
                 (-90 if note.isAbove else 90) + lineRotate,
-                floorp * h
+                (note.floorPosition - note.master.playingFloorPosition) * note.speed * h
             )
             note.nowpos = (x / w, y / h)
             noteImg = Resource["Notes"][note.img_keyname]
@@ -1671,7 +1670,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
             noteHeight = noteWidth / noteImg.width * noteImg.height
             
             drawRotateImage(
-                note.img_keyname,
+                note.imgname,
                 x, y,
                 noteWidth, noteHeight,
                 lineRotate,
