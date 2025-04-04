@@ -102,11 +102,11 @@ python main.py <chart> --disengage-webview [args] [kwargs]
       - [x] hitsound
       - [ ] tint (PhiZone)
       - [ ] tintHitEffects (PhiZone)
-    - [x] alphaControl (可能有bug)
-    - [x] posControl (可能有bug)
-    - [x] sizeControl (可能有bug)
-    - [ ] skewControl (???)
-    - [x] yControl (可能有bug)
+    - [ ] alphaControl
+    - [ ] posControl
+    - [ ] sizeControl
+    - [ ] skewControl
+    - [ ] yControl
     - [x] zOrder
 - [x] pec
   - [x] 读取转换为 `rpe` 格式
