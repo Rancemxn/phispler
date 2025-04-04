@@ -216,7 +216,7 @@ class ChartFormat:
         def _converter_y(y: float):
             return y / const.RPE_HEIGHT
         
-        rpe_meta = data.get("META", {})
+        rpe_meta: dict = data.get("META", {})
         
         result = CommonChart()
         result.type = ChartFormat.rpe
