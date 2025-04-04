@@ -10,7 +10,7 @@
 ## 简单的部分功能介绍
 
 - `main.py`: 谱面模拟器
-- `phigros.py`: 还原Phigros游戏界面,
+- `phigros.py`: 还原Phigros游戏界面
 
 ## 环境配置
 
