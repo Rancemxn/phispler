@@ -961,7 +961,7 @@ class Extra:
         result = []
         
         for video in self.videos:
-            if video.time.value <= beat:
+            if video.time <= beat:
                 result.append((video, t - JudgeLine.beat2sec(None, video.time, self.bpm)))
         
         return result
