@@ -595,6 +595,8 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
         w * chart_obj.options.lineHeightUnit[0] + h * chart_obj.options.lineHeightUnit[1]
     )
     
+    rendered_hash_count = {}
+    
     for line in chart_obj.sorted_lines:
         (
             linePos,
@@ -750,6 +752,16 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                 
                 noteAlpha = note.alpha
                 noteWidthX = note.width
+                
+                if chart_obj.options.enableOverlappedNoteOptimization:
+                    note_render_hash = hash((x, y, note.type, lineToNoteRotate, noteAlpha, noteWidthX))
+                    if note_render_hash not in rendered_hash_count:
+                        rendered_hash_count[note_render_hash] = 0
+                    
+                    if rendered_hash_count[note_render_hash] > chart_obj.options.overlappedNoteOptimizationLimit:
+                        continue
+                
+                    rendered_hash_count[note_render_hash] += 1
                 
                 note.nowpos = (x / w, y / h)
                 note.nowrotate = lineToNoteRotate + 90
