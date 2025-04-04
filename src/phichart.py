@@ -3,12 +3,13 @@ from __future__ import annotations
 import typing
 import logging
 import math
+import random
 from dataclasses import dataclass, field
 
 import const
 import rpe_easing
 import tool_funcs
-import chartobj_rpe
+import tempdir
 
 type eventValueType = float|str|tuple[float, float, float]
 
@@ -82,6 +83,16 @@ def split_notes(notes: list[Note]) -> list[list[Note]]:
     
     return list(tempmap.values())
 
+        
+def geteasing_func(t: int):
+    try:
+        if not isinstance(t, int): t = 1
+        t = 1 if t < 1 else (len(rpe_easing.ease_funcs) if t > len(rpe_easing.ease_funcs) else t)
+        return rpe_easing.ease_funcs[int(t) - 1]
+    except Exception as e:
+        logging.warning(f"geteasing_func error: {e}")
+        return rpe_easing.ease_funcs[0]
+            
 class ChartFormat:
     unset = object()
     phi = object()
@@ -237,15 +248,6 @@ class ChartFormat:
         result.options.meta_ext_composer = rpe_meta.get("composer", "UK")
         result.options.meta_ext_level = rpe_meta.get("level", "UK")
         result.options.meta_ext_charter = rpe_meta.get("charter", "UK")
-        
-        def _geteasing_func(t: int):
-            try:
-                if not isinstance(t, int): t = 1
-                t = 1 if t < 1 else (len(rpe_easing.ease_funcs) if t > len(rpe_easing.ease_funcs) else t)
-                return rpe_easing.ease_funcs[int(t) - 1]
-            except Exception as e:
-                logging.warning(f"geteasing_func error: {e}")
-                return rpe_easing.ease_funcs[0]
     
         def _put_events(es: list[LineEvent], json_es: list[dict], converter: typing.Callable[[eventValueType], eventValueType] = lambda x: x, default: eventValueType = 0.0):
             for json_e in json_es:
@@ -256,7 +258,7 @@ class ChartFormat:
                 easingType = json_e.get("easingType", 1)
                 bezier = json_e.get("bezier", False)
                 bezierPoints = json_e.get("bezierPoints", [0.0])
-                easingFunc = _geteasing_func(easingType) if not bezier else tool_funcs.createBezierFunction(bezierPoints)
+                easingFunc = geteasing_func(easingType) if not bezier else tool_funcs.createBezierFunction(bezierPoints)
                 easingLeft = max(0.0, min(1.0, json_e.get("easingLeft", 0.0)))
                 easingRight = max(0.0, min(1.0, json_e.get("easingRight", 1.0)))
                 
@@ -639,7 +641,10 @@ class JudgeLine(MemEq):
             lineColor
         )
     
-    def sec2beat(self, t: float):
+    def sec2beat(self, t: float, bpms: typing.Optional[list[BPMEvent]] = None):
+        if bpms is None:
+            bpms = self.bpms
+            
         if len(self.bpms) == 1:
             return t / (60 / self.bpms[0].bpm)
         
@@ -660,7 +665,10 @@ class JudgeLine(MemEq):
         
         return beat
     
-    def beat2sec(self, t: float):
+    def beat2sec(self, t: float, bpms: typing.Optional[list[BPMEvent]] = None):
+        if bpms is None:
+            bpms = self.bpms
+            
         if len(self.bpms) == 1:
             return t * (60 / self.bpms[0].bpm)
 
@@ -765,7 +773,7 @@ class CommonChartOptions:
 class CommonChart:
     offset: float = 0.0
     lines: list[JudgeLine] = field(default_factory=list)
-    extra: typing.Optional[chartobj_rpe.Extra] = None
+    extra: typing.Optional[Extra] = None
     
     options: CommonChartOptions = field(default_factory=CommonChartOptions)
     type: object = field(default=lambda: ChartFormat.unset)
@@ -857,7 +865,94 @@ def load(data: str) -> CommonChart:
     else:
         _unknow_type()
 
-if __name__ == "__main__":
-    ct = load(open(r"C:\Users\QAQ\Desktop\a.json", "rb").read())
-    a = ct.lines[0].getRangeFloorPosition(0.5, 1.0)
-    print(a)
+@dataclass
+class ExtraVar:
+    startTime: float
+    endTime: float
+    start: float|list[float]
+    end: float|list[float]
+    easingType: int
+    
+    def __post_init__(self):
+        self.easingFunc = geteasing_func(self.easingType)
+    
+@dataclass
+class ExtraEffect:
+    start: float
+    end: float
+    shader: str
+    global_: bool
+    vars: dict[str, list[ExtraVar]]
+    
+    def _init_events(self, es: list[ExtraVar]):
+        if not es:
+            return
+
+        aes = []
+        for i, e in enumerate(es):
+            if i != len(es) - 1:
+                ne = es[i + 1]
+                if e.endTime < ne.startTime:
+                    aes.append(ExtraVar(e.endTime, ne.startTime, e.end, e.end, 1))
+                    
+        es.extend(aes)
+        es.sort(key = lambda x: x.startTime)
+        es.append(ExtraVar(es[-1].endTime, const.INFBEAT, es[-1].end, es[-1].end, 1))
+        
+    def __post_init__(self):
+        for v in self.vars.values():
+            self._init_events(v)
+
+@dataclass
+class ExtraVideo:
+    path: str
+    time: float
+    scale: typing.Literal["cropCenter", "inside", "fit"]
+    alpha: list[ExtraVar]
+    dim: list[ExtraVar]
+    
+    def __post_init__(self):
+        if self.scale not in ("cropCenter", "inside", "fit"):
+            logging.warning(f"Invalid scale type {self.scale} for video {self.path}")
+            self.scale = "cropCenter"
+        
+        self.h264data, self.size = tool_funcs.video2h264(f"{tempdir.createTempDir()}/{self.path}")
+        self.unqique_id = f"extra_video_{random.randint(0, 2 << 31)}"
+
+@dataclass
+class Extra:
+    bpm: list[BPMEvent]
+    effects: list[ExtraEffect]
+    videos: list[ExtraVideo]
+    
+    def getShaderEffect(self, t: float, isglobal: bool):
+        beat = JudgeLine.sec2beat(None, t, self.bpm)
+        result = []
+        
+        for e in self.effects:
+            if e.global_ != isglobal: continue
+            if e.start <= beat < e.end:
+                values = {}
+                
+                for k, v in e.vars.items():
+                    ev = JudgeLine.getEventsValue(None, v, beat, v[0].start if v else None)
+                    if ev is not None: values.update({k: ev})
+                    
+                if e.shader in const.EXTRA_DEFAULTS.keys():
+                    defvs: dict = const.EXTRA_DEFAULTS[e.shader].copy()
+                    defvs.update(values)
+                    values = defvs
+                    
+                result.append((e.shader, values))
+                
+        return result
+    
+    def getVideoEffect(self, t: float) -> list[tuple[ExtraVideo, float]]:
+        beat = JudgeLine.sec2beat(None, t, self.bpm)
+        result = []
+        
+        for video in self.videos:
+            if video.time.value <= beat:
+                result.append((video, t - JudgeLine.beat2sec(None, video.time, self.bpm)))
+        
+        return result
