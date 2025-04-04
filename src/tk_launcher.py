@@ -111,7 +111,7 @@ def launch():
     
 root = tkinter.Tk()
 root.withdraw()
-root.title("Phigros Player Launcher")
+root.title("phispler Launcher")
 root.iconbitmap("icon.ico")
 root.resizable(False, False)
 screen_width, screen_height = root.winfo_screenwidth(), root.winfo_screenheight()

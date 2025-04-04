@@ -29,7 +29,7 @@ class PhigrosLauncher:
             sys.exit(1)
         
         # Create window
-        self.window = glfw.create_window(900, 700, "Phigros Player Launcher", None, None)
+        self.window = glfw.create_window(900, 700, "phispler Launcher", None, None)
         if not self.window:
             glfw.terminate()
             sys.exit(1)
@@ -214,7 +214,7 @@ class PhigrosLauncher:
             imgui.set_next_window_position(0, 0)
             
             imgui.begin(
-                "Phigros Player Launcher",
+                "phispler Launcher",
                 flags=imgui.WINDOW_NO_RESIZE | 
                       imgui.WINDOW_NO_MOVE |
                       imgui.WINDOW_NO_COLLAPSE | 

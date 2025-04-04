@@ -88,7 +88,7 @@ class MainWindow(FluentWindow):
     def __init__(self):
         super().__init__()        
         self.setWindowIcon(QIcon("icon.ico"))
-        self.setWindowTitle("Phigros Player GUI Launcher")
+        self.setWindowTitle("phispler GUI Launcher")
         self.splash = SplashScreen(self.windowIcon(),self)
         self.splash.setIconSize(QtCore.QSize(128,128))
         self.show()
@@ -378,7 +378,7 @@ class SettingsWindow(QWidget):
         self.groupBox_3.setTitle(_translate("MainWindow", "渲染"))
         self.pushButton_2.setText(_translate("MainWindow", "开始渲染！"))
         self.render.setText(_translate("MainWindow", "将渲染结果保存为视频"))
-        self.label_2.setText(_translate("MainWindow", "Phigros Player GUI Launcher"))
+        self.label_2.setText(_translate("MainWindow", "phispler GUI Launcher"))
         self.groupBox_2.setTitle(_translate("MainWindow", "渲染设置"))
         self.comboTip.setPlaceholderText(_translate("MainWindow", "COMBO文字，不填为AUTOPLAY"))
         self.low_quality.setText(_translate("MainWindow", "低分辨率"))
