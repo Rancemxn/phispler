@@ -69,25 +69,25 @@ with open(sys.argv[1], "r", encoding="utf-8") as f:
     Chart = load(f)
 
 if "META" in Chart and "formatVersion" not in Chart:
-    import chartfuncs_rpe
-    rpeobj = chartfuncs_rpe.loadChartObject(Chart)
+    import phichart
+    rpeobj = phichart.load(Chart)
     Chart = {
         "formatVersion": 3,
-        "offset": rpeobj.META.offset / 1000,
+        "offset": rpeobj.offset,
         "judgeLineList": [
             {
                 "bpm": 1.875,
                 "notesAbove": [
                     {
-                        "time": note.secst,
-                        "type": note.phitype,
+                        "time": note.time,
+                        "type": note.type,
                         "hitsound": note.hitsound
                     }
                     for note in line.notes if not note.isFake
                 ],
                 "notesBelow": []
             }
-            for line in rpeobj.judgeLineList
+            for line in rpeobj.lines
         ]
     }
 
