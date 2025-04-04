@@ -196,11 +196,7 @@ def rpe_text_tween(sv: str, ev: str, t: float, isfill: bool) -> str:
 
 def bytes2matlike(data: bytes, w: int, h: int):
     import numpy
-    import cv2
-    
-    buf = numpy.frombuffer(data, dtype=numpy.uint8).reshape((h, w, 4))
-    matlike = cv2.cvtColor(buf, cv2.COLOR_BGRA2RGBA)
-    return matlike[:, :, :3]
+    return numpy.frombuffer(data, dtype=numpy.uint8).reshape((h, w, 3))
 
 def easeAlpha(p: float):
     if 0.0 <= p <= 0.4: 

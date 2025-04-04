@@ -1,4 +1,3 @@
-import json
 import typing
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -14,10 +13,9 @@ class ArrayBufferHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "*")
         self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
-        self.end_headers()
         data = self.rfile.read(int(self.headers["Content-Length"]))
         callback(data)
-        self.wfile.write(json.dumps({"status": 0}).encode())
+        self.end_headers()
         
     def log_request(self, *args, **kwargs) -> None: ...
     
