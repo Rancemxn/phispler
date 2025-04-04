@@ -830,7 +830,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                             noteWidth * noteWidthX,
                             noteEndHeight,
                             noteRotate,
-                            missAlpha * missAlpha,
+                            noteAlpha * missAlpha,
                             wait_execute = True
                         )
                         setOrder(None)
