@@ -277,6 +277,21 @@ class ChartFormat:
                     ease = easingFunc
                 ))
 
+        def _create_bpm_list(bpmfactor: float = 1.0):
+            result = []
+            
+            for bpm_json in data.get("BPMList", []):
+                bpm_json: dict
+                
+                result.append(BPMEvent(
+                    _beat2num(bpm_json.get("startTime", [0, 0, 1])),
+                    bpm_json.get("bpm", 140.0) / bpmfactor
+                ))
+            
+            return result
+        
+        result.options.globalBpmList = _create_bpm_list()
+        
         for line_i, json_line in enumerate(data.get("judgeLineList", [])):
             json_line: dict
 
@@ -300,13 +315,7 @@ class ChartFormat:
             line.zOrder = json_line.get("zOrder", 0)
             line.enableCover = json_line.get("isCover", 1) == 1
             
-            for bpm_json in data.get("BPMList", []):
-                bpm_json: dict
-                
-                line.bpms.append(BPMEvent(
-                    _beat2num(bpm_json.get("startTime", [0, 0, 1])),
-                    bpm_json.get("bpm", 140.0) / json_line.get("bpmfactor", 1.0)
-                ))
+            line.bpms.extend(_create_bpm_list(json_line.get("bpmfactor", 1.0)))
             
             for i, json_note in enumerate(json_line.get("notes", [])):
                 if not isinstance(json_note, dict):
@@ -754,6 +763,11 @@ class CommonChartOptionFeatureFlags:
     """
     NEG_LINE_ALPHA_HIDDEN = generic.next()
     
+    """
+    是否需要纠正 extra 的 bpm 列表
+    """
+    NEED_FIX_EXTRA_BPMS = generic.next()
+    
     PRELOADED_FEATURE_FLAGS = {
         ChartFormat.phi: (
             ZERO_SPPED_HOLD_HIDDEN |
@@ -762,6 +776,7 @@ class CommonChartOptionFeatureFlags:
         ),
         ChartFormat.rpe: (
             NEG_LINE_ALPHA_HIDDEN |
+            NEED_FIX_EXTRA_BPMS |
             0
         ),
         ChartFormat.pec: 0,
@@ -775,6 +790,7 @@ class CommonChartOptions:
     rpeVersion: int = -1
     alwaysLineOpenAnimation: bool = True
     featureFlags: int = 0
+    globalBpmList: typing.Optional[list[BPMEvent]] = None
     
     lineWidthUnit: tuple[float, float] = (0.0, 0.0)
     lineHeightUnit: tuple[float, float] = (0.0, 0.0)
@@ -823,6 +839,10 @@ class CommonChart:
             line.init()
         
         self.sorted_lines = sorted(self.lines, key=lambda line: line.zOrder)
+    
+    def init_extra(self):
+        if self.options.has_feature(CommonChartOptionFeatureFlags.NEED_FIX_EXTRA_BPMS):
+            self.extra.bpm = self.options.globalBpmList.copy()
     
     def checkMorebets(self):
         last_note = None

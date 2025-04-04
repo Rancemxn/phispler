@@ -193,8 +193,8 @@ def loadChartObject(first: bool = False):
             else chart_obj.options.rpeVersion
         )
         
-        chart_obj.extra = extra
-        # chart_obj.extra.bpm = chart_obj.BPMList.copy() # ?
+    chart_obj.extra = extra
+    chart_obj.init_extra()
         
     if not first:
         updateCoreConfig()
