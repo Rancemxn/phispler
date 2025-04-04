@@ -225,6 +225,7 @@ class ChartFormat:
         def _converter_y(y: float):
             return y / const.RPE_HEIGHT
         
+        is_pec = data.get("isPec", False)
         rpe_meta: dict = data.get("META", {})
         
         result = CommonChart()
@@ -233,7 +234,10 @@ class ChartFormat:
         result.offset = rpe_meta.get("offset", 0.0) / 1000
         
         result.options.alwaysLineOpenAnimation = False
-        result.options.holdCoverAtHead = False
+        
+        if not is_pec:
+            result.options.holdCoverAtHead = False
+            
         result.options.holdIndependentSpeed = False
         result.options.posConverter = tool_funcs.conrpepos
         
