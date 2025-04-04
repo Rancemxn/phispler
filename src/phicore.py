@@ -265,6 +265,7 @@ def getHoldDrawPosition(
 ):
     height_h = width / img_h.width * img_h.height
     height_e = width / img_e.width * img_e.height
+    # height_b = max(0.0, height_b - height_e)
     
     headpos = (x, y)
     bodypos = tool_funcs.rotate_point(*headpos, rotate, height_h / 2) if hadhead and not phira_respack.globalPack.holdCompact else headpos
@@ -284,7 +285,8 @@ def getHoldDrawPosition(
         headpos,
         bodypos,
         endpos,
-        holdrect
+        holdrect,
+        (height_b, )
     )
 
 def stringifyScore(score: float) -> str:
@@ -779,7 +781,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                     if not chart_obj.options.holdCoverAtHead and line.enableCover and holdEndFloorPosition < 0:
                         continue
                     
-                    headpos, bodypos, endpos, holdrect = getHoldDrawPosition(
+                    headpos, bodypos, endpos, holdrect, (bodyLength, ) = getHoldDrawPosition(
                         *(noteAtLinePos if note.isontime else (x, y)),
                         noteWidth, bodyLength,
                         noteImg, noteEndImg,
