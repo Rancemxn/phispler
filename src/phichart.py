@@ -83,7 +83,9 @@ def split_notes(notes: list[Note]) -> list[list[Note]]:
     
     return list(tempmap.values())
 
-        
+def _beat2num(beat: list[int]):
+    return beat[0] + beat[1] / beat[2]
+    
 def geteasing_func(t: int):
     try:
         if not isinstance(t, int): t = 1
@@ -208,9 +210,6 @@ class ChartFormat:
     
     @staticmethod
     def load_rpe(data: dict):
-        def _beat2num(beat: list[int, int, int]):
-            return beat[0] + beat[1] / beat[2]
-        
         def _beat2sec(line: JudgeLine, beat: list[int, int, int]):
             return line.beat2sec(_beat2num(beat))
         
@@ -967,9 +966,6 @@ class Extra:
         return result
 
 def loadExtra(extra_json: dict):
-    def _beat2num(beat: list[int]):
-        return beat[0] + beat[1] / beat[2]
-    
     extra = Extra(
         bpm = [
             BPMEvent(
