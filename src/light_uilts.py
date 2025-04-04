@@ -599,7 +599,7 @@ def getCoverSize(imw: int, imh: int, w: int, h: int):
 def getPosFromCoverSize(w: float, h: float, rectw: float, recth: float):
     return (rectw - w) / 2, (recth - h) / 2
 
-def fv22fv3(chart: dict):
+def fv22fv3(chart: dict) -> dict:
     "SaveAsNewFormat"
     
     def GetEaseProgress(easeType: int, progress: float):
