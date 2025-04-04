@@ -157,7 +157,7 @@ class ChartFormat:
             formatVersion = 3
         
         if formatVersion == 2:
-            data = uilts.SaveAsNewFormat(data)
+            data = uilts.fv22fv3(data)
         
         result = CommonChart()
         result.type = ChartFormat.phi

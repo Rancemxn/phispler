@@ -599,7 +599,9 @@ def getCoverSize(imw: int, imh: int, w: int, h: int):
 def getPosFromCoverSize(w: float, h: float, rectw: float, recth: float):
     return (rectw - w) / 2, (recth - h) / 2
 
-def SaveAsNewFormat(chart: dict):
+def fv22fv3(chart: dict):
+    "SaveAsNewFormat"
+    
     def GetEaseProgress(easeType: int, progress: float):
         return phi_easing.ease_funcs[easeType](progress) if 0.0 <= progress <= 1.0 else (0.0 if progress < 0.0 else 1.0)
     
