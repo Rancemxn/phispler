@@ -30,15 +30,12 @@ import tool_funcs
 import phigame_obj
 import rpe_easing
 import phicore
-import chartobj_phi
-import chartobj_rpe
-import chartfuncs_phi
-import chartfuncs_rpe
 import dxsound
 import phira_respack
 import tempdir
 import socket_webviewbridge
 import phi_tips
+import phichart
 from dxsmixer import mixer
 from exitfunc import exitfunc
 from graplib_webview import *
@@ -3476,7 +3473,6 @@ def chartPlayerRender(
     autoplay: bool = False,
     sid: typing.Optional[str] = None,
     mirror: bool = False,
-    presentationMode: bool = "--presentation-mode" in sys.argv,
     playLoadSuccess: bool = True,
     challengeMode: bool = False,
     loadingAnimationStartP: float = 0.0,
@@ -3497,29 +3493,20 @@ def chartPlayerRender(
             root.run_js_wait_code()
     
     ud_popuper = UserDataPopuper()
-    CHART_TYPE = const.SPEC_VALS.RES_NOLOADED
     chart_obj = const.SPEC_VALS.RES_NOLOADED
     audio_length = const.SPEC_VALS.RES_NOLOADED
     raw_audio_length = const.SPEC_VALS.RES_NOLOADED
     
     def _threadres_loader():
         global raw_audio_length
-        nonlocal CHART_TYPE
         nonlocal chart_obj
         nonlocal audio_length
         
         chartJsonData: dict = json.loads(open(chartFile, "r", encoding="utf-8").read())
-        CHART_TYPE = const.CHART_TYPE.PHI if "formatVersion" in chartJsonData else const.CHART_TYPE.RPE
-        if CHART_TYPE == const.CHART_TYPE.PHI: chartJsonData["offset"] += getUserData("setting-chartOffset") / 1000
-        elif CHART_TYPE == const.CHART_TYPE.RPE: chartJsonData["META"]["offset"] += getUserData("setting-chartOffset")
-        chart_obj = chartfuncs_phi.loadChartObject(chartJsonData) if CHART_TYPE == const.CHART_TYPE.PHI else chartfuncs_rpe.loadChartObject(chartJsonData)
+        chart_obj = phichart.load(chartJsonData)
         mixer.music.load(chartAudio)
         raw_audio_length = mixer.music.get_length()
-        audio_length = raw_audio_length + (chart_obj.META.offset / 1000 if CHART_TYPE == const.CHART_TYPE.RPE else 0.0)
-        
-        if presentationMode:
-            for line in chart_obj.judgeLineList:
-                line.initPresentationMode()
+        audio_length = raw_audio_length + chart_obj.offset
         
         threadres_loaded.set()
     
@@ -3587,7 +3574,6 @@ def chartPlayerRender(
     _doCoreConfig()
     phicore.enableMirror = mirror
     phicore.enableWatermark = False
-    phicore.presentationMode = presentationMode
     phicore.FCAPIndicator = getUserData("setting-enableFCAPIndicator")
     if startAnimation:
         if playLoadSuccess:
@@ -3601,10 +3587,7 @@ def chartPlayerRender(
     renderRelaser()
     
     if phicore.noautoplay:
-        if CHART_TYPE == const.CHART_TYPE.PHI:
-            pplm_proxy = chartobj_phi.PPLMPHI_Proxy(chart_obj)
-        elif CHART_TYPE == const.CHART_TYPE.RPE:
-            pplm_proxy = chartobj_rpe.PPLMRPE_Proxy(chart_obj)
+        pplm_proxy = phichart.PPLMProxy_CommonChart(chart_obj)
         
         pppsm = tool_funcs.PhigrosPlayManager(chart_obj.note_num)
         pplm = tool_funcs.PhigrosPlayLogicManager(
@@ -3616,17 +3599,14 @@ def chartPlayerRender(
             challengeMode
         )
         
-        convertTime2Chart = lambda t: (t - globals().get("show_start_time", time.time())) - (0.0 if CHART_TYPE == const.CHART_TYPE.PHI else chart_obj.META.offset / 1000)
+        convertTime2Chart = lambda t: (t - globals().get("show_start_time", time.time())) - chart_obj.offset
         root.jsapi.set_attr("PhigrosPlay_KeyDown", lambda t, key: pplm.pc_click(convertTime2Chart(t), key)) # 这里没写diswebview的判断, 希望别埋坑..
         root.jsapi.set_attr("PhigrosPlay_KeyUp", lambda t, key: pplm.pc_release(convertTime2Chart(t), key))
         root.jsapi.set_attr("PhigrosPlay_TouchStart", lambda t, x, y, i: pplm.mob_touchstart(convertTime2Chart(t), x / w, y / h, i))
         root.jsapi.set_attr("PhigrosPlay_TouchMove", lambda t, x, y, i: pplm.mob_touchmove(convertTime2Chart(t), x / w, y / h, i))
         root.jsapi.set_attr("PhigrosPlay_TouchEnd", lambda i: pplm.mob_touchend(i))
             
-        if not presentationMode:
-            pplm.bind_events(root)
-        else:
-            pplm.pc_click(-1, "z")
+        pplm.bind_events(root)
     else:
         pplm = None
     
@@ -3818,11 +3798,7 @@ def chartPlayerRender(
             if not stoped:
                 now_t = time.time() - show_start_time
                 checkOffset(now_t)
-                if CHART_TYPE == const.CHART_TYPE.PHI:
-                    extasks = phicore.renderChart_Phi(now_t, False, False, pplm)
-                elif CHART_TYPE == const.CHART_TYPE.RPE:
-                    extasks = phicore.renderChart_Rpe(now_t, False, False, pplm)
-                
+                extasks = phicore.renderChart_Common(now_t, False, False, pplm)
                 break_flag = phicore.processExTask(extasks)
                 
                 if break_flag and not stoped:
@@ -3892,7 +3868,7 @@ def chartPlayerRender(
             root.run_js_code(f"mask.style.backdropFilter = 'blur(0px)';", wait_execute = True)
             root.run_js_wait_code()
             
-            if sid is not None and pplm is not None and needSetPlayData and not presentationMode:
+            if sid is not None and pplm is not None and needSetPlayData:
                 setPlayData(
                     sid,
                     score = pplm.ppps.getScore(),
@@ -3906,7 +3882,7 @@ def chartPlayerRender(
         
         root.run_js_wait_code()
     
-    if phicore.noautoplay and not presentationMode:
+    if phicore.noautoplay:
         pplm.unbind_events(root)
         
     root.run_js_code("window.removeEventListener('keydown', _SpaceClicked);")

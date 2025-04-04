@@ -8,10 +8,7 @@ import cv2
 import numpy
 from PIL import Image
 
-import chartfuncs_phi
-import chartfuncs_rpe
-import chartobj_phi
-import chartobj_rpe
+import phichart
 import const
 import tool_funcs
 from rpe_easing import ease_funcs
@@ -27,57 +24,22 @@ outputVideoFilePath = argv[3]
 with open(chartFile, "r", encoding="utf-8") as f:
     jsonData = json.load(f)
 
-chartObj = chartfuncs_phi.loadChartObject(jsonData) if "formatVersion" in jsonData else chartfuncs_rpe.loadChartObject(jsonData)
+chartObj = phichart.load(jsonData)
 moveDatas = []
 
-if isinstance(chartObj, chartobj_phi.Chart):
-    for line in chartObj.judgeLineList:
-        for note in line.notesAbove + line.notesBelow:
+for line in chartObj.lines:
+    for note in line.notes:
+        moveDatas.extend(map(lambda x: {
+            "time": x[0],
+            "pos": x[2][0](1.0, 1.0)
+        }, note.effect_times))
+        
+        if note.type == const.NOTE_TYPE.FLICK:
+            e = moveDatas[-1]
             moveDatas.append({
-                "time": note.time * (1.875 / line.bpm),
-                "pos": note.getNoteClickPos(note.time)[0](1.0, 1.0)
+                "time": e["time"] + 0.05,
+                "pos": (e["pos"][0], e["pos"][1] - 0.1)
             })
-            
-            if note.ishold:
-                dw = 1 / 12.5 / (1.875 / line.bpm)
-                ht = note.time
-                while ht < note.time + note.holdTime:
-                    ht += dw
-                    moveDatas.append({
-                        "time": ht * (1.875 / line.bpm),
-                        "pos": note.getNoteClickPos(ht)[0](1.0, 1.0)
-                    })
-            
-            if note.type == const.NOTE_TYPE.FLICK:
-                e = moveDatas[-1]
-                moveDatas.append({
-                    "time": e["time"] + 0.05,
-                    "pos": (e["pos"][0], e["pos"][1] - 0.1)
-                })
-elif isinstance(chartObj, chartobj_rpe.Chart): # eq else
-    for line in chartObj.judgeLineList:
-        for note in line.notes:
-            moveDatas.append({
-                "time": note.secst,
-                "pos": note.getNoteClickPos(note.startTime.value, chartObj)
-            })
-            
-            if note.phitype == const.NOTE_TYPE.HOLD:
-                dw = chartObj.sec2beat(1 / 12.5, line.bpmfactor)
-                ht = note.startTime.value
-                while ht < note.endTime.value:
-                    ht += dw
-                    moveDatas.append({
-                        "time": chartObj.beat2sec(ht, line.bpmfactor),
-                        "pos": note.getNoteClickPos(ht, chartObj)
-                    })
-            
-            if note.phitype == const.NOTE_TYPE.FLICK:
-                e = moveDatas[-1]
-                moveDatas.append({
-                    "time": e["time"] + 0.05,
-                    "pos": (e["pos"][0], e["pos"][1] - 0.1)
-                })
 
 moveDatas.sort(key = lambda x: x["time"])
 
