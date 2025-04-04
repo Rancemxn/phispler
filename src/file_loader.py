@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from PIL import Image
 
-import tool_funcs
+import uilts
 from dxsmixer import mixer
 
 class FILE_TYPE:
@@ -45,7 +45,7 @@ def loadfile(fp: str):
                 errs.append(e)
             
                 if isinstance(e, json.decoder.JSONDecodeError):
-                    pec2rpeResult, p2r_errs = tool_funcs.pec2rpe(raw)
+                    pec2rpeResult, p2r_errs = uilts.pec2rpe(raw)
                     
                     for e in p2r_errs:
                         logging.warning(f"pec2rpe: {repr(e)}")

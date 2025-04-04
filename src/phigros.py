@@ -26,7 +26,7 @@ from PIL import Image, ImageFilter
 
 import webcv
 import const
-import tool_funcs
+import uilts
 import phigame_obj
 import rpe_easing
 import phicore
@@ -41,7 +41,7 @@ from exitfunc import exitfunc
 from graplib_webview import *
 
 if not exists("./phigros_assets") or not all([
-    exists(tool_funcs.gtpresp(i)) for i in [
+    exists(uilts.gtpresp(i)) for i in [
         "config.json",
         "chapters.json"
     ]
@@ -53,7 +53,7 @@ if not exists("./phigros_assets") or not all([
 tempdir.clearTempDir()
 temp_dir = tempdir.createTempDir()
 
-assetConfig = json.loads(open(tool_funcs.gtpresp("config.json"), "r", encoding="utf-8").read())
+assetConfig = json.loads(open(uilts.gtpresp("config.json"), "r", encoding="utf-8").read())
 userData_default = {
     "userdata-userName": "GUEST",
     "userdata-userAvatar": assetConfig["default-avatar"],
@@ -174,7 +174,7 @@ class UserDataPopuper:
     @property
     def p(self):
         p = (time.time() - self.lastClickTime) / self.animatTime
-        return self.animatEase(tool_funcs.fixorp(p))
+        return self.animatEase(uilts.fixorp(p))
 
 if not exists("./phigros_userdata.json"):
     saveUserData(userData_default)
@@ -203,7 +203,7 @@ dspSettingWidgets: dict[str, phigame_obj.PhiBaseWidget] = {}
 def loadChapters():
     global Chapters, ChaptersMaxDx
     
-    jsonData: dict = json.loads(open(tool_funcs.gtpresp("chapters.json"), "r", encoding="utf-8").read())
+    jsonData: dict = json.loads(open(uilts.gtpresp("chapters.json"), "r", encoding="utf-8").read())
     jsonData["chapters"].insert(0, {
         "name": "Phigros",
         "cn-name": "",
@@ -465,14 +465,14 @@ def loadResource():
         respacker.reg_img(Resource["Note_Click_Effect"]["Good"][i], f"Note_Click_Effect_Good_{i + 1}")
 
     for chapter in Chapters.items:
-        chapterimbytes = open(tool_funcs.gtpresp(chapter.image), "rb").read()
+        chapterimbytes = open(uilts.gtpresp(chapter.image), "rb").read()
         im = Image.open(BytesIO(chapterimbytes))
         chapter.im = im
         respacker.reg_img(chapterimbytes, f"chapter_{chapter.chapterId}_raw")
         respacker.reg_img(im.filter(ImageFilter.GaussianBlur(radius = (im.width + im.height) / 45)), f"chapter_{chapter.chapterId}_blur")
     
     for index, avatar in enumerate(assetConfig["avatars"]):
-        respacker.reg_img(open(tool_funcs.gtpresp(avatar), "rb").read(), f"avatar_{index}")
+        respacker.reg_img(open(uilts.gtpresp(avatar), "rb").read(), f"avatar_{index}")
     
     root.reg_res(open("./resources/font.ttf", "rb").read(), "pgrFont.ttf")
     root.reg_res(open("./resources/font-thin.ttf", "rb").read(), "pgrFontThin.ttf")
@@ -596,7 +596,7 @@ def getChapterP(chapter: phigame_obj.Chapter):
     else:
         p = 0.0
     
-    return ef(tool_funcs.fixorp(p))
+    return ef(uilts.fixorp(p))
 
 def getChapterWidth(p: float):
     return w * (0.221875 + (0.5640625 - 0.221875) * p)
@@ -620,7 +620,7 @@ def drawChapterItem(item: phigame_obj.Chapter, dx: float, rectmap: dict):
     chapterWidth = getChapterWidth(p)
     if dx + chapterWidth < 0: return getChapterToNextWidth(p)
     chapterImWidth = h * (1.0 - 140 / 1080 * 2) / item.im.height * item.im.width
-    chapterDPower = tool_funcs.getDPower(chapterWidth, h * (1.0 - 140 / 1080 * 2), 75)
+    chapterDPower = uilts.getDPower(chapterWidth, h * (1.0 - 140 / 1080 * 2), 75)
     
     chapterRect = getChapterRect(dx, chapterWidth)
     
@@ -706,7 +706,7 @@ def drawChapterItem(item: phigame_obj.Chapter, dx: float, rectmap: dict):
     
     PlayButtonWidth = w * 0.1453125
     PlayButtonHeight = h * (5 / 54)
-    PlayButtonDPower = tool_funcs.getDPower(PlayButtonWidth, PlayButtonHeight, 75)
+    PlayButtonDPower = uilts.getDPower(PlayButtonWidth, PlayButtonHeight, 75)
 
     playButtonRect = (
         chapterRect[2] - chapterDPower * chapterWidth + PlayButtonDPower * PlayButtonWidth - PlayButtonWidth, chapterRect[3] - PlayButtonHeight,
@@ -769,7 +769,7 @@ def drawChapterItem(item: phigame_obj.Chapter, dx: float, rectmap: dict):
         
         allsongs_bar_alpha = 0.0 if p <= 0.6 else (p - 0.6) / 0.4
         
-        allsongs_show_level_dpower = tool_funcs.getDPower(*allsongs_show_level_size, 75)
+        allsongs_show_level_dpower = uilts.getDPower(*allsongs_show_level_size, 75)
         root.run_js_code(
             f"ctx.drawLeftBottomSkewText(\
                 {root.string2sctring_hqm(allsongs_show_level)},\
@@ -780,11 +780,11 @@ def drawChapterItem(item: phigame_obj.Chapter, dx: float, rectmap: dict):
         )
         ctxResetTransform(wait_execute=True)
         
-        with tool_funcs.shadowDrawer("rgba(0, 0, 0, 0.8)", (w + h) / 85):
+        with uilts.shadowDrawer("rgba(0, 0, 0, 0.8)", (w + h) / 85):
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, allsongs_bar_rect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(allsongs_bar_rect), 75)}, 'rgba(0, 0, 0, {allsongs_bar_alpha * 0.45})'\
+                    {uilts.getDPower(*uilts.getSizeByRect(allsongs_bar_rect), 75)}, 'rgba(0, 0, 0, {allsongs_bar_alpha * 0.45})'\
                 );",
                 wait_execute = True
             )
@@ -803,13 +803,13 @@ def drawChapterItem(item: phigame_obj.Chapter, dx: float, rectmap: dict):
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, button_rect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(button_rect), 75)}, 'rgba(255, 255, 255, {allsongs_bar_alpha * 0.9})'\
+                    {uilts.getDPower(*uilts.getSizeByRect(button_rect), 75)}, 'rgba(255, 255, 255, {allsongs_bar_alpha * 0.9})'\
                 );",
                 wait_execute = True
             )
             
             drawText(
-                *tool_funcs.getCenterPointByRect(button_rect),
+                *uilts.getCenterPointByRect(button_rect),
                 text,
                 font = f"{(w + h) / 85}px pgrFont",
                 textAlign = "center",
@@ -911,13 +911,13 @@ def drawDialog(
         w / 2 + tempWidth / 2,
         dialogCenterY + tempHeight / 2 + tempHeight * 0.2
     )
-    dialogDPower = tool_funcs.getDPower(*tool_funcs.getSizeByRect(dialogRect), 75)
+    dialogDPower = uilts.getDPower(*uilts.getSizeByRect(dialogRect), 75)
     
     root.run_js_code(
         f"dialog_canvas_ctx.save();\
         dialog_canvas_ctx.clipDiagonalRectangle(\
             {",".join(map(str, dialogRect))},\
-            {tool_funcs.getDPower(*tool_funcs.getSizeByRect(dialogRect), 75)}\
+            {uilts.getDPower(*uilts.getSizeByRect(dialogRect), 75)}\
         );",
         wait_execute = True
     )
@@ -1000,7 +1000,7 @@ def showStartAnimation():
         drawAlphaImage(
             "logoipt",
             0, 0, w, h,
-            tool_funcs.easeAlpha(p),
+            uilts.easeAlpha(p),
             wait_execute = True
         )
         
@@ -1018,7 +1018,7 @@ def showStartAnimation():
         drawAlphaImage(
             "warning",
             0, 0, w, h,
-            tool_funcs.easeAlpha(p),
+            uilts.easeAlpha(p),
             wait_execute = True
         )
         
@@ -1165,7 +1165,7 @@ def mainUI_slideControlerMouseDown_valid(x, y):
         return False
     
     for e in eventManager.clickEvents:
-        if e.tag == "mainUI" and tool_funcs.inrect(x, y, e.rect):
+        if e.tag == "mainUI" and uilts.inrect(x, y, e.rect):
             return False
     
     return True
@@ -1220,8 +1220,8 @@ def changeChapterMouseUp(x, y):
     for index, i in enumerate(Chapters.items):
         p = getChapterP(i)
         width = getChapterWidth(p)
-        dPower = tool_funcs.getDPower(width, h * (1.0 - 140 / 1080 * 2), 75)
-        if tool_funcs.inDiagonalRectangle(*getChapterRect(chapterX, width), dPower, x, y):
+        dPower = uilts.getDPower(width, h * (1.0 - 140 / 1080 * 2), 75)
+        if uilts.inDiagonalRectangle(*getChapterRect(chapterX, width), dPower, x, y):
             if Chapters.aTo != index:
                 Chapters.aFrom, Chapters.aTo, Chapters.aSTime = Chapters.aTo, index, time.time()
                 lastChangeChapterTime = time.time()
@@ -1232,7 +1232,7 @@ def changeChapterMouseUp(x, y):
 def checkOffset(now_t: float):
     global show_start_time
     
-    dt = tool_funcs.checkOffset(now_t, raw_audio_length, mixer)
+    dt = uilts.checkOffset(now_t, raw_audio_length, mixer)
     if dt != 0.0:
         show_start_time += dt
         coreConfig.show_start_time = show_start_time
@@ -1358,7 +1358,7 @@ def mainRender():
         
         # why need to copy: RuntimeError: dictionary changed size during iteration
         for cid, rect in chapterPlayButtonRectMap.copy().items():
-            if tool_funcs.inrect(x, y, rect) and Chapters.items[Chapters.aTo].chapterId == cid:
+            if uilts.inrect(x, y, rect) and Chapters.items[Chapters.aTo].chapterId == cid:
                 if not tonextUI:
                     unregEvents()
 
@@ -1367,7 +1367,7 @@ def mainRender():
                 Resource["UISound_2"].play()
                 return
         
-        if tool_funcs.inrect(x, y, intoChallengeModeButtonRect) and Chapters.aTo == 0:
+        if uilts.inrect(x, y, intoChallengeModeButtonRect) and Chapters.aTo == 0:
             if not tonextUI:
                 unregEvents()
                 
@@ -1593,7 +1593,7 @@ def renderPhigrosWidgets(
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, sliderShadowRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(sliderShadowRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(sliderShadowRect), 75)},\
                     'rgba(0, 0, 0, 0.25)'\
                 );",
                 wait_execute = True
@@ -1613,7 +1613,7 @@ def renderPhigrosWidgets(
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, lConRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(lConRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(lConRect), 75)},\
                     'rgb(255, 255, 255)'\
                 );",
                 wait_execute = True
@@ -1622,14 +1622,14 @@ def renderPhigrosWidgets(
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, rConRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(rConRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(rConRect), 75)},\
                     'rgb(255, 255, 255)'\
                 );",
                 wait_execute = True
             )
             
             if widget.lr_button:
-                ctp_l, ctp_r = tool_funcs.getCenterPointByRect(lConRect), tool_funcs.getCenterPointByRect(rConRect)
+                ctp_l, ctp_r = uilts.getCenterPointByRect(lConRect), uilts.getCenterPointByRect(rConRect)
                 coniw_l, coniw_r = (w + h) * 0.003, (w + h) * 0.005 # 控制按钮图标线长度
                 root.run_js_code(
                     f"ctx.drawLineEx(\
@@ -1656,9 +1656,9 @@ def renderPhigrosWidgets(
                     wait_execute = True
                 )
             
-            slider_p = tool_funcs.sliderValueP(widget.value, widget.number_points)
+            slider_p = uilts.sliderValueP(widget.value, widget.number_points)
             sliderBlockWidth = w * 0.0359375
-            sliderFrameWidth = conWidth - conWidth * tool_funcs.getDPower(*tool_funcs.getSizeByRect(lConRect), 75) + sliderBlockWidth / 2 + w * 0.0046875
+            sliderFrameWidth = conWidth - conWidth * uilts.getDPower(*uilts.getSizeByRect(lConRect), 75) + sliderBlockWidth / 2 + w * 0.0046875
             sliderBlockHeight = conButtonHeight
             sliderBlock_x = x + sliderFrameWidth - sliderBlockWidth / 2 + slider_p * (max_width - sliderFrameWidth * 2)
             sliderBlockRect = (
@@ -1669,7 +1669,7 @@ def renderPhigrosWidgets(
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, sliderBlockRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(sliderBlockRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(sliderBlockRect), 75)},\
                     'rgb(255, 255, 255)'\
                 );",
                 wait_execute = True
@@ -1700,14 +1700,14 @@ def renderPhigrosWidgets(
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, checkboxShadowRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(checkboxShadowRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(checkboxShadowRect), 75)},\
                     'rgba(0, 0, 0, 0.25)'\
                 );",
                 wait_execute = True
             )
             
             checkAnimationP = (time.time() - widget.check_animation_st) / 0.2
-            checkAnimationP = tool_funcs.fixorp(checkAnimationP)
+            checkAnimationP = uilts.fixorp(checkAnimationP)
             if not widget.checked:
                 checkAnimationP = 1.0 - checkAnimationP
             checkAnimationP = 1.0 - (1.0 - checkAnimationP) ** 2
@@ -1721,7 +1721,7 @@ def renderPhigrosWidgets(
             drawImage(
                 "checked",
                 x + w * 0.340625 - CheckedIconWidth / 2,
-                y + tool_funcs.getSizeByRect(checkButtonRect)[1] / 2 - CheckedIconHeight / 2,
+                y + uilts.getSizeByRect(checkButtonRect)[1] / 2 - CheckedIconHeight / 2,
                 CheckedIconWidth, CheckedIconHeight,
                 wait_execute = True
             )
@@ -1729,7 +1729,7 @@ def renderPhigrosWidgets(
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, checkButtonRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(checkButtonRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(checkButtonRect), 75)},\
                     'rgb(255, 255, 255)'\
                 );",
                 wait_execute = True
@@ -1753,7 +1753,7 @@ def renderPhigrosWidgets(
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, buttonRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(buttonRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(buttonRect), 75)},\
                     'rgb(255, 255, 255)'\
                 );",
                 wait_execute = True
@@ -1790,7 +1790,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
     
     bgrespacker = webcv.LazyPILResPacker(root)
     for i, bg in enumerate(assetConfig["backgrounds"]):
-        bgrespacker.reg_img(tool_funcs.gtpresp(bg), f"background_{i}")
+        bgrespacker.reg_img(uilts.gtpresp(bg), f"background_{i}")
     bgrespacker.load(*bgrespacker.pack())
     
     settingState = phigame_obj.SettingState()
@@ -1877,7 +1877,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         nonlocal lastClickChooseAvatarOrBackgroundPos
         
         # 游玩
-        if tool_funcs.inrect(x, y, (
+        if uilts.inrect(x, y, (
             w * 346 / 1920, h * 35 / 1080,
             w * 458 / 1920, h * 97 / 1080
         )) and inSettingUI and not editingUserData:
@@ -1888,7 +1888,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             _setSettingState(const.PHIGROS_SETTING_STATE.PLAY)
         
         # 账号与统计
-        if tool_funcs.inrect(x, y, (
+        if uilts.inrect(x, y, (
             w * 540 / 1920, h * 35 / 1080,
             w * 723 / 1920, h * 97 / 1080
         )) and inSettingUI and not editingUserData:
@@ -1899,7 +1899,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             _setSettingState(const.PHIGROS_SETTING_STATE.ACCOUNT_AND_COUNT)
         
         # 其他
-        if tool_funcs.inrect(x, y, (
+        if uilts.inrect(x, y, (
             w * 807 / 1920, h * 35 / 1080,
             w * 915 / 1920, h * 97 / 1080
         )) and inSettingUI and not editingUserData:
@@ -1910,7 +1910,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             _setSettingState(const.PHIGROS_SETTING_STATE.OTHER)
         
         # 校准延迟点击扩散的线条
-        if settingState.atis_p and tool_funcs.inrect(x, y, (
+        if settingState.atis_p and uilts.inrect(x, y, (
             w * 0.6015625, 0.0,
             w, h
         )) and inSettingUI:
@@ -1919,14 +1919,14 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
                 CalibrationClickEffectLines.append((time.time(), mixer_pos))
         
         # 账号与统计 - 编辑
-        if settingState.atis_a and tool_funcs.inrect(x, y, (
+        if settingState.atis_a and uilts.inrect(x, y, (
             w * 0.85625, h * (181 / 1080),
             w * 0.921875, h * (220 / 1080)
         )) and not (showAvatars or showBackgrounds):
             editingUserData = not editingUserData
         
         # 编辑用户名字
-        if settingState.atis_a and tool_funcs.inrect(x, y, editUserNameRect) and editingUserData and not (showAvatars or showBackgrounds):
+        if settingState.atis_a and uilts.inrect(x, y, editUserNameRect) and editingUserData and not (showAvatars or showBackgrounds):
             newName = root.run_js_code(f"prompt('请输入新名字', {root.string2sctring_hqm(getUserData("userdata-userName"))});")
             if newName is not None:
                 setUserData("userdata-userName", newName)
@@ -1934,7 +1934,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
                 saveUserData(userData)
         
         # 编辑用户介绍
-        if settingState.atis_a and tool_funcs.inrect(x, y, editIntroductionRect) and editingUserData and not (showAvatars or showBackgrounds):
+        if settingState.atis_a and uilts.inrect(x, y, editIntroductionRect) and editingUserData and not (showAvatars or showBackgrounds):
             newName = root.run_js_code(f"prompt('请输入新介绍 (输入\"\\\\n\"可换行)', {root.string2sctring_hqm(getUserData("userdata-selfIntroduction").replace("\n", "\\n"))});")
             if newName is not None:
                 setUserData("userdata-selfIntroduction", newName.replace("\\n", "\n"))
@@ -1942,17 +1942,17 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
                 saveUserData(userData)
         
         # 编辑用户头像
-        if settingState.atis_a and tool_funcs.inrect(x, y, editAvatarRect) and editingUserData and not (showAvatars or showBackgrounds):
+        if settingState.atis_a and uilts.inrect(x, y, editAvatarRect) and editingUserData and not (showAvatars or showBackgrounds):
             showAvatars, showAvatarsSt = True, time.time()
             settingUIChooseAvatarAndBackgroundSlideControler.setDy(0.0)
         
         # 编辑用户背景
-        if settingState.atis_a and tool_funcs.inrect(x, y, editBackgroundRect) and editingUserData and not (showAvatars or showBackgrounds):
+        if settingState.atis_a and uilts.inrect(x, y, editBackgroundRect) and editingUserData and not (showAvatars or showBackgrounds):
             showBackgrounds, showBackgroundsSt = True, time.time()
             settingUIChooseAvatarAndBackgroundSlideControler.setDy(0.0)
 
         # 编辑用户头像/背景 - 关闭
-        if settingState.atis_a and tool_funcs.inrect(x, y, (
+        if settingState.atis_a and uilts.inrect(x, y, (
             w * 0.9078125 - (w + h) * 0.014 / 2, h * (225 / 1080) - (w + h) * 0.014 / 2,
             w * 0.9078125 + (w + h) * 0.014 / 2, h * (225 / 1080) + (w + h) * 0.014 / 2
         )) and (showAvatars or showBackgrounds):
@@ -1970,17 +1970,17 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             lastClickChooseAvatarOrBackgroundPos = (x, y)
         
         # 登录
-        if settingState.atis_a and tool_funcs.inrect(x, y, loginButtonRect) and not (showAvatars or showBackgrounds):
+        if settingState.atis_a and uilts.inrect(x, y, loginButtonRect) and not (showAvatars or showBackgrounds):
             root.run_js_code(f"alert({root.string2sctring_hqm("你在想 peach")});")
         
         # 音频问题疑难解答
-        if settingState.atis_o and tool_funcs.inrect(x, y, otherSettingButtonRects[0]) and inSettingUI:
+        if settingState.atis_o and uilts.inrect(x, y, otherSettingButtonRects[0]) and inSettingUI:
             Resource["UISound_4"].play()
             unregEvents()
             nextUI, tonextUI, tonextUISt = audioQARender, True, time.time()
         
         # 观看教学
-        if settingState.atis_o and tool_funcs.inrect(x, y, otherSettingButtonRects[1]) and inSettingUI:
+        if settingState.atis_o and uilts.inrect(x, y, otherSettingButtonRects[1]) and inSettingUI:
             unregEvents()
             nextUI, tonextUI, tonextUISt = lambda: chartPlayerRender(
                 chartAudio = "./resources/introduction_chart/audio.mp3",
@@ -2000,43 +2000,43 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             ), True, time.time()
         
         # 关于我们
-        if settingState.atis_o and tool_funcs.inrect(x, y, otherSettingButtonRects[2]) and inSettingUI:
+        if settingState.atis_o and uilts.inrect(x, y, otherSettingButtonRects[2]) and inSettingUI:
             unregEvents()
             nextUI, tonextUI, tonextUISt = aboutUsRender, True, time.time()
         
         # 开源许可证
-        if settingState.atis_o and tool_funcs.inrect(x, y, otherSettingButtonRects[3]) and inSettingUI:
+        if settingState.atis_o and uilts.inrect(x, y, otherSettingButtonRects[3]) and inSettingUI:
             inSettingUI = False
             ShowOpenSource, ShowOpenSourceSt = True, time.time()
             settingUIOpenSourceLicenseSlideControler.setDy(settingUIOpenSourceLicenseSlideControler.minValueY)
         
         # 隐私政策
-        if settingState.atis_o and tool_funcs.inrect(x, y, otherSettingButtonRects[4]) and inSettingUI:
+        if settingState.atis_o and uilts.inrect(x, y, otherSettingButtonRects[4]) and inSettingUI:
             webbrowser.open(const.PHIGROS_LINKS.PRIVACYPOLIC)
         
         # 推特链接
-        if settingState.atis_o and tool_funcs.inrect(x, y, (
+        if settingState.atis_o and uilts.inrect(x, y, (
             w * 128 / 1920, h * 1015 / 1080,
             w * 315 / 1920, h * 1042 / 1080
         )) and inSettingUI:
             webbrowser.open(const.PHIGROS_LINKS.TWITTER)
         
         # B站链接
-        if settingState.atis_o and tool_funcs.inrect(x, y, (
+        if settingState.atis_o and uilts.inrect(x, y, (
             w * 376 / 1920, h * 1015 / 1080,
             w * 561 / 1920, h * 1042 / 1080
         )) and inSettingUI:
             webbrowser.open(const.PHIGROS_LINKS.BILIBILI)
         
         # QQ链接
-        if settingState.atis_o and tool_funcs.inrect(x, y, (
+        if settingState.atis_o and uilts.inrect(x, y, (
             w * 626 / 1920, h * 1015 / 1080,
             w * 856 / 1920, h * 1042 / 1080
         )) and inSettingUI:
             webbrowser.open(const.PHIGROS_LINKS.QQ)
         
         # 开源许可证的关闭按钮
-        if tool_funcs.inrect(x, y, (0, 0, ButtonWidth, ButtonHeight)) and ShowOpenSource and time.time() - ShowOpenSourceSt > 0.15:
+        if uilts.inrect(x, y, (0, 0, ButtonWidth, ButtonHeight)) and ShowOpenSource and time.time() - ShowOpenSourceSt > 0.15:
             ShowOpenSource, ShowOpenSourceSt = False, float("nan")
             CloseOpenSource, CloseOpenSourceSt = True, time.time()
     
@@ -2044,17 +2044,17 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         nonlocal showAvatars, showAvatarsSt
         nonlocal showBackgrounds, showBackgroundsSt
         
-        if settingState.atis_a and showAvatars and tool_funcs.getLineLength(x, y, *lastClickChooseAvatarOrBackgroundPos) <= (w + h) / 400:
+        if settingState.atis_a and showAvatars and uilts.getLineLength(x, y, *lastClickChooseAvatarOrBackgroundPos) <= (w + h) / 400:
             for v, r in chooseRects["avatars"].items():
-                if tool_funcs.inrect(x, y, r):
+                if uilts.inrect(x, y, r):
                     showAvatars, showAvatarsSt = False, time.time()
                     setUserData("userdata-userAvatar", assetConfig["avatars"][v])
                     saveUserData(userData)
                     updateUserAvatar()
         
-        if settingState.atis_a and showBackgrounds and tool_funcs.getLineLength(x, y, *lastClickChooseAvatarOrBackgroundPos) <= (w + h) / 400:
+        if settingState.atis_a and showBackgrounds and uilts.getLineLength(x, y, *lastClickChooseAvatarOrBackgroundPos) <= (w + h) / 400:
             for v, r in chooseRects["backgrounds"].items():
-                if tool_funcs.inrect(x, y, r):
+                if uilts.inrect(x, y, r):
                     showBackgrounds, showBackgroundsSt = False, time.time()
                     setUserData("userdata-userBackground", assetConfig["backgrounds"][v])
                     saveUserData(userData)
@@ -2074,7 +2074,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
     settingDx = [0.0, 0.0, 0.0]
     
     def getShadowDiagonalXByY(y: float):
-        return w * tool_funcs.getDPower(w, h, 75) * ((h - y) / h)
+        return w * uilts.getDPower(w, h, 75) * ((h - y) / h)
     
     def drawOtherSettingButton(x0: float, y0: float, x1: float, y1: float, dpower: float):
         root.run_js_code(
@@ -2238,7 +2238,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
                 {root.get_img_jsvarname("userBackground")},\
                 0, {(h * 0.425 - w * 0.8609375 / 16 * 9) / 2},\
                 {w * 0.8609375}, {w * 0.8609375 / 16 * 9},\
-                {tool_funcs.getDPower(w * 0.8609375, h * 0.425, 75)}, 1.0\
+                {uilts.getDPower(w * 0.8609375, h * 0.425, 75)}, 1.0\
             );",
             wait_execute = True
         )
@@ -2247,7 +2247,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             f"ctx.drawDiagonalRectangle(\
                 {w * 0.0796875}, {h * 0.225},\
                 {w * 0.940625}, {h * 0.65},\
-                {tool_funcs.getDPower(w * 0.8609375, h * 0.425, 75)},\
+                {uilts.getDPower(w * 0.8609375, h * 0.425, 75)},\
                 'rgba(0, 0, 0, 0.375)'\
             );",
             wait_execute = True
@@ -2259,11 +2259,11 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
                 w * 0.8796875, h * (257 / 1080),
                 w * 0.93125, h * (301 / 1080)
             )
-            editBackgroundRectSize = tool_funcs.getSizeByRect(editBackgroundRect)
+            editBackgroundRectSize = uilts.getSizeByRect(editBackgroundRect)
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, editBackgroundRect))},\
-                    {tool_funcs.getDPower(*editBackgroundRectSize, 75)},\
+                    {uilts.getDPower(*editBackgroundRectSize, 75)},\
                     'rgb(255, 255, 255)'\
                 );",
                 wait_execute = True
@@ -2282,7 +2282,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             f"ctx.drawDiagonalRectangle(\
                 {w * 0.0796875}, {h * 0.225},\
                 {w * ((0.940625 - 0.0796875) * leftBlackDiagonalX + 0.0796875)}, {h * 0.65},\
-                {tool_funcs.getDPower(w * ((0.940625 - 0.0796875) * leftBlackDiagonalX), h * 0.425, 75)},\
+                {uilts.getDPower(w * ((0.940625 - 0.0796875) * leftBlackDiagonalX), h * 0.425, 75)},\
                 'rgba(0, 0, 0, 0.25)'\
             );",
             wait_execute = True
@@ -2292,7 +2292,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             f"ctx.drawDiagonalRectangle(\
                 {w * 0.121875}, {h * (283 / 1080)},\
                 {w * 0.465625}, {h * (397 / 1080)},\
-                {tool_funcs.getDPower(w * 0.34375, h * (114 / 1080), 75)},\
+                {uilts.getDPower(w * 0.34375, h * (114 / 1080), 75)},\
                 'rgba(0, 0, 0, 0.9)'\
             );",
             wait_execute = True
@@ -2303,7 +2303,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             w * 0.128125, h * (280 / 1080),
             w * 0.225, h * (400 / 1080)
         )
-        avatarWidth, avatarHeight = tool_funcs.getSizeByRect(avatarRect)
+        avatarWidth, avatarHeight = uilts.getSizeByRect(avatarRect)
         root.run_js_code(
             f"ctx.drawDiagonalRectangleClipImage(\
                 {",".join(map(str, avatarRect))},\
@@ -2311,7 +2311,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
                 {(avatarWidth - avatarSize) / 2},\
                 {(avatarHeight - avatarSize) / 2},\
                 {avatarSize}, {avatarSize},\
-                {tool_funcs.getDPower(avatarWidth, avatarHeight, 75)}, 1.0\
+                {uilts.getDPower(avatarWidth, avatarHeight, 75)}, 1.0\
             );",
             wait_execute = True
         )
@@ -2324,11 +2324,11 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
                 avatarRect[2],
                 avatarRect[1] + avatarHeight * (1 / 3)
             )
-            editAvatarRectSize = tool_funcs.getSizeByRect(editAvatarRect)
+            editAvatarRectSize = uilts.getSizeByRect(editAvatarRect)
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, editAvatarRect))},\
-                    {tool_funcs.getDPower(*editAvatarRectSize, 75)},\
+                    {uilts.getDPower(*editAvatarRectSize, 75)},\
                     'rgb(255, 255, 255)'\
                 );",
                 wait_execute = True
@@ -2353,7 +2353,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         )
         
         rankingScoreRect = (
-            w * 0.465625 - (w * 0.34375) * tool_funcs.getDPower(w * 0.34375, h * (114 / 1080), 75),
+            w * 0.465625 - (w * 0.34375) * uilts.getDPower(w * 0.34375, h * (114 / 1080), 75),
             h * (357 / 1080),
             w * 0.5140625,
             h * (397 / 1080)
@@ -2361,7 +2361,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         root.run_js_code( # 这个矩形真头疼...
             f"ctx.drawDiagonalRectangle(\
                 {",".join(map(str, rankingScoreRect))},\
-                {tool_funcs.getDPower(rankingScoreRect[2] - rankingScoreRect[0], rankingScoreRect[3] - rankingScoreRect[1], 75)},\
+                {uilts.getDPower(rankingScoreRect[2] - rankingScoreRect[0], rankingScoreRect[3] - rankingScoreRect[1], 75)},\
                 'rgb(255, 255, 255)'\
             );",
             wait_execute = True
@@ -2396,7 +2396,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         root.run_js_code(
             f"ctx.drawDiagonalRectangle(\
                 {",".join(map(str, editButtonRect))},\
-                {tool_funcs.getDPower(editButtonRect[2] - editButtonRect[0], editButtonRect[3] - editButtonRect[1], 75)},\
+                {uilts.getDPower(editButtonRect[2] - editButtonRect[0], editButtonRect[3] - editButtonRect[1], 75)},\
                 'rgb(255, 255, 255)'\
             );",
             wait_execute = True
@@ -2429,7 +2429,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         root.run_js_code(
             f"ctx.drawDiagonalRectangle(\
                 {",".join(map(str, loginButtonRect))},\
-                {tool_funcs.getDPower(loginButtonRect[2] - loginButtonRect[0], loginButtonRect[3] - loginButtonRect[1], 75)},\
+                {uilts.getDPower(loginButtonRect[2] - loginButtonRect[0], loginButtonRect[3] - loginButtonRect[1], 75)},\
                 'rgba(255, 255, 255, {1.0 if not editingUserData else 0.75})'\
             );",
             wait_execute = True
@@ -2442,7 +2442,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
                 {((loginButtonRect[2] - loginButtonRect[0]) - TapTapIconWidth) / 2},\
                 {((loginButtonRect[3] - loginButtonRect[1]) - TapTapIconHeight) / 2},\
                 {TapTapIconWidth}, {TapTapIconHeight},\
-                {tool_funcs.getDPower(loginButtonRect[2] - loginButtonRect[0], loginButtonRect[3] - loginButtonRect[1], 75)},\
+                {uilts.getDPower(loginButtonRect[2] - loginButtonRect[0], loginButtonRect[3] - loginButtonRect[1], 75)},\
                 {1.0 if not editingUserData else 0.75}\
             );",
             wait_execute = True
@@ -2455,7 +2455,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         root.run_js_code(
             f"ctx.drawDiagonalRectangle(\
                 {",".join(map(str, chartDataDifRect))},\
-                {tool_funcs.getDPower(chartDataDifRect[2] - chartDataDifRect[0], chartDataDifRect[3] - chartDataDifRect[1], 75)},\
+                {uilts.getDPower(chartDataDifRect[2] - chartDataDifRect[0], chartDataDifRect[3] - chartDataDifRect[1], 75)},\
                 'rgb(255, 255, 255)'\
             );",
             wait_execute = True
@@ -2472,7 +2472,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         )
         
         chartDataRect = (
-            chartDataDifRect[2] - tool_funcs.getDPower(chartDataDifRect[2] - chartDataDifRect[0], chartDataDifRect[3] - chartDataDifRect[1], 75) * (chartDataDifRect[2] - chartDataDifRect[0]) * (77 / 85),
+            chartDataDifRect[2] - uilts.getDPower(chartDataDifRect[2] - chartDataDifRect[0], chartDataDifRect[3] - chartDataDifRect[1], 75) * (chartDataDifRect[2] - chartDataDifRect[0]) * (77 / 85),
             chartDataDifRect[1] + (chartDataDifRect[3] - chartDataDifRect[1]) * (9 / 85),
             w * 0.871875,
             chartDataDifRect[1] + (chartDataDifRect[3] - chartDataDifRect[1]) * (77 / 85),
@@ -2480,7 +2480,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         root.run_js_code(
             f"ctx.drawDiagonalRectangle(\
                 {",".join(map(str, chartDataRect))},\
-                {tool_funcs.getDPower(chartDataRect[2] - chartDataRect[0], chartDataRect[3] - chartDataRect[1], 75)},\
+                {uilts.getDPower(chartDataRect[2] - chartDataRect[0], chartDataRect[3] - chartDataRect[1], 75)},\
                 'rgb(0, 0, 0, 0.45)'\
             );",
             wait_execute = True
@@ -2569,7 +2569,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             top = h - (905 / 1080) * h * p
             
             settingShadowRect = const.PHIGROS_SETTING_SHADOW_XRECT_MAP[const.PHIGROS_SETTING_STATE.ACCOUNT_AND_COUNT]
-            settingShadowDPower = tool_funcs.getDPower((settingShadowRect[1] - settingShadowRect[0]) * w, h, 75)
+            settingShadowDPower = uilts.getDPower((settingShadowRect[1] - settingShadowRect[0]) * w, h, 75)
             settingShadowDWidth = (settingShadowRect[1] - settingShadowRect[0]) * w * settingShadowDPower
             chooseDialogLeftX = settingShadowRect[0] * w
             chooseDialogRightX = settingShadowRect[1] * w - settingShadowDWidth + settingShadowDWidth * (h - top) / h
@@ -2581,7 +2581,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             root.run_js_code(
                 f"ctx.save(); ctx.clipDiagonalRectangle(\
                     {",".join(map(str, chooseDialogRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(chooseDialogRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(chooseDialogRect), 75)},\
                 );",
                 wait_execute = True
             )
@@ -2591,7 +2591,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, chooseDialogRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(chooseDialogRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(chooseDialogRect), 75)},\
                     'rgba(0, 0, 0, 0.65)'\
                 );",
                 wait_execute = True
@@ -2627,7 +2627,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             imgsx -= (ShadowXRect[1] - ShadowXRect[0]) * w * ShadowDPower * scdy / h
             imgsx = imgsx + settingShadowDWidth * (h - top) / h + w * 0.015625
             imgx, imgy = imgsx, imgsy + top
-            imgdp = tool_funcs.getDPower(imgwidth, imgheight, 75)
+            imgdp = uilts.getDPower(imgwidth, imgheight, 75)
             lcount = 0
             
             clipy0, clipy1 = top + h * (100 / 1080), h
@@ -2677,7 +2677,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         background_imnames = [f"background_{i}" for i in range(len(assetConfig["backgrounds"]))]
         
         if showAvatars:
-            sa_p = tool_funcs.fixorp((time.time() - showAvatarsSt) / 1.25)
+            sa_p = uilts.fixorp((time.time() - showAvatarsSt) / 1.25)
             sa_p = 1.0 - (1.0 - sa_p) ** 12
         elif not showAvatars and time.time() - showAvatarsSt <= 1.25:
             sa_p = (time.time() - showAvatarsSt) / 1.25
@@ -2685,7 +2685,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         else: sa_p = None
         
         if showBackgrounds:
-            sb_p = tool_funcs.fixorp((time.time() - showBackgroundsSt) / 1.25)
+            sb_p = uilts.fixorp((time.time() - showBackgroundsSt) / 1.25)
             sb_p = 1.0 - (1.0 - sb_p) ** 12
         elif not showBackgrounds and time.time() - showBackgroundsSt <= 1.25:
             sb_p = (time.time() - showBackgroundsSt) / 1.25
@@ -2761,7 +2761,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             wait_execute = True
         )
         
-        settingOtherButtonDPower = tool_funcs.getDPower(90, 50, 75)
+        settingOtherButtonDPower = uilts.getDPower(90, 50, 75)
         
         drawText(
             w * (0.0515625 + 0.0265625) + getShadowDiagonalXByY(h * 0.575),
@@ -3042,7 +3042,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             ShadowXRect[0] * w, 0.0,
             ShadowXRect[1] * w, h
         )
-        ShadowDPower = tool_funcs.getDPower(ShadowRect[2] - ShadowRect[0], h, 75)
+        ShadowDPower = uilts.getDPower(ShadowRect[2] - ShadowRect[0], h, 75)
         
         root.run_js_code(
             f"ctx.drawDiagonalRectangle(\
@@ -3054,7 +3054,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         
         BarWidth = settingState.getBarWidth() * w
         BarHeight = h * (2 / 27)
-        BarDPower = tool_funcs.getDPower(BarWidth, BarHeight, 75)
+        BarDPower = uilts.getDPower(BarWidth, BarHeight, 75)
         BarRect = (
             w * 0.153125, h * 0.025,
             w * 0.153125 + BarWidth, h * 0.025 + BarHeight
@@ -3072,7 +3072,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         
         LabelWidth = settingState.getLabelWidth() * w
         LabelHeight = h * (113 / 1080)
-        LabelDPower = tool_funcs.getDPower(LabelWidth, LabelHeight, 75)
+        LabelDPower = uilts.getDPower(LabelWidth, LabelHeight, 75)
         LabelX = settingState.getLabelX() * w
         LabelRect = (
             LabelX, h * 1 / 108,
@@ -3138,10 +3138,10 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
                     root.run_js_code("dialog_canvas_ctx.clear()", wait_execute = True)
             
             if ShowOpenSource:
-                p = tool_funcs.fixorp((time.time() - ShowOpenSourceSt) / 0.15)
+                p = uilts.fixorp((time.time() - ShowOpenSourceSt) / 0.15)
                 p = 1.0 - (1.0 - p) ** 3
             else: # CloseOpenSource
-                p = tool_funcs.fixorp((time.time() - CloseOpenSourceSt) / 0.35)
+                p = uilts.fixorp((time.time() - CloseOpenSourceSt) / 0.35)
                 p = abs(p - 1.0) ** 3
             
             if ShowOpenSource or CloseOpenSource:
@@ -3271,14 +3271,14 @@ def audioQARender():
         root.run_js_code(
             f"ctx.drawDiagonalRectangle(\
                 {",".join(map(str, shadowRect))},\
-                {tool_funcs.getDPower(*tool_funcs.getSizeByRect(shadowRect), 75)}, 'rgba(0, 0, 0, 0.25)'\
+                {uilts.getDPower(*uilts.getSizeByRect(shadowRect), 75)}, 'rgba(0, 0, 0, 0.25)'\
             );",
             wait_execute = True
         )
     
         renderPhigrosWidgets(
             dspSettingWidgets.values(), w * 0.275, h * (665 / 1080), 0.0,
-            lambda y: ((y - h * (665 / 1080)) / h) * (tool_funcs.getSizeByRect(shadowRect)[0] * tool_funcs.getDPower(*tool_funcs.getSizeByRect(shadowRect), 75)),
+            lambda y: ((y - h * (665 / 1080)) / h) * (uilts.getSizeByRect(shadowRect)[0] * uilts.getDPower(*uilts.getSizeByRect(shadowRect), 75)),
             w * 0.425, 0.0, h
         )
         
@@ -3589,8 +3589,8 @@ def chartPlayerRender(
     if phicore.noautoplay:
         pplm_proxy = phichart.PPLMProxy_CommonChart(chart_obj)
         
-        pppsm = tool_funcs.PhigrosPlayManager(chart_obj.note_num)
-        pplm = tool_funcs.PhigrosPlayLogicManager(
+        pppsm = uilts.PhigrosPlayManager(chart_obj.note_num)
+        pplm = uilts.PhigrosPlayLogicManager(
             pplm_proxy, pppsm,
             getUserData("setting-enableClickSound"),
             lambda ts: Resource["Note_Click_Audio"][ts].play(),
@@ -3634,14 +3634,14 @@ def chartPlayerRender(
         nonlocal needSetPlayData
         
         if rendingAnimationSt != rendingAnimationSt: # nan, playing chart
-            if not paused and tool_funcs.inrect(x, y, (
+            if not paused and uilts.inrect(x, y, (
                 w * 9.6 / 1920, h * -1.0 / 1080,
                 w * 96 / 1920, h * 102.6 / 1080
             )):
                 space()
             
             pauseUIButtonR = (w + h) * 0.0275
-            if paused and tool_funcs.inrect(x, y, (
+            if paused and uilts.inrect(x, y, (
                 w * 0.5 - w * 0.1109375 - pauseUIButtonR / 2,
                 h * 0.5 - pauseUIButtonR / 2,
                 w * 0.5 - w * 0.1109375 + pauseUIButtonR / 2,
@@ -3651,7 +3651,7 @@ def chartPlayerRender(
                 tonextUI, tonextUISt = True, time.time()
                 Resource["UISound_4"].play()
                 
-            elif paused and tool_funcs.inrect(x, y, (
+            elif paused and uilts.inrect(x, y, (
                 w * 0.5 - pauseUIButtonR / 2,
                 h * 0.5 - pauseUIButtonR / 2,
                 w * 0.5 + pauseUIButtonR / 2,
@@ -3673,7 +3673,7 @@ def chartPlayerRender(
                     loadingAnimationStartP = loadingAnimationStartP
                 ), True, time.time()
                 
-            elif paused and tool_funcs.inrect(x, y, (
+            elif paused and uilts.inrect(x, y, (
                 w * 0.5 + w * 0.1109375 - pauseUIButtonR / 2,
                 h * 0.5 - pauseUIButtonR / 2,
                 w * 0.5 + w * 0.1109375 + pauseUIButtonR / 2,
@@ -3684,7 +3684,7 @@ def chartPlayerRender(
         if rendingAnimation is not phicore.settlementAnimationFrame or (time.time() - rendingAnimationSt) <= 0.5:
             return
         
-        if tool_funcs.inrect(x, y, (
+        if uilts.inrect(x, y, (
             0, 0,
             w * const.FINISH_UI_BUTTON_SIZE, w * const.FINISH_UI_BUTTON_SIZE / 190 * 145
         )):
@@ -3704,7 +3704,7 @@ def chartPlayerRender(
                 mirror = mirror
             ), True, time.time()
             
-        elif tool_funcs.inrect(x, y, (
+        elif uilts.inrect(x, y, (
             w - w * const.FINISH_UI_BUTTON_SIZE, h - w * const.FINISH_UI_BUTTON_SIZE / 190 * 145,
             w, h
         )):
@@ -3712,7 +3712,7 @@ def chartPlayerRender(
             eventManager.unregEvent(clickEvent)
             tonextUI, tonextUISt = True, time.time()
         
-        if tool_funcs.inrect(x, y, avatar_rect):
+        if uilts.inrect(x, y, avatar_rect):
             ud_popuper.change()
     
     clickEvent = eventManager.regClickEventFs(clickEventCallback, False)
@@ -3733,7 +3733,7 @@ def chartPlayerRender(
     
     while True:
         pauseATime = 0.25 if paused else 3.0
-        pauseP = tool_funcs.fixorp((time.time() - pauseAnimationSt) / pauseATime)
+        pauseP = uilts.fixorp((time.time() - pauseAnimationSt) / pauseATime)
         pauseBgBlurP = (1.0 - (1.0 - pauseP) ** 4) if paused else 1.0 - pauseP ** 15
         root.run_js_code(f"mask.style.backdropFilter = 'blur({(w + h) / 100 * pauseBgBlurP}px)';", wait_execute = True)
         
@@ -3813,7 +3813,7 @@ def chartPlayerRender(
                         phicore.settlementAnimationUserData.hasChallengeMode = getPlayDataItem("hasChallengeMode")
                         phicore.settlementAnimationUserData.challengeModeRank = getPlayDataItem("challengeModeRank")
                         
-                        phicore.initSettlementAnimation(pplm, tool_funcs.gtpresp(getUserData("userdata-userAvatar")))
+                        phicore.initSettlementAnimation(pplm, uilts.gtpresp(getUserData("userdata-userAvatar")))
                         rendingAnimationSt = time.time()
                         stoped = True
             else:
@@ -3827,7 +3827,7 @@ def chartPlayerRender(
                 
                 if rendingAnimation is phicore.settlementAnimationFrame: # 不能用elif, 不然会少渲染一个帧
                     avatar_rect = rendingAnimation(
-                        tool_funcs.fixorp((time.time() - rendingAnimationSt) / 3.5), False,
+                        uilts.fixorp((time.time() - rendingAnimationSt) / 3.5), False,
                         ud_popuper.isPopup, ud_popuper.p
                     )
         
@@ -3895,10 +3895,10 @@ def chartPlayerRender(
 def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool = False):
     illrespacker = webcv.LazyPILResPacker(root)
     for song in chapter_item.songs:
-        illrespacker.reg_img(tool_funcs.gtpresp(song.image_lowres), f"songill_{song.songId}")
-        illrespacker.reg_img(tool_funcs.gtpresp(song.image), f"songill_{song.songId}")
+        illrespacker.reg_img(uilts.gtpresp(song.image_lowres), f"songill_{song.songId}")
+        illrespacker.reg_img(uilts.gtpresp(song.image), f"songill_{song.songId}")
     
-    avatar_img = Image.open(tool_funcs.gtpresp(getUserData("userdata-userAvatar")))
+    avatar_img = Image.open(uilts.gtpresp(getUserData("userdata-userAvatar")))
     illrespacker.reg_img(avatar_img, "user_avatar")
     illrespacker.load(*illrespacker.pack())
     
@@ -3946,7 +3946,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
     eventManager.regClickEvent(clickBackButtonEvent)
     
     def drawParallax(x0: float, y0: float, x1: float, y1: float, full: bool = False):
-        dpower = tool_funcs.getDPower(*tool_funcs.getSizeByRect((x0, y0, x1, y1)), 75)
+        dpower = uilts.getDPower(*uilts.getSizeByRect((x0, y0, x1, y1)), 75)
         
         if full:
             x0 -= dpower * (x1 - x0)
@@ -4007,13 +4007,13 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
         ctxSave(wait_execute=True)
         ctxBeginPath(wait_execute=True)
         ctxRect(0, 0, w, h, wait_execute=True)
-        ctxRect(*tool_funcs.xxyy_rect2_xywh(songShadowRect), wait_execute=True)
+        ctxRect(*uilts.xxyy_rect2_xywh(songShadowRect), wait_execute=True)
         ctxClip("evenodd", wait_execute=True)
         
         startDy = h * (434 / 1080) + chooseControler.itemNowDy * chooseControler.itemHeight
         nowDy = 0.0
         songIndex = 0
-        chartsShadowWidth = tool_funcs.getSizeByRect(chartsShadowRect)[0]
+        chartsShadowWidth = uilts.getSizeByRect(chartsShadowRect)[0]
         cuttedWidth = chartsShadowWidth * (1.0 - chartsShadowDPower)
         
         while (y := startDy + nowDy) < h + chooseControler.itemHeight:
@@ -4103,8 +4103,8 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             w * 0.4375, h * (219 / 1080),
             w * 0.9453125, h * (733 / 1080)
         )
-        previewParallaxRectWidth, previewParallaxRectHeight = tool_funcs.getSizeByRect(previewParallaxRect)
-        previewParallaxRectDPower = tool_funcs.getDPower(*tool_funcs.getSizeByRect(previewParallaxRect), 75)
+        previewParallaxRectWidth, previewParallaxRectHeight = uilts.getSizeByRect(previewParallaxRect)
+        previewParallaxRectDPower = uilts.getDPower(*uilts.getSizeByRect(previewParallaxRect), 75)
         drawParallax(*previewParallaxRect)
         
         if chooseState.is_mirror:
@@ -4125,9 +4125,9 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             w * 0.41875, h * (779 / 1080),
             level_bar_right, h * (857 / 1080)
         )
-        level_bar_dpower = tool_funcs.getDPower(*tool_funcs.getSizeByRect(level_bar_rect), 75)
+        level_bar_dpower = uilts.getDPower(*uilts.getSizeByRect(level_bar_rect), 75)
         
-        with tool_funcs.shadowDrawer("rgba(0, 0, 0, 0.5)", (w + h) / 125):
+        with uilts.shadowDrawer("rgba(0, 0, 0, 0.5)", (w + h) / 125):
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, level_bar_rect))},\
@@ -4144,12 +4144,12 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
         )
         
         now_choosediffnum = str(int(chooseControler.level_diffnumber.value))
-        level_choose_block_center = tool_funcs.getCenterPointByRect(level_choose_block_rect)
+        level_choose_block_center = uilts.getCenterPointByRect(level_choose_block_rect)
         
         def drawChooseBarDiff(x: float, diffnum: str, diffname: str, color: str):
             drawText(
                 x,
-                level_choose_block_center[1] - tool_funcs.getSizeByRect(level_choose_block_rect)[1] * (3 / 14) / 2,
+                level_choose_block_center[1] - uilts.getSizeByRect(level_choose_block_rect)[1] * (3 / 14) / 2,
                 diffnum,
                 font = f"{(w + h) / 85}px pgrFont",
                 textAlign = "center",
@@ -4160,7 +4160,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             
             drawText(
                 x,
-                level_choose_block_center[1] + tool_funcs.getSizeByRect(level_choose_block_rect)[1] * (17 / 43) / 2,
+                level_choose_block_center[1] + uilts.getSizeByRect(level_choose_block_rect)[1] * (17 / 43) / 2,
                 diffname,
                 font = f"{(w + h) / 157.4}px pgrFont",
                 textAlign = "center",
@@ -4181,11 +4181,11 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             )
         ctxRestore(wait_execute=True)
             
-        with tool_funcs.shadowDrawer("rgba(0, 0, 0, 0.25)", (w + h) / 135):
+        with uilts.shadowDrawer("rgba(0, 0, 0, 0.25)", (w + h) / 135):
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, level_choose_block_rect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(level_choose_block_rect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(level_choose_block_rect), 75)},\
                     'rgb{chooseControler.get_level_color()}'\
                 );",
                 wait_execute = True
@@ -4211,13 +4211,13 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, selectButtonRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(selectButtonRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(selectButtonRect), 75)},\
                     'rgba(255, 255, 255, {chooseControler.challengeModeSelectButtonAlpha.value})'\
                 );",
                 wait_execute = True
             )
             
-            selectButtonCenter = tool_funcs.getCenterPointByRect(selectButtonRect)
+            selectButtonCenter = uilts.getCenterPointByRect(selectButtonRect)
             
             drawText(
                 *selectButtonCenter,
@@ -4247,8 +4247,8 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
                 undoArea_x0, undoArea_y0,
                 undoArea_x1, undoArea_y1
             )
-            undoAreaDPower = tool_funcs.getDPower(*tool_funcs.getSizeByRect(undoAreaRect), 75)
-            undoAreaCenter = tool_funcs.getCenterPointByRect(undoAreaRect)
+            undoAreaDPower = uilts.getDPower(*uilts.getSizeByRect(undoAreaRect), 75)
+            undoAreaCenter = uilts.getCenterPointByRect(undoAreaRect)
             
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
@@ -4296,8 +4296,8 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
                     selection_illu_start_x + selection_illu_now_dx + selection_illu_item_full_width + 1,
                     selection_illu_y1
                 )
-                this_illu_rect_size = tool_funcs.getSizeByRect(this_illu_rect)
-                this_illu_rect_dpower = tool_funcs.getDPower(*this_illu_rect_size, 75)
+                this_illu_rect_size = uilts.getSizeByRect(this_illu_rect)
+                this_illu_rect_dpower = uilts.getDPower(*this_illu_rect_size, 75)
                 
                 try:
                     song, diff = chooseControler.challengeModeSelections[i]
@@ -4323,14 +4323,14 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
                     root.run_js_code(
                         f"ctx.drawDiagonalRectangle(\
                             {",".join(map(str, challmode_diff_rect))},\
-                            {tool_funcs.getDPower(*tool_funcs.getSizeByRect(challmode_diff_rect), 75)},\
+                            {uilts.getDPower(*uilts.getSizeByRect(challmode_diff_rect), 75)},\
                             'rgb{challmode_diff_rect_color}'\
                         );",
                         wait_execute = True
                     )
                     
                     drawText(
-                        *tool_funcs.getCenterPointByRect(challmode_diff_rect),
+                        *uilts.getCenterPointByRect(challmode_diff_rect),
                         diff.strdiffnum,
                         font = f"{(w + h) / 100}px pgrFont",
                         textAlign = "center",
@@ -4350,7 +4350,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
                     
                     empty_song_text = ["1st", "2nd", "3rd"][i]
                     drawText(
-                        *tool_funcs.getCenterPointByRect(this_illu_rect),
+                        *uilts.getCenterPointByRect(this_illu_rect),
                         empty_song_text,
                         font = f"{(w + h) / 80}px pgrFont",
                         textAlign = "center",
@@ -4448,7 +4448,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
         nonlocal immediatelyExitRender
         
         # 反转排序
-        if tool_funcs.inrect(x, y, (
+        if uilts.inrect(x, y, (
             w * 0.14843750, h * (72 / 1080),
             w * 0.14843750 + SortIconWidth, h * (72 / 1080) + SortIconHeight
         )):
@@ -4457,7 +4457,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             Resource["UISound_5"].play()
         
         # 下一个排序方法
-        if tool_funcs.inrect(x, y, (
+        if uilts.inrect(x, y, (
             w * 0.16875, h * (69 / 1080),
             w * 0.1953125, h * (96 / 1080)
         )):
@@ -4466,15 +4466,15 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             Resource["UISound_5"].play()
         
         # 镜像
-        if tool_funcs.inrect(x, y, mirrorButtonRect) and not isChallengeMode:
+        if uilts.inrect(x, y, mirrorButtonRect) and not isChallengeMode:
             chooseState.change_mirror()
         
         # 自动游玩
-        if tool_funcs.inrect(x, y, autoplayButtonRect) and not isChallengeMode:
+        if uilts.inrect(x, y, autoplayButtonRect) and not isChallengeMode:
             chooseState.change_autoplay()
         
         # 随机
-        if tool_funcs.inrect(x, y, (
+        if uilts.inrect(x, y, (
             w * 0.375825 - RandomIconWidth / 2,
             h * (53 / 1080) - RandomIconHeight / 2,
             w * 0.375825 + RandomIconWidth / 2,
@@ -4483,7 +4483,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             chooseControler.setto_index_ease(random.randint(0, len(chapter_item.scsd_songs) - 1))
         
         # 设置
-        if tool_funcs.inrect(x, y, (
+        if uilts.inrect(x, y, (
             w * 0.4476315 - ChartChooseSettingIconWidth / 2,
             h * (53 / 1080) - ChartChooseSettingIconHeight / 2,
             w * 0.4476315 + ChartChooseSettingIconWidth / 2,
@@ -4504,11 +4504,11 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
                 leftx + w * 0.0546875, h * (861 / 1080)
             )
             
-            if tool_funcs.indrect(x, y, rect, tool_funcs.getDPower(*tool_funcs.getSizeByRect(rect), 75)):
+            if uilts.indrect(x, y, rect, uilts.getDPower(*uilts.getSizeByRect(rect), 75)):
                 chooseState.change_diff_byuser(i)
         
         # 开始 - 普通模式
-        if tool_funcs.indrect(x, y, playButtonRect, tool_funcs.getDPower(*tool_funcs.getSizeByRect(playButtonRect), 75)) and not isChallengeMode:
+        if uilts.indrect(x, y, playButtonRect, uilts.getDPower(*uilts.getSizeByRect(playButtonRect), 75)) and not isChallengeMode:
             unregEvents()
             
             song = chapter_item.scsd_songs[chooseControler.vaildNowIndex]
@@ -4524,9 +4524,9 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             
             immediatelyExitRender = True
             chartPlayerRender(
-                chartAudio = tool_funcs.gtpresp(diff.chart_audio),
-                chartImage = tool_funcs.gtpresp(diff.chart_image),
-                chartFile = tool_funcs.gtpresp(diff.chart_file),
+                chartAudio = uilts.gtpresp(diff.chart_audio),
+                chartImage = uilts.gtpresp(diff.chart_image),
+                chartFile = uilts.gtpresp(diff.chart_file),
                 startAnimation = True,
                 chart_information = chart_information,
                 foregroundFrameRender = lambda: _render(False),
@@ -4544,18 +4544,18 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             )
         
         # 开始 - 课题模式
-        if tool_funcs.indrect(x, y, playButtonRect, tool_funcs.getDPower(*tool_funcs.getSizeByRect(playButtonRect), 75)) and isChallengeMode and len(chooseControler.challengeModeSelections) == 3:
+        if uilts.indrect(x, y, playButtonRect, uilts.getDPower(*uilts.getSizeByRect(playButtonRect), 75)) and isChallengeMode and len(chooseControler.challengeModeSelections) == 3:
             unregEvents()
             LoadSuccess.play()
             nextUI = lambda: challengeModeRender(chooseControler.challengeModeSelections, lambda: chooseChartRender(chapter_item, isChallengeMode))
             tonextUI, tonextUISt = True, time.time()
         
         # 展开/关闭 用户头像名称rks
-        if tool_funcs.inrect(x, y, avatar_rect):
+        if uilts.inrect(x, y, avatar_rect):
             ud_popuper.change()
         
         # 课题模式 - 选中
-        if tool_funcs.inrect(x, y, selectButtonRect) and isChallengeMode:
+        if uilts.inrect(x, y, selectButtonRect) and isChallengeMode:
             if len(chooseControler.challengeModeSelections) >= 3:
                 return
             
@@ -4570,7 +4570,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             startButtonAlpha.target = 1.0 if len(chooseControler.challengeModeSelections) == 3 else 0.5
 
         # 课题模式 - UNDO
-        if tool_funcs.inrect(x, y, undoAreaRect) and isChallengeMode:
+        if uilts.inrect(x, y, undoAreaRect) and isChallengeMode:
             if not chooseControler.challengeModeSelections:
                 return
             
@@ -4622,12 +4622,12 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
         
         drawFaculas()
         
-        with tool_funcs.shadowDrawer("rgba(0, 0, 0, 0.5)", (w + h) / 125):
+        with uilts.shadowDrawer("rgba(0, 0, 0, 0.5)", (w + h) / 125):
             chartsShadowRect = (
                 w * -0.009375, 0,
                 w * 0.4921875, h
             )
-            chartsShadowDPower = tool_funcs.getDPower(*tool_funcs.getSizeByRect(chartsShadowRect), 75)
+            chartsShadowDPower = uilts.getDPower(*uilts.getSizeByRect(chartsShadowRect), 75)
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, chartsShadowRect))},\
@@ -4644,7 +4644,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, songShadowRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(songShadowRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(songShadowRect), 75)},\
                     'rgba(0, 0, 0, 0.6)'\
                 );",
                 wait_execute = True
@@ -4657,7 +4657,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, difRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(difRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(difRect), 75)},\
                     'rgb(255, 255, 255)'\
                 );",
                 wait_execute = True
@@ -4670,7 +4670,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, playButtonRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(playButtonRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(playButtonRect), 75)},\
                     'rgba(255, 255, 255, {startButtonAlpha.value})'\
                 );",
                 wait_execute = True
@@ -4693,7 +4693,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
         root.run_js_code(
             f"ctx.drawDiagonalRectangle(\
                 {",".join(map(str, diffchoosebarRect))},\
-                {tool_funcs.getDPower(*tool_funcs.getSizeByRect(diffchoosebarRect), 75)},\
+                {uilts.getDPower(*uilts.getSizeByRect(diffchoosebarRect), 75)},\
                 'rgba(0, 0, 0, 0.3)'\
             );",
             wait_execute = True
@@ -4708,7 +4708,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
         root.run_js_code(
             f"ctx.drawDiagonalRectangle(\
                 {",".join(map(str, barShadowRect))},\
-                {tool_funcs.getDPower(*tool_funcs.getSizeByRect(barShadowRect), 75)},\
+                {uilts.getDPower(*uilts.getSizeByRect(barShadowRect), 75)},\
                 'rgba(0, 0, 0, 0.6)'\
             );",
             wait_execute = True
@@ -4722,14 +4722,14 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, mirrorButtonRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(mirrorButtonRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(mirrorButtonRect), 75)},\
                     '{"rgba(0, 0, 0, 0.4)" if not chooseState.is_mirror else "rgb(255, 255, 255)"}'\
                 );",
                 wait_execute = True
             )
             
             drawText(
-                *tool_funcs.getCenterPointByRect(mirrorButtonRect),
+                *uilts.getCenterPointByRect(mirrorButtonRect),
                 "Mirror",
                 font = f"{(w + h) / 130}px pgrFont",
                 textAlign = "center",
@@ -4745,14 +4745,14 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
             root.run_js_code(
                 f"ctx.drawDiagonalRectangle(\
                     {",".join(map(str, autoplayButtonRect))},\
-                    {tool_funcs.getDPower(*tool_funcs.getSizeByRect(autoplayButtonRect), 75)},\
+                    {uilts.getDPower(*uilts.getSizeByRect(autoplayButtonRect), 75)},\
                     '{"rgba(0, 0, 0, 0.4)" if not chooseState.is_autoplay else "rgb(255, 255, 255)"}'\
                 );",
                 wait_execute = True
             )
             
             drawText(
-                *tool_funcs.getCenterPointByRect(autoplayButtonRect),
+                *uilts.getCenterPointByRect(autoplayButtonRect),
                 "Autoplay",
                 font = f"{(w + h) / 130}px pgrFont",
                 textAlign = "center",
@@ -4898,7 +4898,7 @@ def loadingTransitionRender(nextUI: typing.Callable[[], typing.Any]):
         for song in chapter.songs
     ])
     respacker = webcv.PILResPacker(root)
-    respacker.reg_img(tool_funcs.gtpresp(bg_path), "loading_transition_bg")
+    respacker.reg_img(uilts.gtpresp(bg_path), "loading_transition_bg")
     respacker.load(*respacker.pack())
     
     phicore.root = root
@@ -4936,7 +4936,7 @@ def loadingTransitionRender(nextUI: typing.Callable[[], typing.Any]):
         )
         
         phicore.drawTipAndLoading(
-            tool_funcs.fixorp(renderT / 0.5),
+            uilts.fixorp(renderT / 0.5),
             renderT, tip, tip_font_size
         )
         
@@ -4973,7 +4973,7 @@ def loadingTransitionRender(nextUI: typing.Callable[[], typing.Any]):
     respacker.unload(respacker.getnames())
 
 def challengeModeRender(challengeModeSelections: list[tuple[phigame_obj.Song, phigame_obj.SongDifficulty]], nextUI: typing.Callable[[], None]):
-    pplmResults: list[tool_funcs.PhigrosPlayLogicManager] = []
+    pplmResults: list[uilts.PhigrosPlayLogicManager] = []
     level = 0
     
     for song, diff in challengeModeSelections:
@@ -4986,9 +4986,9 @@ def challengeModeRender(challengeModeSelections: list[tuple[phigame_obj.Song, ph
             "BackgroundDim": None
         }
         pplm, finishPlay = chartPlayerRender(
-            chartAudio = tool_funcs.gtpresp(diff.chart_audio),
-            chartImage = tool_funcs.gtpresp(diff.chart_image),
-            chartFile = tool_funcs.gtpresp(diff.chart_file),
+            chartAudio = uilts.gtpresp(diff.chart_audio),
+            chartImage = uilts.gtpresp(diff.chart_image),
+            chartFile = uilts.gtpresp(diff.chart_file),
             startAnimation = True,
             chart_information = chart_information,
             playLoadSuccess = False,
@@ -5008,7 +5008,7 @@ def challengeModeRender(challengeModeSelections: list[tuple[phigame_obj.Song, ph
     return challengeModeSettlementRender(pplmResults, challengeModeSelections, nextUI, level)
 
 def challengeModeSettlementRender(
-    pplmResults: list[tool_funcs.PhigrosPlayLogicManager],
+    pplmResults: list[uilts.PhigrosPlayLogicManager],
     songs: list[tuple[phigame_obj.Song, phigame_obj.SongDifficulty]],
     nextUI: typing.Callable[[], None],
     level: int
@@ -5016,9 +5016,9 @@ def challengeModeSettlementRender(
     respacker = webcv.PILResPacker(root)
     
     for i, (s, _) in enumerate(songs):
-        respacker.reg_img(tool_funcs.gtpresp(s.image), f"cmsr_song_{i}")
+        respacker.reg_img(uilts.gtpresp(s.image), f"cmsr_song_{i}")
         
-    avatar_img = Image.open(tool_funcs.gtpresp(getUserData("userdata-userAvatar")))
+    avatar_img = Image.open(uilts.gtpresp(getUserData("userdata-userAvatar")))
     respacker.reg_img(avatar_img, "user_avatar")
     respacker.load(*respacker.pack())
     
@@ -5053,14 +5053,14 @@ def challengeModeSettlementRender(
             pplmrrt_getx_fromy(y1) + dx, y0,
             pplmrrt_getx_fromy(y0) + dx + pplmRenderRectSize[0] * (1 - pplmRenderRectDPower), y1
         )
-        songItemSize = tool_funcs.getSizeByRect(songItemRect)
-        songItemDPower = tool_funcs.getDPower(*songItemSize, 75)
+        songItemSize = uilts.getSizeByRect(songItemRect)
+        songItemDPower = uilts.getDPower(*songItemSize, 75)
         illu_name = f"cmsr_song_{i}"
         illu_rect = (
             songItemRect[0], songItemRect[1],
             songItemRect[0] + songItemSize[0] * 0.52, songItemRect[3]
         )
-        illu_rect_dpower = tool_funcs.getDPower(*tool_funcs.getSizeByRect(illu_rect), 75)
+        illu_rect_dpower = uilts.getDPower(*uilts.getSizeByRect(illu_rect), 75)
         
         root.run_js_code(
             f"ctx.drawDiagonalRectangle(\
@@ -5208,7 +5208,7 @@ def challengeModeSettlementRender(
         root.run_js_code(
             f"ctx.drawDiagonalRectangle(\
                 {",".join(map(str, totalDataRect))},\
-                {tool_funcs.getDPower(*tool_funcs.getSizeByRect(totalDataRect), 75)},\
+                {uilts.getDPower(*uilts.getSizeByRect(totalDataRect), 75)},\
                 'rgba(0, 0, 0, 0.5)'\
             );",
             wait_execute = True
@@ -5288,17 +5288,17 @@ def challengeModeSettlementRender(
         nonlocal showingCMR, showingCMRSt
         
         # 点击头像
-        if tool_funcs.inrect(x, y, avatar_rect) and not showingCMR:
+        if uilts.inrect(x, y, avatar_rect) and not showingCMR:
             ud_popuper.change()
         
         # 重试
-        if tool_funcs.inrect(x, y, (0, 0, ButtonWidth, ButtonHeight)) and now_t > 4.8 and not showingCMR:
+        if uilts.inrect(x, y, (0, 0, ButtonWidth, ButtonHeight)) and now_t > 4.8 and not showingCMR:
             unregEvents()
             nextUI_Bak = nextUI
             nextUI, tonextUI, tonextUISt = lambda: challengeModeRender(songs, nextUI_Bak), True, time.time()
         
         # 继续
-        if tool_funcs.inrect(x, y, (w - ButtonWidth, h - ButtonHeight, w, h)) and now_t > 4.8 and not showingCMR:
+        if uilts.inrect(x, y, (w - ButtonWidth, h - ButtonHeight, w, h)) and now_t > 4.8 and not showingCMR:
             showingCMR, showingCMRSt = True, time.time()
             renderTasks.extend([
                 {"st": now_t + 0.7, "dur": 0.7, "render": lambda p: drawAlphaImage(
@@ -5306,7 +5306,7 @@ def challengeModeSettlementRender(
                     w / 2 - (cml_w := (w * 0.1875 * 1.1)) / 2,
                     h * (605 / 1080) - (cml_h := cml_w / Resource["challenge_mode_levels"][challengeMode_level].width * Resource["challenge_mode_levels"][challengeMode_level].height) / 2,
                     cml_w, cml_h,
-                    1.0 - (1.0 - tool_funcs.fixorp(p)) ** 2,
+                    1.0 - (1.0 - uilts.fixorp(p)) ** 2,
                     wait_execute = True
                 ), "cmr": True},
                 {"st": now_t + 0.5, "dur": 0.7, "render": lambda p: drawText(
@@ -5315,7 +5315,7 @@ def challengeModeSettlementRender(
                     font = f"{(w + h) / 20 * (1.0 + ((1.0 - p) ** 2) * 0.4)}px pgrFont",
                     textAlign = "center",
                     textBaseline = "middle",
-                    fillStyle = f"rgba(255, 255, 255, {1.0 - (1.0 - tool_funcs.fixorp(p * 2)) ** 2})",
+                    fillStyle = f"rgba(255, 255, 255, {1.0 - (1.0 - uilts.fixorp(p * 2)) ** 2})",
                     wait_execute = True
                 ), "cmr": True},
                 {"st": now_t + 1.0, "dur": 0.7, "render": lambda p: drawAlphaImage(
@@ -5324,7 +5324,7 @@ def challengeModeSettlementRender(
                     width = (cross_w := cross_h / Resource["cross"].height * Resource["cross"].width),
                     x = w / 2 - w * 0.10625 - cross_w / 2,
                     y = h * (836 / 1080) - cross_h / 2,
-                    alpha = 1.0 - (1.0 - tool_funcs.fixorp(p)) ** 2,
+                    alpha = 1.0 - (1.0 - uilts.fixorp(p)) ** 2,
                     wait_execute = True
                 ), "cmr": True, "tag": "cross"},
                 {"st": now_t + 1.6, "dur": 0.7, "render": lambda p: drawAlphaImage(
@@ -5333,20 +5333,20 @@ def challengeModeSettlementRender(
                     width = (checked_w := checked_h / Resource["checked"].height * Resource["checked"].width),
                     x = w / 2 + w * 0.10625 - checked_w / 2,
                     y = h * (836 / 1080) - checked_h / 2,
-                    alpha = 1.0 - (1.0 - tool_funcs.fixorp(p)) ** 2,
+                    alpha = 1.0 - (1.0 - uilts.fixorp(p)) ** 2,
                     wait_execute = True
                 ), "cmr": True, "tag": "checked"},
             ])
         
         # 放弃成绩
-        if tool_funcs.inrect(x, y, cross_rect):
+        if uilts.inrect(x, y, cross_rect):
             rt = findRenderTaskByTag("cross")
             if rt is not None and rt["st"] <= now_t:
                 unregEvents()
                 tonextUI, tonextUISt = True, time.time()
         
         # 保存成绩
-        if tool_funcs.inrect(x, y, checked_rect):
+        if uilts.inrect(x, y, checked_rect):
             rt = findRenderTaskByTag("checked")
             if rt is not None and rt["st"] <= now_t:
                 unregEvents()
@@ -5373,8 +5373,8 @@ def challengeModeSettlementRender(
             w * 0.075, h * (145 / 1080),
             w * 0.8953125, h * (795 / 1080)
         )
-        pplmRenderRectSize = tool_funcs.getSizeByRect(pplmRenderRect)
-        pplmRenderRectDPower = tool_funcs.getDPower(*pplmRenderRectSize, 75)
+        pplmRenderRectSize = uilts.getSizeByRect(pplmRenderRect)
+        pplmRenderRectDPower = uilts.getDPower(*pplmRenderRectSize, 75)
         pplmRenderPady = h * (33 / 1080)
         pplmRenderItemHeight = (pplmRenderRectSize[1] - pplmRenderPady * 2) / 3
         pplmrrt_getx_fromy = lambda y: pplmRenderRect[0] + (1.0 - (y - pplmRenderRect[1]) / pplmRenderRectSize[1]) * pplmRenderRectSize[0] * pplmRenderRectDPower
@@ -5391,15 +5391,15 @@ def challengeModeSettlementRender(
         
         cmr_seted_ga = False
         if showingCMR:
-            cmr_p = tool_funcs.fixorp((time.time() - showingCMRSt) / 1.75)
+            cmr_p = uilts.fixorp((time.time() - showingCMRSt) / 1.75)
             ctxSave(wait_execute=True)
-            ctxSetGlobalAlpha(1.0 - tool_funcs.fixorp(cmr_p * 3.5), wait_execute=True)
+            ctxSetGlobalAlpha(1.0 - uilts.fixorp(cmr_p * 3.5), wait_execute=True)
             cmr_seted_ga = True
         
         now_t = time.time() - renderSt
         for task in renderTasks:
             if now_t >= task["st"] and not task.get("cmr", False):
-                p = tool_funcs.fixorp((now_t - task["st"]) / task["dur"])
+                p = uilts.fixorp((now_t - task["st"]) / task["dur"])
                 res = task["render"](p)
                 tag = task.get("tag", None)
                 
@@ -5409,20 +5409,20 @@ def challengeModeSettlementRender(
         
         if cmr_seted_ga:
             ctxRestore(wait_execute=True)
-            fillRectEx(0, 0, w, h, f"rgba(0, 0, 0, {tool_funcs.fixorp(cmr_p * 3.5) * 0.6})", wait_execute=True)
+            fillRectEx(0, 0, w, h, f"rgba(0, 0, 0, {uilts.fixorp(cmr_p * 3.5) * 0.6})", wait_execute=True)
             
             for task in renderTasks:
                 if now_t >= task["st"] and task.get("cmr", False):
-                    p = tool_funcs.fixorp((now_t - task["st"]) / task["dur"])
+                    p = uilts.fixorp((now_t - task["st"]) / task["dur"])
                     res = task["render"](p)
                     tag = task.get("tag", None)
                     
                     match tag:
                         case "cross":
-                            cross_rect = tool_funcs.xywh_rect2_xxyy(res)
+                            cross_rect = uilts.xywh_rect2_xxyy(res)
                         
                         case "checked":
-                            checked_rect = tool_funcs.xywh_rect2_xxyy(res)
+                            checked_rect = uilts.xywh_rect2_xxyy(res)
         
         if time.time() - renderSt < 1.25:
             p = (time.time() - renderSt) / 1.25
@@ -5551,7 +5551,7 @@ def importArchiveFromPhigros():
                         diff = song.difficulty[i]
                         setPlayData(
                             diff.unqique_id(), score, acc / 100,
-                            tool_funcs.pgrGetLevel(score, isFullCombo)
+                            uilts.pgrGetLevel(score, isFullCombo)
                             if (score, acc, isFullCombo) != (0, 0, False)
                             else "never_play",
                             save=False
@@ -5654,7 +5654,7 @@ root = webcv.WebCanvas(
     renderdemand = "--renderdemand" in sys.argv,
     renderasync = "--renderasync" in sys.argv
 )
-tool_funcs.shadowDrawer.root = root
+uilts.shadowDrawer.root = root
 
 def init():
     global webdpr

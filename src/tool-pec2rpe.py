@@ -1,7 +1,7 @@
 import json
 from sys import argv
 
-from light_tool_funcs import pec2rpe
+from light_uilts import pec2rpe
 
 if len(argv) < 3:
     print("Usage: tool-pec2rpe <input> <output>")

@@ -10,7 +10,7 @@ from PIL import Image
 
 import phichart
 import const
-import tool_funcs
+import uilts
 from rpe_easing import ease_funcs
 
 if len(argv) < 4:
@@ -72,8 +72,8 @@ def gfingerp(sec: float) -> tuple[float, float]:
     for e in moveEvents:
         if e["st"] <= sec < e["et"]:
             return (
-                tool_funcs.easing_interpolation(sec, e["st"], e["et"], e["sp"][0], e["ep"][0], ease_funcs[9]),
-                tool_funcs.easing_interpolation(sec, e["st"], e["et"], e["sp"][1], e["ep"][1], ease_funcs[9])
+                uilts.easing_interpolation(sec, e["st"], e["et"], e["sp"][0], e["ep"][0], ease_funcs[9]),
+                uilts.easing_interpolation(sec, e["st"], e["et"], e["sp"][1], e["ep"][1], ease_funcs[9])
             )
     return moveEvents[-1]["ep"]
 

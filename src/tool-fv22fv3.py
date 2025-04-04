@@ -1,7 +1,7 @@
 import json
 from sys import argv
 
-import light_tool_funcs
+import light_uilts
 
 if len(argv) < 3:
     print("Usage: tool-fv22fv3 <input> <output>")
@@ -10,6 +10,6 @@ if len(argv) < 3:
 with open(argv[1], "r", encoding="utf-8") as f:
     fv2 = json.load(f)
 
-fv3 = light_tool_funcs.SaveAsNewFormat(fv2)
+fv3 = light_uilts.SaveAsNewFormat(fv2)
 
 json.dump(fv3, open(argv[2], "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))

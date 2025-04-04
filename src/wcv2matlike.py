@@ -3,7 +3,7 @@ import typing
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-import tool_funcs
+import uilts
 
 callback: typing.Callable[[bytes], typing.Any] = lambda x: None
 
@@ -22,7 +22,7 @@ class ArrayBufferHandler(BaseHTTPRequestHandler):
     def log_request(self, *args, **kwargs) -> None: ...
     
 def createServer():
-    port = tool_funcs.getNewPort()
+    port = uilts.getNewPort()
     server_address = ("", port)
     httpd = HTTPServer(server_address, ArrayBufferHandler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()

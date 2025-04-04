@@ -11,7 +11,7 @@ from PIL import Image
 
 import webcv
 import const
-import tool_funcs
+import uilts
 import rpe_easing
 import phi_tips
 import dxsound
@@ -25,7 +25,7 @@ drawUIDefaultKwargs = {
     for k in ("combonumber", "combo", "score", "name", "level", "pause", "bar")
     for k2, v in (("dx", 0.0), ("dy", 0.0), ("scaleX", 1.0), ("scaleY", 1.0), ("color", "rgba(255, 255, 255, 1.0)"))
 }
-mainFramerateCalculator = tool_funcs.FramerateCalculator()
+mainFramerateCalculator = uilts.FramerateCalculator()
 
 def initGlobalSettings():
     global enableMirror, enableWatermark
@@ -176,7 +176,7 @@ def processClickEffectBase(
     root: webcv.WebCanvas,
     rblocks_roundn: float = 0.0
 ):
-    if rblocks is None: rblocks = tool_funcs.newRandomBlocks()
+    if rblocks is None: rblocks = uilts.newRandomBlocks()
     
     color = (
         (phira_respack.globalPack.perfectRGB if not phira_respack.globalPack.isdefault_perfect else (255, 236, 160))
@@ -202,7 +202,7 @@ def processClickEffectBase(
             
             if pointr < 0.0: continue
             
-            point = tool_funcs.rotate_point(x, y, deg, pointr)
+            point = uilts.rotate_point(x, y, deg, pointr)
             addRoundRectData(
                 point[0] - nowBlockSize / 2,
                 point[1] - nowBlockSize / 2,
@@ -268,17 +268,17 @@ def getHoldDrawPosition(
     # height_b = max(0.0, height_b - height_e)
     
     headpos = (x, y)
-    bodypos = tool_funcs.rotate_point(*headpos, rotate, height_h / 2) if hadhead and not phira_respack.globalPack.holdCompact else headpos
-    endpos = tool_funcs.rotate_point(*bodypos, rotate, height_b + ((height_e / 2) if not phira_respack.globalPack.holdCompact else 0.0))
+    bodypos = uilts.rotate_point(*headpos, rotate, height_h / 2) if hadhead and not phira_respack.globalPack.holdCompact else headpos
+    endpos = uilts.rotate_point(*bodypos, rotate, height_b + ((height_e / 2) if not phira_respack.globalPack.holdCompact else 0.0))
     
-    _headheadpos = tool_funcs.rotate_point(*headpos, rotate, -height_h / 2)
-    _endendpos = tool_funcs.rotate_point(*endpos, rotate, height_e / 2)
+    _headheadpos = uilts.rotate_point(*headpos, rotate, -height_h / 2)
+    _endendpos = uilts.rotate_point(*endpos, rotate, height_e / 2)
     
     holdrect = (
-        tool_funcs.rotate_point(*_headheadpos, rotate - 90, width / 2),
-        tool_funcs.rotate_point(*_headheadpos, rotate + 90, width / 2),
-        tool_funcs.rotate_point(*_endendpos, rotate + 90, width / 2),
-        tool_funcs.rotate_point(*_endendpos, rotate - 90, width / 2)
+        uilts.rotate_point(*_headheadpos, rotate - 90, width / 2),
+        uilts.rotate_point(*_headheadpos, rotate + 90, width / 2),
+        uilts.rotate_point(*_endendpos, rotate + 90, width / 2),
+        uilts.rotate_point(*_endendpos, rotate - 90, width / 2)
     )
     
     return (
@@ -497,7 +497,7 @@ def drawDebugText(text: str, x: float, y: float, rotate: float, color: str):
     root.run_js_code(
         f"ctx.drawRotateText(\
             {root.string2sctring_hqm(text)},\
-            {",".join(map(str, tool_funcs.rotate_point(x, y, rotate, (w + h) / 75)))},\
+            {",".join(map(str, uilts.rotate_point(x, y, rotate, (w + h) / 75)))},\
             {90 + rotate}, {(w + h) / 85 / 0.75}, '{color}', 1.0, 1.0\
         );",
         wait_execute = True,
@@ -531,7 +531,7 @@ def processExTask(extasks: list[tuple[str, typing.Any]]):
         
     return break_flag
 
-def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm: typing.Optional[tool_funcs.PhigrosPlayLogicManager] = None):
+def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm: typing.Optional[uilts.PhigrosPlayLogicManager] = None):
     extasks = []
     
     if clear:
@@ -613,8 +613,8 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
         
         linePos = (linePos[0] * w, linePos[1] * h)
         lineDrawPos = (
-            *tool_funcs.rotate_point(*linePos, lineRotate, nowLineWidth / 2 * lineScaleX),
-            *tool_funcs.rotate_point(*linePos, lineRotate, -nowLineWidth / 2 * lineScaleX)
+            *uilts.rotate_point(*linePos, lineRotate, nowLineWidth / 2 * lineScaleX),
+            *uilts.rotate_point(*linePos, lineRotate, -nowLineWidth / 2 * lineScaleX)
         )
         lineWebColor = f"rgba{(*lineColor, max(0.0, lineAlpha))}"
         lineWidth = nowLineHeight * lineScaleY
@@ -632,9 +632,9 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                 })
         elif lineAlpha > 0.0:
             if line.isTextureLine:
-                texture_width, texture_height = tool_funcs.conimgsize(*chart_res[line.texture][1], w, h)
+                texture_width, texture_height = uilts.conimgsize(*chart_res[line.texture][1], w, h)
                 texture_width *= lineScaleX; texture_height *= lineScaleY
-                if tool_funcs.TextureLine_CanRender(w, h, (texture_width ** 2 + texture_height ** 2) ** 0.5 / 2, *linePos):
+                if uilts.TextureLine_CanRender(w, h, (texture_width ** 2 + texture_height ** 2) ** 0.5 / 2, *linePos):
                     texturename = root.get_img_jsvarname(f"lineTexture_{line.index}")
                     if line.isGifLine:
                         root.run_js_code(
@@ -670,7 +670,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                     wait_execute = True,
                     order = const.CHART_RENDER_ORDERS.LINE
                 )
-            elif tool_funcs.lineInScreen(w, h, lineDrawPos):
+            elif uilts.lineInScreen(w, h, lineDrawPos):
                 root.run_js_code(
                     f"ctx.drawLineEx(\
                         {",".join(map(str, lineDrawPos))},\
@@ -726,7 +726,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                     (note.floorPosition - (
                         line.playingFloorPosition
                         if not (chart_obj.options.holdIndependentSpeed and note.ishold and note.isontime) else
-                        (note.floorPosition + tool_funcs.linear_interpolation(
+                        (note.floorPosition + uilts.linear_interpolation(
                             now_t, note.time, note.holdEndTime, 0.0, note.holdLength
                         ))
                     ))
@@ -748,9 +748,9 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                     if not note.ishold or (note.ishold and chart_obj.options.holdCoverAtHead):
                         continue
 
-                noteAtLinePos = tool_funcs.rotate_point(*linePos, lineRotate, note.positionX * w)
+                noteAtLinePos = uilts.rotate_point(*linePos, lineRotate, note.positionX * w)
                 lineToNoteRotate = lineRotate + (-90 if note.isAbove else 90)
-                x, y = tool_funcs.rotate_point(*noteAtLinePos, lineToNoteRotate, noteFloorPosition)
+                x, y = uilts.rotate_point(*noteAtLinePos, lineToNoteRotate, noteFloorPosition)
                 
                 noteAlpha = note.alpha
                 noteWidthX = note.width
@@ -790,7 +790,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                     )
                 
                 if noteFloorPosition > note_max_size_half:
-                    nlOutOfScreen_nohold = tool_funcs.noteLineOutOfScreen(
+                    nlOutOfScreen_nohold = uilts.noteLineOutOfScreen(
                         x, y, noteAtLinePos,
                         noteFloorPosition,
                         lineRotate, nowLineWidth,
@@ -798,7 +798,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                         w, h, note_max_size_half
                     )
                     
-                    nlOutOfScreen_hold = True if not note.ishold else tool_funcs.noteLineOutOfScreen(
+                    nlOutOfScreen_hold = True if not note.ishold else uilts.noteLineOutOfScreen(
                         x, y, noteAtLinePos,
                         holdEndFloorPosition, lineRotate, nowLineWidth,
                         lineToNoteRotate, w, h, note_max_size_half
@@ -808,9 +808,9 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                         break
                 
                 noteCanRender = (
-                    tool_funcs.noteCanRender(w, h, note_max_size_half, x, y)
+                    uilts.noteCanRender(w, h, note_max_size_half, x, y)
                     if not note.ishold
-                    else tool_funcs.noteCanRender(w, h, -1, x, y, holdrect)
+                    else uilts.noteCanRender(w, h, -1, x, y, holdrect)
                 ) and now_t >= 0.0 and (
                     note.visibleTime is None or
                     note.time - now_t <= note.visibleTime
@@ -897,13 +897,13 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
             linePos = chart_obj.options.posConverter(note.master.getPos(now_t))
             lineRotate = sum(note.master.getEventsValue(el.rotateEvents, now_t) for el in note.master.eventLayers)
             
-            pos = tool_funcs.rotate_point(
+            pos = uilts.rotate_point(
                 linePos[0] * w, linePos[1] * h,
                 lineRotate,
                 note.positionX * w
             )
             
-            x, y = tool_funcs.rotate_point(
+            x, y = uilts.rotate_point(
                 *pos,
                 (-90 if note.isAbove else 90) + lineRotate,
                 (note.floorPosition - note.master.playingFloorPosition) * note.speed * h
@@ -1034,7 +1034,7 @@ def drawTipAndLoading(
     p: float, sec: float,
     tip: str, tip_font_size: float
 ):
-    tipalpha = tool_funcs.begin_animation_eases.tip_alpha_ease(p)
+    tipalpha = uilts.begin_animation_eases.tip_alpha_ease(p)
     drawText(
         w * 0.053125,
         h * (1004 / 1080),
@@ -1089,10 +1089,10 @@ def drawTipAndLoading(
 
 def loadingAnimationFrame(p: float, sec: float, clear: bool = True, fcb: typing.Callable[[], typing.Any] = lambda: None):
     if clear: clearCanvas(wait_execute=True)
-    all_ease_value = tool_funcs.begin_animation_eases.im_ease(p)
-    background_ease_value = tool_funcs.begin_animation_eases.background_ease(p) * 1.25
-    info_data_ease_value = tool_funcs.begin_animation_eases.info_data_ease((p - 0.2) * 3.25)
-    info_data_ease_value_2 = tool_funcs.begin_animation_eases.info_data_ease((p - 0.275) * 3.25)
+    all_ease_value = uilts.begin_animation_eases.im_ease(p)
+    background_ease_value = uilts.begin_animation_eases.background_ease(p) * 1.25
+    info_data_ease_value = uilts.begin_animation_eases.info_data_ease((p - 0.2) * 3.25)
+    info_data_ease_value_2 = uilts.begin_animation_eases.info_data_ease((p - 0.275) * 3.25)
     
     drawBg()
     
@@ -1100,7 +1100,7 @@ def loadingAnimationFrame(p: float, sec: float, clear: bool = True, fcb: typing.
         0, 0,
         background_ease_value * w, h
     )
-    blackShadowDPower = tool_funcs.getDPower(*tool_funcs.getSizeByRect(blackShadowRect), 75)
+    blackShadowDPower = uilts.getDPower(*uilts.getSizeByRect(blackShadowRect), 75)
     blackShadowPolygon = (
         (0, 0),
         (background_ease_value * w, 0),
@@ -1135,7 +1135,7 @@ def loadingAnimationFrame(p: float, sec: float, clear: bool = True, fcb: typing.
     root.run_js_code(
         f"ctx.drawDiagonalRectangle(\
             {",".join(map(str, songShadowRect))},\
-            {tool_funcs.getDPower(*tool_funcs.getSizeByRect(songShadowRect), 75)},\
+            {uilts.getDPower(*uilts.getSizeByRect(songShadowRect), 75)},\
             'rgba(0, 0, 0, 0.6)'\
         );",
         wait_execute = True
@@ -1148,7 +1148,7 @@ def loadingAnimationFrame(p: float, sec: float, clear: bool = True, fcb: typing.
     root.run_js_code(
         f"ctx.drawDiagonalRectangle(\
             {",".join(map(str, difRect))},\
-            {tool_funcs.getDPower(*tool_funcs.getSizeByRect(difRect), 75)},\
+            {uilts.getDPower(*uilts.getSizeByRect(difRect), 75)},\
             'rgb(255, 255, 255)'\
         );",
         wait_execute = True
@@ -1251,7 +1251,7 @@ def loadingAnimationFrame(p: float, sec: float, clear: bool = True, fcb: typing.
     baimg_x1 = w * 0.9453125
     baimg_y1 = h * (733 / 1080)
     baimg_y0 = h * (219 / 1080)
-    baimg_dpower = tool_funcs.getDPower(baimg_x1 - baimg_x0, baimg_y1 - baimg_y0, 75)
+    baimg_dpower = uilts.getDPower(baimg_x1 - baimg_x0, baimg_y1 - baimg_y0, 75)
     root.run_js_code(
         f"ctx.drawDiagonalRectangleClipImageOnlyHeight(\
             {baimg_x0}, {baimg_y0},\
@@ -1408,7 +1408,7 @@ def lineOpenAnimation(fcb: typing.Callable[[], typing.Any] = lambda: None):
     time.sleep(0.15)
 
 def initSettlementAnimation(
-    pplm: typing.Optional[tool_funcs.PhigrosPlayLogicManager] = None,
+    pplm: typing.Optional[uilts.PhigrosPlayLogicManager] = None,
     avatar: str = "./resources/default_avatar.png"
 ):
     global im_size
@@ -1450,24 +1450,24 @@ def settlementAnimationFrame(
     ud_popupP: float = 1.0
 ):
     clearCanvas(wait_execute = True)
-    im_ease_value = tool_funcs.finish_animation_eases.all_ease(p)
+    im_ease_value = uilts.finish_animation_eases.all_ease(p)
     im_ease_pos = w * 1.25 * (1 - im_ease_value)
-    data_block_1_ease_value = tool_funcs.finish_animation_eases.all_ease(p - 0.015)
+    data_block_1_ease_value = uilts.finish_animation_eases.all_ease(p - 0.015)
     data_block_1_ease_pos = w * 1.25 * (1 - data_block_1_ease_value)
-    data_block_2_ease_value = tool_funcs.finish_animation_eases.all_ease(p - 0.035)
+    data_block_2_ease_value = uilts.finish_animation_eases.all_ease(p - 0.035)
     data_block_2_ease_pos = w * 1.25 * (1 - data_block_2_ease_value)
-    data_block_3_ease_value = tool_funcs.finish_animation_eases.all_ease(p - 0.055)
+    data_block_3_ease_value = uilts.finish_animation_eases.all_ease(p - 0.055)
     data_block_3_ease_pos = w * 1.25 * (1 - data_block_3_ease_value)
-    button_ease_value = tool_funcs.finish_animation_eases.button_ease(p * 4.5 - 0.95)
+    button_ease_value = uilts.finish_animation_eases.button_ease(p * 4.5 - 0.95)
     level_size = 0.1125
-    level_size *= tool_funcs.finish_animation_eases.level_size_ease(p)
+    level_size *= uilts.finish_animation_eases.level_size_ease(p)
     button_ease_pos = - w * const.FINISH_UI_BUTTON_SIZE * (1 - button_ease_value)
     
     drawBg()
     
     baimg_w = w * 0.5203125
     baimg_h = h * (624 / 1080)
-    dpower = tool_funcs.getDPower(baimg_w, baimg_h, 75)
+    dpower = uilts.getDPower(baimg_w, baimg_h, 75)
     
     baimg_rawr = chart_image.width / chart_image.height
     baimg_r = baimg_w / baimg_h
@@ -1537,7 +1537,7 @@ def settlementAnimationFrame(
         db_y = h * (227 / 1080)
         db_width = w * 0.4484375
         db_height = h * (624 / 1080)
-        db_dpower = tool_funcs.getDPower(db_width, db_height, 75)
+        db_dpower = uilts.getDPower(db_width, db_height, 75)
         db_dw = db_dpower * db_width
         sy += db_y
         ey += db_y
@@ -1548,7 +1548,7 @@ def settlementAnimationFrame(
         )
         
         drawPolygon(
-            tool_funcs.rect2drect(db_itemrect, 75),
+            uilts.rect2drect(db_itemrect, 75),
             fillStyle = "rgba(0, 0, 0, 0.5)",
             wait_execute = True
         )
@@ -1564,7 +1564,7 @@ def settlementAnimationFrame(
         font = f"{(w + h) / 38}px pgrFont",
         textAlign = "left",
         textBaseline = "bottom",
-        fillStyle = f"rgba(255, 255, 255, {tool_funcs.finish_animation_eases.score_alpha_ease(p)})",
+        fillStyle = f"rgba(255, 255, 255, {uilts.finish_animation_eases.score_alpha_ease(p)})",
         wait_execute = True
     )
     
@@ -1573,13 +1573,13 @@ def settlementAnimationFrame(
             {root.get_img_jsvarname(f"Level_{LevelName}")},\
             {w * 0.8578125 + data_block_1_ease_pos}, {h * (380 / 1080)},\
             {w * level_size}, {w * level_size},\
-            {tool_funcs.finish_animation_eases.level_alpha_ease(p)}\
+            {uilts.finish_animation_eases.level_alpha_ease(p)}\
         );",
         wait_execute = True
     )
     
     root.run_js_code(
-        f"ctx.save(); ctx.globalAlpha = {tool_funcs.finish_animation_eases.playdata_alpha_ease(p - 0.02)}",
+        f"ctx.save(); ctx.globalAlpha = {uilts.finish_animation_eases.playdata_alpha_ease(p - 0.02)}",
         wait_execute = True
     )
     
@@ -1628,7 +1628,7 @@ def settlementAnimationFrame(
     )
     
     root.run_js_code(
-        f"ctx.globalAlpha = {tool_funcs.finish_animation_eases.playdata_alpha_ease(p - 0.04)}",
+        f"ctx.globalAlpha = {uilts.finish_animation_eases.playdata_alpha_ease(p - 0.04)}",
         wait_execute = True
     )
     
@@ -1729,7 +1729,7 @@ def settlementAnimationFrame(
     )
     
     root.run_js_code(
-        f"ctx.save(); ctx.globalAlpha = {tool_funcs.finish_animation_eases.userinfo_alpha_ease(p - 0.03)}",
+        f"ctx.save(); ctx.globalAlpha = {uilts.finish_animation_eases.userinfo_alpha_ease(p - 0.03)}",
         wait_execute = True
     )
     
@@ -1797,7 +1797,7 @@ def drawUserData(
     
     alpha: float = 1.0
 ):
-    tool_funcs.shadowDrawer.root = root
+    uilts.shadowDrawer.root = root
     
     ctxSave(wait_execute=True)
     ctxMutGlobalAlpha(alpha, wait_execute=True)
@@ -1806,8 +1806,8 @@ def drawUserData(
         w * 0.83025, h * (28 / 1080),
         w * 2.0, h * (135 / 1080)
     )
-    userDataRectSize = tool_funcs.getSizeByRect(userDataRect)
-    userDataDPower = tool_funcs.getDPower(*userDataRectSize, 75)
+    userDataRectSize = uilts.getSizeByRect(userDataRect)
+    userDataDPower = uilts.getDPower(*userDataRectSize, 75)
     
     root.run_js_code(
         f"ctx.drawDiagonalRectangle(\
@@ -1822,10 +1822,10 @@ def drawUserData(
         w * 0.840625, h * (21 / 1080),
         w * 0.95, h * (142 / 1080)
     )
-    avatar_rectsize = tool_funcs.getSizeByRect(avatar_rect)
-    avatar_w, avatar_h = tool_funcs.getCoverSize(*avatar_img.size, *avatar_rectsize)
-    avatar_x, avatar_y = tool_funcs.getPosFromCoverSize(avatar_w, avatar_h, *avatar_rectsize)
-    avatar_dpower = tool_funcs.getDPower(*avatar_rectsize, 75)
+    avatar_rectsize = uilts.getSizeByRect(avatar_rect)
+    avatar_w, avatar_h = uilts.getCoverSize(*avatar_img.size, *avatar_rectsize)
+    avatar_x, avatar_y = uilts.getPosFromCoverSize(avatar_w, avatar_h, *avatar_rectsize)
+    avatar_dpower = uilts.getDPower(*avatar_rectsize, 75)
     rks_y = h * (126 / 1080)
     rks_x = (
         avatar_rect[2]
@@ -1840,13 +1840,13 @@ def drawUserData(
     root.run_js_code(
         f"ctx.drawDiagonalRectangle(\
             {",".join(map(str, rks_rect))},\
-            {tool_funcs.getDPower(*tool_funcs.getSizeByRect(rks_rect), 75)},\
+            {uilts.getDPower(*uilts.getSizeByRect(rks_rect), 75)},\
             'rgb(255, 255, 255)'\
         );",
         wait_execute = True
     )
     
-    rks_rect_center = tool_funcs.getCenterPointByRect(rks_rect)
+    rks_rect_center = uilts.getCenterPointByRect(rks_rect)
     drawText(
         rks_rect_center[0], rks_rect_center[1] - h * (2 / 1080),
         f"{rankingScore:.2f}",
@@ -1862,8 +1862,8 @@ def drawUserData(
         popupUserDataLeftX, userDataRect[1],
         max(userDataRect[0] + userDataRectSize[0] * userDataDPower, popupUserDataLeftX) + 1, userDataRect[3]
     )
-    popupUserDataRectSize = tool_funcs.getSizeByRect(popupUserDataRect)
-    popupUserDataDPower = tool_funcs.getDPower(*popupUserDataRectSize, 75)
+    popupUserDataRectSize = uilts.getSizeByRect(popupUserDataRect)
+    popupUserDataDPower = uilts.getDPower(*popupUserDataRectSize, 75)
     root.run_js_code(
         f"ctx.drawDiagonalRectangle(\
             {",".join(map(str, popupUserDataRect))},\
@@ -1886,11 +1886,11 @@ def drawUserData(
     
     ctxSave(wait_execute=True)
     ctxBeginPath(wait_execute=True)
-    ctxRect(*tool_funcs.xxyy_rect2_xywh(popupUserDataRect), wait_execute=True)
+    ctxRect(*uilts.xxyy_rect2_xywh(popupUserDataRect), wait_execute=True)
     ctxClip(wait_execute=True)
     drawText(
         popupUserDataRect[0] + popupUserDataRectSize[0] * popupUserDataDPower + userNamePadding,
-        tool_funcs.getCenterPointByRect(popupUserDataRect)[1],
+        uilts.getCenterPointByRect(popupUserDataRect)[1],
         userName,
         font = f"{(w + h) / const.USERNAME_CONST_FONT}px pgrFont",
         textAlign = "left",
@@ -1915,7 +1915,7 @@ def drawUserData(
             wait_execute = True
         )
         
-        with tool_funcs.shadowDrawer("rgba(255, 255, 255, 0.5)", (w + h) / 125):
+        with uilts.shadowDrawer("rgba(255, 255, 255, 0.5)", (w + h) / 125):
             drawText(
                 cmCenter[0],
                 cmCenter[1] - h * (10 / 1080),
