@@ -403,9 +403,21 @@ class Note(MemEq):
         self.nowpos = (0.0, 0.0)
         self.nowrotate = 0.0
         
-        self.state = const.NOTE_STATE.MISS
-        self.player_clicked = False
-        self.player_missed = False
+        self.state: int = const.NOTE_STATE.MISS
+        self.player_clicked: bool = False
+        self.player_click_offset: float = 0.0
+        self.player_click_sound_played: bool = False
+        self.player_will_click: bool = False
+        self.player_missed: bool = False
+        self.player_badtime: float = float("nan")
+        self.player_holdmiss_time: float = float("inf")
+        self.player_last_testholdismiss_time: float = -float("inf")
+        self.player_holdjudged: bool = False
+        self.player_holdclickstate: int = const.NOTE_STATE.MISS
+        self.player_holdjudged_tomanager: bool = False
+        self.player_holdjudge_tomanager_time: float = float("nan")
+        self.player_judge_safe_used: bool = False
+        self.player_bad_posandrotate: typing.Optional[tuple[tuple[float, float], float]] = None
     
     def init(self, master: JudgeLine):
         self.master = master
@@ -448,6 +460,8 @@ class Note(MemEq):
                     tool_funcs.newRandomBlocks(),
                     self.getNoteClickPos(t)
                 ))
+                
+        self.player_effect_times = self.effect_times.copy()
     
     def getNoteClickPos(self, time: float) -> tuple[typing.Callable[[int, int], tuple[float, float]], float]:
         linePos = self.master.master.options.posConverter(self.master.getPos(time))
@@ -853,6 +867,44 @@ class PPLMProxy_CommonChart(tool_funcs.PPLM_ProxyBase):
     
     def nproxy_nowpos(self, n: Note): return n.nowpos
     def nproxy_nowrotate(self, n: Note) -> float: return n.nowrotate
+    def nproxy_effects(self, n: Note): return n.player_effect_times
+    
+    def nproxy_get_pclicked(self, n: Note): return n.player_clicked
+    def nproxy_set_pclicked(self, n: Note, state: bool): n.player_clicked = state
+    
+    def nproxy_get_wclick(self, n: Note): return n.player_will_click
+    def nproxy_set_wclick(self, n: Note, state: bool): n.player_will_click = state
+    
+    def nproxy_get_pclick_offset(self, n: Note): return n.player_click_offset
+    def nproxy_set_pclick_offset(self, n: Note, offset: float): n.player_click_offset = offset
+    
+    def nproxy_get_ckstate(self, n: Note): return n.state
+    def nproxy_set_ckstate(self, n: Note, state: int): n.state = state
+    def nproxy_get_ckstate_ishit(self, n: Note): return n.state in (const.NOTE_STATE.PERFECT, const.NOTE_STATE.GOOD)
+    
+    def nproxy_get_cksound_played(self, n: Note): return n.player_click_sound_played
+    def nproxy_set_cksound_played(self, n: Note, state: bool): n.player_click_sound_played = state
+    
+    def nproxy_get_missed(self, n: Note): return n.player_missed
+    def nproxy_set_missed(self, n: Note, state: bool): n.player_missed = state
+    
+    def nproxy_get_holdjudged(self, n: Note): return n.player_holdjudged
+    def nproxy_set_holdjudged(self, n: Note, state: bool): n.player_holdjudged = state
+    
+    def nproxy_get_holdjudged_tomanager(self, n: Note): return n.player_holdjudged_tomanager
+    def nproxy_set_holdjudged_tomanager(self, n: Note, state: bool): n.player_holdjudged_tomanager = state
+    
+    def nproxy_get_last_testholdmiss_time(self, n: Note): return n.player_last_testholdismiss_time
+    def nproxy_set_last_testholdmiss_time(self, n: Note, time: float): n.player_last_testholdismiss_time = time
+    
+    def nproxy_get_safe_used(self, n: Note): return n.player_judge_safe_used
+    def nproxy_set_safe_used(self, n: Note, state: bool): n.player_judge_safe_used = state
+    
+    def nproxy_get_holdclickstate(self, n: Note): return n.player_holdclickstate
+    def nproxy_set_holdclickstate(self, n: Note, state: int): n.player_holdclickstate = state
+    
+    def nproxy_get_pbadtime(self, n: Note): return n.player_badtime
+    def nproxy_set_pbadtime(self, n: Note, time: float): n.player_badtime = time
 
 def load(data: str) -> CommonChart:
     def _unknow_type():
