@@ -876,7 +876,14 @@ class ExtraVar:
     easingType: int
     
     def __post_init__(self):
-        self.easingFunc = geteasing_func(self.easingType)
+        self.ease = geteasing_func(self.easingType)
+        
+        if isinstance(self.start, int|float):
+            self.get = lambda t: tool_funcs.easing_interpolation(t, self.startTime, self.endTime, self.start, self.end, self.ease)
+        elif isinstance(self.start, typing.Iterable):
+            self.get = lambda t: tuple(tool_funcs.easing_interpolation(t, self.startTime, self.endTime, self.start[i], self.end[i], self.ease) for i in range(len(self.start)))
+        else:
+            raise ValueError(f"Invalid event value type: {type(self.start)}")
     
 @dataclass
 class ExtraEffect:
