@@ -820,6 +820,8 @@ class CommonChart:
     options: CommonChartOptions = dataclasses.field(default_factory=CommonChartOptions)
     type: int = ChartFormat.unset
     
+    dumpVersion: int = 1
+    
     def __post_init__(self):
         self.combotimes = []
     
@@ -923,7 +925,7 @@ class CommonChart:
                 ])
             
         writer = uilts.ByteWriter()
-        writer.write(b"PHICHART")
+        writer.writeInt(self.dumpVersion)
         
         writer.writeFloat(self.offset)
         
@@ -1010,8 +1012,8 @@ class CommonChart:
     @staticmethod
     def loaddump(data: bytes):
         reader = uilts.ByteReader(data)
-        if reader.read(len(b"PHICHART")) != b"PHICHART":
-            raise ValueError("Invalid chart file header")
+        if (v := reader.readInt()) != CommonChart.dumpVersion:
+            raise ValueError(f"bad dump version: {v}(bpc) != {CommonChart.dumpVersion}")
         
         def _read_dataclass(obj: typing.Any, need_read_fields: list[tuple[str, typing.Callable[[], typing.Any]]]):
             fields = getattr(obj, "__dataclass_fields__", None)
