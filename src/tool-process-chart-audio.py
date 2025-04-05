@@ -9,6 +9,7 @@ import numpy as np
 from pydub import AudioSegment
 
 import const
+import phichart
 
 FR, SW, CH = 44100, 2, 2
 
@@ -65,15 +66,10 @@ NoteClickAudios: dict[int, AudioSegment] = {
 
 ExtendedAudios: dict[str, AudioSegment] = {}
 
-with open(sys.argv[1], "r", encoding="utf-8") as f:
-    Chart = load(f)
-
-if "META" in Chart and "formatVersion" not in Chart:
-    import phichart
-    rpeobj = phichart.load(Chart)
-    Chart = {
+def pc2p(pc: phichart.CommonChart):
+    return {
         "formatVersion": 3,
-        "offset": rpeobj.offset,
+        "offset": pc.offset,
         "judgeLineList": [
             {
                 "bpm": 1.875,
@@ -87,9 +83,18 @@ if "META" in Chart and "formatVersion" not in Chart:
                 ],
                 "notesBelow": []
             }
-            for line in rpeobj.lines
+            for line in pc.lines
         ]
     }
+
+if "--load-bpc" in sys.argv:
+    Chart = pc2p(phichart.CommonChart.loaddump(open(sys.argv[sys.argv.index("--load-bpc") + 1], "rb").read()))
+else:    
+    with open(sys.argv[1], "r", encoding="utf-8") as f:
+        Chart = load(f)
+
+    if "META" in Chart and "formatVersion" not in Chart:
+        Chart = pc2p(phichart.load(Chart))
 
 for line in Chart["judgeLineList"]:
     for note in line["notesAbove"] + line["notesBelow"]:
