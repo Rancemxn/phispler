@@ -97,11 +97,11 @@ def geteasing_func(t: int):
         return rpe_easing.ease_funcs[0]
             
 class ChartFormat:
-    unset = object()
-    phi = object()
-    rpe = object()
-    pec = object()
-    pbc = object()
+    unset = -1
+    phi = 1
+    rpe = 2
+    pec = 3
+    pbc = 4
     
     notetype_map: dict[object, dict[int, int]] = {
         phi: {1: 1, 2: 2, 3: 3, 4: 4}, # standard
@@ -869,10 +869,10 @@ class CommonChart:
             else: r = m
         return l
     
-    def is_phi(self): return self.type is ChartFormat.phi
-    def is_rpe(self): return self.type is ChartFormat.rpe
-    def is_pec(self): return self.type is ChartFormat.pec
-    def is_pbc(self): return self.type is ChartFormat.pbc
+    def is_phi(self): return self.type == ChartFormat.phi
+    def is_rpe(self): return self.type == ChartFormat.rpe
+    def is_pec(self): return self.type == ChartFormat.pec
+    def is_pbc(self): return self.type == ChartFormat.pbc
     
     def dump(self):
         return {
