@@ -193,6 +193,8 @@ class ChartFormat:
             
             if formatVersion == 1:
                 for json_e in json_line.get("judgeLineMoveEvents", []):
+                    json_e: dict
+                    
                     json_e["start"], json_e["start2"] = uilts.unpack_pos(json_e.get("start", 0))
                     json_e["end"], json_e["end2"] = uilts.unpack_pos(json_e.get("end", 0))
             
