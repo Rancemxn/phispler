@@ -382,13 +382,13 @@ class MemEq:
 
 @dataclass
 class Note(MemEq):
-    type: int
-    time: float
-    holdTime: float
-    positionX: float
-    speed: float
+    type: int = const.NOTE_TYPE.TAP
+    time: float = 0.0
+    holdTime: float = 0.0
+    positionX: float = 0.0
+    speed: float = 1.0
     
-    isAbove: bool
+    isAbove: bool = True
     isFake: bool = False
     yOffset: float = 0.0
     visibleTime: typing.Optional[float] = None
@@ -493,10 +493,10 @@ class Note(MemEq):
 
 @dataclass
 class LineEvent(MemEq):
-    startTime: float
-    endTime: float
-    start: eventValueType
-    end: eventValueType
+    startTime: float = 0.0
+    endTime: float = 0.0
+    start: eventValueType = 0.0
+    end: eventValueType = 0.0
     ease: typing.Callable[[float], float] = rpe_easing.ease_funcs[0]
     
     isFill: bool = False
@@ -547,8 +547,8 @@ class ExtendEventsItem(MemEq):
 
 @dataclass
 class BPMEvent(MemEq):
-    time: float
-    bpm: float
+    time: float = 0.0
+    bpm: float = 140.0
 
 @dataclass
 class JudgeLine(MemEq):
@@ -955,10 +955,12 @@ class CommonChart:
         writer.writeBool(self.options.alwaysLineOpenAnimation)
         writer.writeInt(self.options.featureFlags)
         
-        writer.writeInt(len(self.options.globalBpmList))
-        for bpm in self.options.globalBpmList:
-            writer.writeFloat(bpm.time)
-            writer.writeFloat(bpm.bpm)
+        writer.writeBool(self.options.globalBpmList is not None)
+        if self.options.globalBpmList is not None:
+            writer.writeInt(len(self.options.globalBpmList))
+            for bpm in self.options.globalBpmList:
+                writer.writeFloat(bpm.time)
+                writer.writeFloat(bpm.bpm)
         
         writer.writeBool(self.options.enableOverlappedNoteOptimization)
         writer.writeInt(self.options.overlappedNoteOptimizationLimit)
@@ -1060,7 +1062,10 @@ class CommonChart:
         result.options.rpeVersion = reader.readInt()
         result.options.alwaysLineOpenAnimation = reader.readBool()
         result.options.featureFlags = reader.readInt()
-        result.options.globalBpmList = _read_bpms()
+        
+        if reader.readBool():
+            result.options.globalBpmList = _read_bpms()
+        
         result.options.enableOverlappedNoteOptimization = reader.readBool()
         result.options.overlappedNoteOptimizationLimit = reader.readInt()
         result.options.lineWidthUnit = (reader.readFloat(), reader.readFloat())
