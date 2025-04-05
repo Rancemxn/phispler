@@ -354,23 +354,11 @@ void main() {
         document.fonts.add(await font.load());
     }
 
-    function convertRGBAtoBGR(rgbaArray) {
-        const new_arr = new Uint8ClampedArray(rgbaArray.length / 4 * 3);
-        for (let i = 0; i < rgbaArray.length; i += 4) {
-            new_arr[i / 4 * 3] = rgbaArray[i + 2];
-            new_arr[i / 4 * 3 + 1] = rgbaArray[i + 1];
-            new_arr[i / 4 * 3 + 2] = rgbaArray[i];
-        }
-        return new_arr;
-    }
-
     async function uploadFrame(url) {
         try {
-            const arr = convertRGBAtoBGR(ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data);
-            const blob = new Blob([arr]);
             await fetch(url, {
                 method: "POST",
-                body: blob
+                body: ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data
             });
         }
         catch (e) {
