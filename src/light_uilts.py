@@ -788,7 +788,7 @@ class ByteWriter:
         self.data.extend(data)
     
     def writeInt(self, data: int):
-        self.write(struct.pack("<q", data))
+        self.write(struct.pack("<i", data))
 
     def writeFloat(self, data: float):
         self.write(struct.pack("<f", data))
@@ -870,7 +870,7 @@ class ByteReader:
             raise ValueError("Invalid whence")
     
     def readInt(self):
-        return struct.unpack("<q", self.read(8))[0]
+        return struct.unpack("<i", self.read(4))[0]
     
     def readFloat(self):
         return struct.unpack("<f", self.read(4))[0]
