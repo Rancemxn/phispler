@@ -566,7 +566,7 @@ def playerStart():
             while pause_flag: time.sleep(1 / 30)
             
             now_t = time.time() - show_start_time
-            checkOffset(now_t - skip_time)
+            checkOffset(now_t)
             extasks = phicore.renderChart_Common(now_t, pplm=pplm)
             
             break_flag = phicore.processExTask(extasks)
