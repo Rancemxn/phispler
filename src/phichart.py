@@ -4,6 +4,7 @@ import typing
 import logging
 import math
 import random
+import pickle
 from dataclasses import dataclass, field
 
 import const
@@ -71,7 +72,6 @@ def findevent(es: list[LineEvent], t: float):
         elif st > t: r = m - 1
         else: l = m + 1
     
-    assert False
     return es[-1] if t >= es[-1].endTime else None
 
 def split_notes(notes: list[Note]) -> list[list[Note]]:
@@ -100,8 +100,6 @@ class ChartFormat:
     unset = -1
     phi = 1
     rpe = 2
-    pec = 3
-    pbc = 4
     
     notetype_map: dict[object, dict[int, int]] = {
         phi: {1: 1, 2: 2, 3: 3, 4: 4}, # standard
@@ -242,8 +240,6 @@ class ChartFormat:
             result.options.holdCoverAtHead = False
             
         result.options.holdIndependentSpeed = False
-        result.options.posConverter = uilts.conrpepos
-        
         result.options.lineWidthUnit = (4000 / 1350, 0.0)
         result.options.lineHeightUnit = (0.0, const.LINEWIDTH.RPE)
         
@@ -527,10 +523,7 @@ class EventLayerItem(MemEq):
     rotateEvents: list[LineEvent] = field(default_factory=list)
     speedEvents: list[LineEvent] = field(default_factory=list)
     
-    id: bool = False
-    
     def init(self):
-        self.id = True
         _init_events(self.alphaEvents)
         _init_events(self.moveXEvents)
         _init_events(self.moveYEvents)
@@ -584,6 +577,8 @@ class JudgeLine(MemEq):
         
         if self.father == -1:
             self.father = None
+        
+        self.raw_father = self.father
         
         if self.father is not None:
             self.father = master.lines[self.father]
@@ -781,10 +776,14 @@ class CommonChartOptionFeatureFlags:
             NEED_FIX_EXTRA_BPMS |
             0
         ),
-        ChartFormat.pec: 0,
-        ChartFormat.pbc: 0
     }
-    
+
+posCoverters = {
+    ChartFormat.unset: lambda pos: pos,
+    ChartFormat.phi: lambda pos: pos,
+    ChartFormat.rpe: uilts.conrpepos
+}
+
 @dataclass
 class CommonChartOptions:
     holdIndependentSpeed: bool = True
@@ -800,7 +799,7 @@ class CommonChartOptions:
     lineWidthUnit: tuple[float, float] = (0.0, 0.0)
     lineHeightUnit: tuple[float, float] = (0.0, 0.0)
     
-    posConverter: typing.Callable[[tuple[float, float]], tuple[float, float]] = lambda pos: pos
+    posConverter: typing.Callable[[tuple[float, float]], tuple[float, float]] = posCoverters[ChartFormat.unset]
     
     res_ext_song: typing.Optional[str] = None
     res_ext_background: typing.Optional[str] = None
@@ -820,13 +819,14 @@ class CommonChart:
     extra: typing.Optional[Extra] = None
     
     options: CommonChartOptions = field(default_factory=CommonChartOptions)
-    type: object = field(default=lambda: ChartFormat.unset)
+    type: int = ChartFormat.unset
     
     def __post_init__(self):
         self.combotimes = []
     
     def init(self):
         self.options.featureFlags |= CommonChartOptionFeatureFlags.PRELOADED_FEATURE_FLAGS[self.type]
+        self.options.posConverter = posCoverters[self.type]
         
         self.all_notes = [j for i in self.lines for j in i.notes]
         self.all_notes.sort(key=lambda note: note.time)
@@ -871,13 +871,210 @@ class CommonChart:
     
     def is_phi(self): return self.type == ChartFormat.phi
     def is_rpe(self): return self.type == ChartFormat.rpe
-    def is_pec(self): return self.type == ChartFormat.pec
-    def is_pbc(self): return self.type == ChartFormat.pbc
     
     def dump(self):
-        return {
+        def _write_events(es: list[LineEvent]):
+            writer.writeInt(len(es))
+            for e in es:
+                writer.writeFloat(e.startTime)
+                writer.writeFloat(e.endTime)
+                
+                valtype = {float: 0, str: 1, tuple: 2}[type(e.start)]
+                writer.writeInt(valtype)
+                if valtype == 0: writer.writeFloat(e.start)
+                elif valtype == 1: writer.writeString(e.start)
+                elif valtype == 2:
+                    writer.writeInt(len(e.start))
+                    for i in e.start: writer.writeFloat(i)
+                
+                valtype = {float: 0, str: 1, tuple: 2}[type(e.end)]
+                writer.writeInt(valtype)
+                if valtype == 0: writer.writeFloat(e.end)
+                elif valtype == 1: writer.writeString(e.end)
+                elif valtype == 2:
+                    writer.writeInt(len(e.end))
+                    for i in e.end: writer.writeFloat(i)
+                
+                writer.writeEaseFunc(e.ease)
             
-        }
+        writer = uilts.ByteWriter()
+        writer.write(b"PHICHART")
+        
+        writer.writeFloat(self.offset)
+        
+        writer.writeInt(len(self.lines))
+        for line in self.lines:
+            writer.writeInt(len(line.bpms))
+            for bpm in line.bpms:
+                writer.writeFloat(bpm.time)
+                writer.writeFloat(bpm.bpm)
+            
+            writer.writeInt(len(line.notes))
+            for note in line.notes:
+                writer.writeInt(note.type)
+                writer.writeFloat(note.time)
+                writer.writeFloat(note.holdTime)
+                writer.writeFloat(note.positionX)
+                writer.writeFloat(note.speed)
+                writer.writeBool(note.isAbove)
+                writer.writeBool(note.isFake)
+                writer.writeFloat(note.yOffset)
+                writer.writeOptionalFloat(note.visibleTime)
+                writer.writeFloat(note.width)
+                writer.writeFloat(note.alpha)
+                writer.writeOptionalString(note.hitsound)
+                writer.writeInt(note.master_index)
+            
+            writer.writeInt(len(line.eventLayers))
+            for el in line.eventLayers:
+                _write_events(el.alphaEvents)
+                _write_events(el.moveXEvents)
+                _write_events(el.moveYEvents)
+                _write_events(el.rotateEvents)
+                _write_events(el.speedEvents)
+            
+            _write_events(line.extendEvents.colorEvents)
+            _write_events(line.extendEvents.scaleXEvents)
+            _write_events(line.extendEvents.scaleYEvents)
+            _write_events(line.extendEvents.textEvents)
+            _write_events(line.extendEvents.gifEvents)
+            
+            writer.writeOptionalInt(line.raw_father)
+            writer.writeInt(line.zOrder)
+            writer.writeBool(line.isTextureLine)
+            writer.writeBool(line.isGifLine)
+            writer.writeOptionalString(line.texture)
+            writer.writeBool(line.isAttachUI)
+            writer.writeOptionalString(line.attachUI)
+            writer.writeBool(line.enableCover)
+            writer.writeInt(line.index)
+        
+        writer.writeBool(self.options.holdIndependentSpeed)
+        writer.writeBool(self.options.holdCoverAtHead)
+        writer.writeInt(self.options.rpeVersion)
+        writer.writeBool(self.options.alwaysLineOpenAnimation)
+        writer.writeInt(self.options.featureFlags)
+        
+        writer.writeInt(len(self.options.globalBpmList))
+        for bpm in self.options.globalBpmList:
+            writer.writeFloat(bpm.time)
+            writer.writeFloat(bpm.bpm)
+        
+        writer.writeBool(self.options.enableOverlappedNoteOptimization)
+        writer.writeInt(self.options.overlappedNoteOptimizationLimit)
+        writer.writeFloat(self.options.lineWidthUnit[0])
+        writer.writeFloat(self.options.lineWidthUnit[1])
+        writer.writeFloat(self.options.lineHeightUnit[0])
+        writer.writeFloat(self.options.lineHeightUnit[1])
+        writer.writeOptionalString(self.options.res_ext_song)
+        writer.writeOptionalString(self.options.res_ext_background)
+        writer.writeOptionalString(self.options.meta_ext_name)
+        writer.writeOptionalString(self.options.meta_ext_composer)
+        writer.writeOptionalString(self.options.meta_ext_level)
+        writer.writeOptionalString(self.options.meta_ext_charter)
+        writer.writeInt(self.type)
+        
+        return writer.getData()
+
+    @staticmethod
+    def loaddump(data: bytes):
+        reader = uilts.ByteReader(data)
+        if reader.read(len(b"PHICHART")) != b"PHICHART":
+            raise ValueError("Invalid chart file header")
+        
+        def _read_eventval():
+            valtype = reader.readInt()
+            if valtype == 0: return reader.readFloat()
+            elif valtype == 1: return reader.readString()
+            elif valtype == 2:
+                return [reader.readFloat() for _ in range(reader.readInt())]
+        
+        def _read_events():
+            return [LineEvent(
+                startTime = reader.readFloat(),
+                endTime = reader.readFloat(),
+                start = _read_eventval(),
+                end = _read_eventval(),
+                ease = reader.readEaseFunc()
+            ) for _ in range(reader.readInt())]
+        
+        def _read_bpms():
+            return [BPMEvent(
+                time = reader.readFloat(),
+                bpm = reader.readFloat()
+            ) for _ in range(reader.readInt())]
+        
+        result = CommonChart()
+        result.offset = reader.readFloat()
+        
+        for _ in range(reader.readInt()):
+            line = JudgeLine()
+            line.bpms = _read_bpms()
+            
+            for _ in range(reader.readInt()):
+                note = Note(
+                    type = reader.readInt(),
+                    time = reader.readFloat(),
+                    holdTime = reader.readFloat(),
+                    positionX = reader.readFloat(),
+                    speed = reader.readFloat(),
+                    isAbove = reader.readBool(),
+                    isFake = reader.readBool(),
+                    yOffset = reader.readFloat(),
+                    visibleTime = reader.readOptionalFloat(),
+                    width = reader.readFloat(),
+                    alpha = reader.readFloat(),
+                    hitsound = reader.readOptionalString()
+                )
+                note.master_index = reader.readInt()
+                line.notes.append(note)
+            
+            line.eventLayers = [EventLayerItem(
+                alphaEvents = _read_events(),
+                moveXEvents = _read_events(),
+                moveYEvents = _read_events(),
+                rotateEvents = _read_events(),
+                speedEvents = _read_events()
+            ) for _ in range(reader.readInt())]
+            
+            line.extendEvents.colorEvents = _read_events()
+            line.extendEvents.scaleXEvents = _read_events()
+            line.extendEvents.scaleYEvents = _read_events()
+            line.extendEvents.textEvents = _read_events()
+            line.extendEvents.gifEvents = _read_events()
+            
+            line.father = reader.readOptionalInt()
+            line.zOrder = reader.readInt()
+            line.isTextureLine = reader.readBool()
+            line.isGifLine = reader.readBool()
+            line.texture = reader.readOptionalString()
+            line.isAttachUI = reader.readBool()
+            line.attachUI = reader.readOptionalString()
+            line.enableCover = reader.readBool()
+            line.index = reader.readInt()
+            
+            result.lines.append(line)
+        
+        result.options.holdIndependentSpeed = reader.readBool()
+        result.options.holdCoverAtHead = reader.readBool()
+        result.options.rpeVersion = reader.readInt()
+        result.options.alwaysLineOpenAnimation = reader.readBool()
+        result.options.featureFlags = reader.readInt()
+        result.options.globalBpmList = _read_bpms()
+        result.options.enableOverlappedNoteOptimization = reader.readBool()
+        result.options.overlappedNoteOptimizationLimit = reader.readInt()
+        result.options.lineWidthUnit = (reader.readFloat(), reader.readFloat())
+        result.options.lineHeightUnit = (reader.readFloat(), reader.readFloat())
+        result.options.res_ext_song = reader.readOptionalString()
+        result.options.res_ext_background = reader.readOptionalString()
+        result.options.meta_ext_name = reader.readOptionalString()
+        result.options.meta_ext_composer = reader.readOptionalString()
+        result.options.meta_ext_level = reader.readOptionalString()
+        result.options.meta_ext_charter = reader.readOptionalString()
+        result.type = reader.readInt()
+        
+        result.init()
+        return result
 
 class PPLMProxy_CommonChart(uilts.PPLM_ProxyBase):
     def __init__(self, cobj: CommonChart): self.cobj = cobj

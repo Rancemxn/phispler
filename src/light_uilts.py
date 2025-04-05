@@ -4,11 +4,14 @@ import math
 import typing
 import threading
 import random
+import struct
+import pickle
 from os import listdir
 from os.path import isfile, abspath
 
 import const
 import phi_easing
+import rpe_easing
 
 def rotate_point(x, y, θ, r) -> tuple[float, float]:
     xo = r * math.cos(math.radians(θ))
@@ -286,12 +289,21 @@ def isallnum(lst: list[str], l: typing.Optional[int] = None):
     return (len(lst) >= l or l is None) and all(map(lambda x: isfloatable(x), lst))
 
 def createBezierFunction(ps: list[float]) -> typing.Callable[[float], float]:
-    return lambda t: sum([ps[i] * (1 - t) ** (len(ps) - i - 1) * t ** i for i in range(len(ps))])
+    f = lambda t: sum([ps[i] * (1 - t) ** (len(ps) - i - 1) * t ** i for i in range(len(ps))])
+    setattr(f, "_ease_func_type", 1)
+    setattr(f, "_ease_func_data", ps)
+    return f
 
 def createCuttingEasingFunction(f: typing.Callable[[float], float], l: float, r: float):
-    if l > r: return lambda t: t
-    s, e = f(l), f(r)
-    return lambda t: (f(t * (r - l) + l) - s) / (e - s)
+    if l > r:
+        retf = lambda t: t
+    else:
+        s, e = f(l), f(r)
+        retf = lambda t: (f(t * (r - l) + l) - s) / (e - s)
+    
+    setattr(retf, "_ease_func_type", 2)
+    setattr(retf, "_ease_func_data", (f, (l, r)))
+    return retf
 
 def pec2rpe_findevent_bytime(es: list[dict], t: float, default: float):
     if not es: return default
@@ -767,3 +779,138 @@ def fv22fv3(chart: dict) -> dict:
         compatibilityChart["judgeLineList"].append(cyline)
 
     return compatibilityChart
+
+class ByteWriter:
+    def __init__(self):
+        self.data = bytearray()
+
+    def write(self, data: bytes|bytearray):
+        self.data.extend(data)
+    
+    def writeInt(self, data: int):
+        self.write(struct.pack("<q", data))
+
+    def writeFloat(self, data: float):
+        self.write(struct.pack("<f", data))
+    
+    def writeBool(self, data: bool):
+        self.write(struct.pack("<?", data))
+    
+    def writeString(self, data: str):
+        self.writeBytes(data.encode("utf-8"))
+    
+    def writeBytes(self, data: bytes|bytearray):
+        self.writeInt(len(data))
+        self.write(data)
+    
+    def writeEaseFunc(self, f: typing.Callable[[float], float]):
+        t = getattr(f, "_ease_func_type", 0)
+        self.writeInt(t)
+        
+        if t == 0:
+            self.writeInt(rpe_easing.ease_funcs.index(f))
+        elif t == 1:
+            d = getattr(f, "_ease_func_data")
+            self.writeInt(len(d))
+            for i in d: self.writeFloat(i)
+        elif t == 2:
+            d = getattr(f, "_ease_func_data")
+            self.writeEaseFunc(d[0])
+            self.writeFloat(d[1][0])
+            self.writeFloat(d[1][1])
+        else:
+            assert False, "Invalid ease func type"
+    
+    def writeOptionalInt(self, data: typing.Optional[int]):
+        self.writeBool(data is not None)
+        if data is not None:
+            self.writeInt(data)
+
+    def writeOptionalFloat(self, data: typing.Optional[float]):
+        self.writeBool(data is not None)
+        if data is not None:
+            self.writeFloat(data)
+
+    def writeOptionalBool(self, data: typing.Optional[bool]):
+        self.writeBool(data is not None)
+        if data is not None:
+            self.writeBool(data)
+
+    def writeOptionalString(self, data: typing.Optional[str]):
+        self.writeBool(data is not None)
+        if data is not None:
+            self.writeString(data)
+
+    def writeOptionalBytes(self, data: typing.Optional[bytes|bytearray]):
+        self.writeBool(data is not None)
+        if data is not None:
+            self.writeBytes(data)
+    
+    def getData(self):
+        return self.data
+
+class ByteReader:
+    def __init__(self, data: bytes|bytearray):
+        self.data = data
+        self.pos = 0
+
+    def read(self, length: int):
+        data = self.data[self.pos:self.pos + length]
+        self.pos += length
+        return data
+    
+    def seek(self, offset: int, whence: int = 0):
+        if whence == 0:
+            self.pos = offset
+        elif whence == 1:
+            self.pos += offset
+        elif whence == 2:
+            self.pos = len(self.data) + offset
+        else:
+            raise ValueError("Invalid whence")
+    
+    def readInt(self):
+        return struct.unpack("<q", self.read(8))[0]
+    
+    def readFloat(self):
+        return struct.unpack("<f", self.read(4))[0]
+
+    def readBool(self):
+        return struct.unpack("<?", self.read(1))[0]
+
+    def readString(self):
+        return self.readBytes().decode("utf-8")
+
+    def readBytes(self):
+        length = self.readInt()
+        return self.read(length)
+
+    def readEaseFunc(self):
+        t = self.readInt()
+        
+        if t == 0:
+            return rpe_easing.ease_funcs[self.readInt()]
+        elif t == 1:
+            d = [self.readFloat() for _ in range(self.readInt())]
+            return createBezierFunction(d)
+        elif t == 2:
+            f = self.readEaseFunc()
+            p = (self.readFloat(), self.readFloat())
+            return createCuttingEasingFunction(f, *p)
+        else:
+            raise ValueError("Invalid ease func type")
+
+    def readOptionalInt(self):
+        return self.readInt() if self.readBool() else None
+
+    def readOptionalFloat(self):
+        return self.readFloat() if self.readBool() else None
+
+    def readOptionalBool(self):
+        return self.readBool() if self.readBool() else None
+
+    def readOptionalString(self):
+        return self.readString() if self.readBool() else None
+
+    def readOptionalBytes(self):
+        return self.readBytes() if self.readBool() else None

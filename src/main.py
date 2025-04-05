@@ -186,6 +186,9 @@ def loadChartObject(first: bool = False):
     global chart_obj
     chart_obj = phichart.load(chart_json)
     
+    if "--load-bpc" in sys.argv:
+        chart_obj = phichart.CommonChart.loaddump(open(sys.argv[sys.argv.index("--load-bpc") + 1], "rb").read())
+    
     if chart_obj.is_rpe():
         chart_obj.options.rpeVersion = (
             sys.argv[sys.argv.index("--rpeversion") + 1]
@@ -542,12 +545,12 @@ def playerStart():
             if noautoplay or choosing_dump: return
             
             choosing_dump = True
-            fn = dialog.savefile(fn="dump.json")
+            fn = dialog.savefile(fn="dump.bpc")
             choosing_dump = False
             if fn is None: return
             
-            with open(fn, "w", encoding="utf-8") as f:
-                f.write(json.dumps(chart_obj.dump(), ensure_ascii=False))
+            with open(fn, "wb") as f:
+                f.write(chart_obj.dump())
                 
         root.jsapi.set_attr("Noautoplay_Restart", _f)
         root.jsapi.set_attr("SpaceClicked", space)
