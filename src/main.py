@@ -554,7 +554,7 @@ def playerStart():
         root.jsapi.set_attr("DumpChart", dumpChart)
         root.run_js_code("_Noautoplay_Restart = (e) => {if (e.altKey && e.ctrlKey && e.repeat && e.key.toLowerCase() == 'r') pywebview.api.call_attr('Noautoplay_Restart');};") # && e.repeat 为了判定长按
         root.run_js_code("_SpaceClicked = (e) => {if (e.key == ' ' && !e.repeat) pywebview.api.call_attr('SpaceClicked');};")
-        root.run_js_code("_DumpChart = (e) => {if (e.altKey && e.ctrlKey && e.repeat && e.key.toLowerCase() == 'd') pywebview.api.call_attr('DumpChart');};")
+        root.run_js_code("_DumpChart = (e) => {if (e.altKey && e.ctrlKey && !e.repeat && e.key.toLowerCase() == 'd') pywebview.api.call_attr('DumpChart');};")
         root.run_js_code("window.addEventListener('keydown', _Noautoplay_Restart);")
         root.run_js_code("window.addEventListener('keydown', _SpaceClicked);")
         root.run_js_code("window.addEventListener('keydown', _DumpChart);")
