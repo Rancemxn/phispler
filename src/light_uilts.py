@@ -787,6 +787,9 @@ class ByteWriter:
     def write(self, data: bytes|bytearray):
         self.data.extend(data)
     
+    def writeShort(self, data: int):
+        self.write(struct.pack("<h", data))
+    
     def writeInt(self, data: int):
         self.write(struct.pack("<i", data))
 
@@ -820,6 +823,12 @@ class ByteWriter:
             self.writeFloat(d[1][1])
         else:
             assert False, "Invalid ease func type"
+    
+    def writeOptionalShort(self, data: typing.Optional[int]):
+        self.writeBool(data is not None)
+        if data is not None:
+            self.writeShort(data)
+    
     
     def writeOptionalInt(self, data: typing.Optional[int]):
         self.writeBool(data is not None)
@@ -869,6 +878,9 @@ class ByteReader:
         else:
             raise ValueError("Invalid whence")
     
+    def readShort(self):
+        return struct.unpack("<h", self.read(2))[0]
+    
     def readInt(self):
         return struct.unpack("<i", self.read(4))[0]
     
@@ -899,6 +911,9 @@ class ByteReader:
             return createCuttingEasingFunction(f, *p)
         else:
             raise ValueError("Invalid ease func type")
+
+    def readOptionalShort(self):
+        return self.readShort() if self.readBool() else None
 
     def readOptionalInt(self):
         return self.readInt() if self.readBool() else None

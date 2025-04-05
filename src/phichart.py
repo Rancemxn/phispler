@@ -4,8 +4,7 @@ import typing
 import logging
 import math
 import random
-import pickle
-from dataclasses import dataclass, field
+import dataclasses
 
 import const
 import rpe_easing
@@ -372,7 +371,7 @@ class ChartFormat:
     def load_pec(data: str):
         return ChartFormat.load_rpe(uilts.pec2rpe(data))
 
-@dataclass
+@dataclasses.dataclass
 class MemEq:
     def __hash__(self):
         return id(self)
@@ -380,7 +379,7 @@ class MemEq:
     def __eq__(self, value: typing.Any):
         return self is value
 
-@dataclass
+@dataclasses.dataclass
 class Note(MemEq):
     type: int = const.NOTE_TYPE.TAP
     time: float = 0.0
@@ -491,7 +490,7 @@ class Note(MemEq):
         
         return callback, lineRotate
 
-@dataclass
+@dataclasses.dataclass
 class LineEvent(MemEq):
     startTime: float = 0.0
     endTime: float = 0.0
@@ -515,13 +514,13 @@ class LineEvent(MemEq):
     def speed_get(self, t: float):
         return (t - self.startTime) * (self.start + self.get(t)) / 2
 
-@dataclass
+@dataclasses.dataclass
 class EventLayerItem(MemEq):
-    alphaEvents: list[LineEvent] = field(default_factory=list)
-    moveXEvents: list[LineEvent] = field(default_factory=list)
-    moveYEvents: list[LineEvent] = field(default_factory=list)
-    rotateEvents: list[LineEvent] = field(default_factory=list)
-    speedEvents: list[LineEvent] = field(default_factory=list)
+    alphaEvents: list[LineEvent] = dataclasses.field(default_factory=list)
+    moveXEvents: list[LineEvent] = dataclasses.field(default_factory=list)
+    moveYEvents: list[LineEvent] = dataclasses.field(default_factory=list)
+    rotateEvents: list[LineEvent] = dataclasses.field(default_factory=list)
+    speedEvents: list[LineEvent] = dataclasses.field(default_factory=list)
     
     def init(self):
         _init_events(self.alphaEvents)
@@ -530,13 +529,13 @@ class EventLayerItem(MemEq):
         _init_events(self.rotateEvents)
         _init_events(self.speedEvents, is_speed=True)
 
-@dataclass
+@dataclasses.dataclass
 class ExtendEventsItem(MemEq):
-    colorEvents: list[LineEvent] = field(default_factory=list)
-    scaleXEvents: list[LineEvent] = field(default_factory=list)
-    scaleYEvents: list[LineEvent] = field(default_factory=list)
-    textEvents: list[LineEvent] = field(default_factory=list)
-    gifEvents: list[LineEvent] = field(default_factory=list)
+    colorEvents: list[LineEvent] = dataclasses.field(default_factory=list)
+    scaleXEvents: list[LineEvent] = dataclasses.field(default_factory=list)
+    scaleYEvents: list[LineEvent] = dataclasses.field(default_factory=list)
+    textEvents: list[LineEvent] = dataclasses.field(default_factory=list)
+    gifEvents: list[LineEvent] = dataclasses.field(default_factory=list)
     
     def init(self):
         _init_events(self.colorEvents, default=(255, 255, 255))
@@ -545,17 +544,17 @@ class ExtendEventsItem(MemEq):
         _init_events(self.textEvents, default="")
         _init_events(self.gifEvents, is_speed=True)
 
-@dataclass
+@dataclasses.dataclass
 class BPMEvent(MemEq):
     time: float = 0.0
     bpm: float = 140.0
 
-@dataclass
+@dataclasses.dataclass
 class JudgeLine(MemEq):
-    bpms: list[BPMEvent] = field(default_factory=list)
-    notes: list[Note] = field(default_factory=list)
-    eventLayers: list[EventLayerItem] = field(default_factory=list)
-    extendEvents: ExtendEventsItem = field(default_factory=ExtendEventsItem)
+    bpms: list[BPMEvent] = dataclasses.field(default_factory=list)
+    notes: list[Note] = dataclasses.field(default_factory=list)
+    eventLayers: list[EventLayerItem] = dataclasses.field(default_factory=list)
+    extendEvents: ExtendEventsItem = dataclasses.field(default_factory=ExtendEventsItem)
     father: typing.Optional[JudgeLine]|int = None
     zOrder: int = 0
     
@@ -784,7 +783,7 @@ posCoverters = {
     ChartFormat.rpe: uilts.conrpepos
 }
 
-@dataclass
+@dataclasses.dataclass
 class CommonChartOptions:
     holdIndependentSpeed: bool = True
     holdCoverAtHead: bool = True
@@ -812,13 +811,13 @@ class CommonChartOptions:
     def has_feature(self, flag: int):
         return (self.featureFlags & flag) != 0
 
-@dataclass
+@dataclasses.dataclass
 class CommonChart:
     offset: float = 0.0
-    lines: list[JudgeLine] = field(default_factory=list)
+    lines: list[JudgeLine] = dataclasses.field(default_factory=list)
     extra: typing.Optional[Extra] = None
     
-    options: CommonChartOptions = field(default_factory=CommonChartOptions)
+    options: CommonChartOptions = dataclasses.field(default_factory=CommonChartOptions)
     type: int = ChartFormat.unset
     
     def __post_init__(self):
@@ -873,29 +872,55 @@ class CommonChart:
     def is_rpe(self): return self.type == ChartFormat.rpe
     
     def dump(self):
+        def _write_dataclass(obj: typing.Any, need_write_fields: list[tuple[str, typing.Callable[[typing.Any], typing.Any]]]):
+            fields = getattr(obj, "__dataclass_fields__", None)
+            
+            if fields is None:
+                assert False, "not a dataclass"
+            
+            bin_flag = 0
+            write_func_calls = []
+            
+            for i, (field_name, write_func) in enumerate(need_write_fields):
+                value = getattr(obj, field_name)
+                if field_name in fields:
+                    field: dataclasses.Field = fields[field_name]
+                    default_value = field.default if field.default is not dataclasses.MISSING else field.default_factory()
+                    
+                    if value != default_value:
+                        bin_flag += 1
+                        write_func_calls.append((write_func, value))
+                else:
+                    bin_flag += 1
+                    write_func_calls.append((write_func, value))
+                
+                if i != len(need_write_fields) - 1:
+                    bin_flag <<= 1
+            
+            writer.write(bin_flag.to_bytes((len(need_write_fields) - 1) // 8 + 1))
+            
+            for write_func, value in write_func_calls:
+                write_func(value)
+            
+        def _write_eventval(value: eventValueType):
+            valtype = {float: 0, str: 1, tuple: 2}[type(value)]
+            writer.writeShort(valtype)
+            if valtype == 0: writer.writeFloat(value)
+            elif valtype == 1: writer.writeString(value)
+            elif valtype == 2:
+                writer.writeInt(len(value))
+                for i in value: writer.writeFloat(i)
+            
         def _write_events(es: list[LineEvent]):
             writer.writeInt(len(es))
             for e in es:
-                writer.writeFloat(e.startTime)
-                writer.writeFloat(e.endTime)
-                
-                valtype = {float: 0, str: 1, tuple: 2}[type(e.start)]
-                writer.writeInt(valtype)
-                if valtype == 0: writer.writeFloat(e.start)
-                elif valtype == 1: writer.writeString(e.start)
-                elif valtype == 2:
-                    writer.writeInt(len(e.start))
-                    for i in e.start: writer.writeFloat(i)
-                
-                valtype = {float: 0, str: 1, tuple: 2}[type(e.end)]
-                writer.writeInt(valtype)
-                if valtype == 0: writer.writeFloat(e.end)
-                elif valtype == 1: writer.writeString(e.end)
-                elif valtype == 2:
-                    writer.writeInt(len(e.end))
-                    for i in e.end: writer.writeFloat(i)
-                
-                writer.writeEaseFunc(e.ease)
+                _write_dataclass(e, [
+                    ("startTime", writer.writeFloat),
+                    ("endTime", writer.writeFloat),
+                    ("start", _write_eventval),
+                    ("end", _write_eventval),
+                    ("ease", writer.writeEaseFunc)
+                ])
             
         writer = uilts.ByteWriter()
         writer.write(b"PHICHART")
@@ -911,19 +936,21 @@ class CommonChart:
             
             writer.writeInt(len(line.notes))
             for note in line.notes:
-                writer.writeInt(note.type)
-                writer.writeFloat(note.time)
-                writer.writeFloat(note.holdTime)
-                writer.writeFloat(note.positionX)
-                writer.writeFloat(note.speed)
-                writer.writeBool(note.isAbove)
-                writer.writeBool(note.isFake)
-                writer.writeFloat(note.yOffset)
-                writer.writeOptionalFloat(note.visibleTime)
-                writer.writeFloat(note.width)
-                writer.writeFloat(note.alpha)
-                writer.writeOptionalString(note.hitsound)
-                writer.writeInt(note.master_index)
+                _write_dataclass(note, [
+                    ("type", writer.writeShort),
+                    ("time", writer.writeFloat),
+                    ("holdTime", writer.writeFloat),
+                    ("positionX", writer.writeFloat),
+                    ("speed", writer.writeFloat),
+                    ("isAbove", writer.writeBool),
+                    ("isFake", writer.writeBool),
+                    ("yOffset", writer.writeFloat),
+                    ("visibleTime", writer.writeOptionalFloat),
+                    ("width", writer.writeFloat),
+                    ("alpha", writer.writeFloat),
+                    ("hitsound", writer.writeOptionalString),
+                    ("master_index", writer.writeInt)
+                ])
             
             writer.writeInt(len(line.eventLayers))
             for el in line.eventLayers:
@@ -939,15 +966,17 @@ class CommonChart:
             _write_events(line.extendEvents.textEvents)
             _write_events(line.extendEvents.gifEvents)
             
-            writer.writeOptionalInt(line.raw_father)
-            writer.writeInt(line.zOrder)
-            writer.writeBool(line.isTextureLine)
-            writer.writeBool(line.isGifLine)
-            writer.writeOptionalString(line.texture)
-            writer.writeBool(line.isAttachUI)
-            writer.writeOptionalString(line.attachUI)
-            writer.writeBool(line.enableCover)
-            writer.writeInt(line.index)
+            _write_dataclass(line, [
+                ("raw_father", writer.writeOptionalInt),
+                ("zOrder", writer.writeInt),
+                ("isTextureLine", writer.writeBool),
+                ("isGifLine", writer.writeBool),
+                ("texture", writer.writeOptionalString),
+                ("isAttachUI", writer.writeBool),
+                ("attachUI", writer.writeOptionalString),
+                ("enableCover", writer.writeBool),
+                ("index", writer.writeInt)
+            ])
         
         writer.writeBool(self.options.holdIndependentSpeed)
         writer.writeBool(self.options.holdCoverAtHead)
@@ -984,21 +1013,38 @@ class CommonChart:
         if reader.read(len(b"PHICHART")) != b"PHICHART":
             raise ValueError("Invalid chart file header")
         
+        def _read_dataclass(obj: typing.Any, need_read_fields: list[tuple[str, typing.Callable[[], typing.Any]]]):
+            fields = getattr(obj, "__dataclass_fields__", None)
+            
+            if fields is None:
+                assert False, "not a dataclass"
+                
+            bin_flag = bin(int.from_bytes(reader.read((len(need_read_fields) - 1) // 8 + 1)))[2:].zfill(len(need_read_fields))
+            
+            for i, (field_name, read_func) in enumerate(need_read_fields):
+                if bin_flag[i] == "1":
+                    setattr(obj, field_name, read_func())
+        
         def _read_eventval():
-            valtype = reader.readInt()
+            valtype = reader.readShort()
             if valtype == 0: return reader.readFloat()
             elif valtype == 1: return reader.readString()
             elif valtype == 2:
                 return [reader.readFloat() for _ in range(reader.readInt())]
         
         def _read_events():
-            return [LineEvent(
-                startTime = reader.readFloat(),
-                endTime = reader.readFloat(),
-                start = _read_eventval(),
-                end = _read_eventval(),
-                ease = reader.readEaseFunc()
-            ) for _ in range(reader.readInt())]
+            result = []
+            for _ in range(reader.readInt()):
+                e = LineEvent()
+                _read_dataclass(e, [
+                    ("startTime", reader.readFloat),
+                    ("endTime", reader.readFloat),
+                    ("start", _read_eventval),
+                    ("end", _read_eventval),
+                    ("ease", reader.readEaseFunc)
+                ])
+                result.append(e)
+            return result
         
         def _read_bpms():
             return [BPMEvent(
@@ -1014,21 +1060,23 @@ class CommonChart:
             line.bpms = _read_bpms()
             
             for _ in range(reader.readInt()):
-                note = Note(
-                    type = reader.readInt(),
-                    time = reader.readFloat(),
-                    holdTime = reader.readFloat(),
-                    positionX = reader.readFloat(),
-                    speed = reader.readFloat(),
-                    isAbove = reader.readBool(),
-                    isFake = reader.readBool(),
-                    yOffset = reader.readFloat(),
-                    visibleTime = reader.readOptionalFloat(),
-                    width = reader.readFloat(),
-                    alpha = reader.readFloat(),
-                    hitsound = reader.readOptionalString()
-                )
-                note.master_index = reader.readInt()
+                note = Note()
+                _read_dataclass(note, [
+                    ("type", reader.readShort),
+                    ("time", reader.readFloat),
+                    ("holdTime", reader.readFloat),
+                    ("positionX", reader.readFloat),
+                    ("speed", reader.readFloat),
+                    ("isAbove", reader.readBool),
+                    ("isFake", reader.readBool),
+                    ("yOffset", reader.readFloat),
+                    ("visibleTime", reader.readOptionalFloat),
+                    ("width", reader.readFloat),
+                    ("alpha", reader.readFloat),
+                    ("hitsound", reader.readOptionalString),
+                    ("masterIndex", reader.readInt)
+                ])
+                note.__post_init__()
                 line.notes.append(note)
             
             line.eventLayers = [EventLayerItem(
@@ -1045,15 +1093,17 @@ class CommonChart:
             line.extendEvents.textEvents = _read_events()
             line.extendEvents.gifEvents = _read_events()
             
-            line.father = reader.readOptionalInt()
-            line.zOrder = reader.readInt()
-            line.isTextureLine = reader.readBool()
-            line.isGifLine = reader.readBool()
-            line.texture = reader.readOptionalString()
-            line.isAttachUI = reader.readBool()
-            line.attachUI = reader.readOptionalString()
-            line.enableCover = reader.readBool()
-            line.index = reader.readInt()
+            _read_dataclass(line, [
+                ("father", reader.readOptionalInt),
+                ("zOrder", reader.readInt),
+                ("isTextureLine", reader.readBool),
+                ("isGifLine", reader.readBool),
+                ("texture", reader.readOptionalString),
+                ("isAttachUI", reader.readBool),
+                ("attachUI", reader.readOptionalString),
+                ("enableCover", reader.readBool),
+                ("index", reader.readInt)
+            ])
             
             result.lines.append(line)
         
@@ -1153,7 +1203,7 @@ def load(data: str) -> CommonChart:
     else:
         _unknow_type()
 
-@dataclass
+@dataclasses.dataclass
 class ExtraVar:
     startTime: float
     endTime: float
@@ -1171,7 +1221,7 @@ class ExtraVar:
         else:
             raise ValueError(f"Invalid event value type: {type(self.start)}")
     
-@dataclass
+@dataclasses.dataclass
 class ExtraEffect:
     start: float
     end: float
@@ -1198,7 +1248,7 @@ class ExtraEffect:
         for v in self.vars.values():
             self._init_events(v)
 
-@dataclass
+@dataclasses.dataclass
 class ExtraVideo:
     path: str
     time: float
@@ -1214,7 +1264,7 @@ class ExtraVideo:
         self.h264data, self.size = uilts.video2h264(f"{tempdir.createTempDir()}/{self.path}")
         self.unqique_id = f"extra_video_{random.randint(0, 2 << 31)}"
 
-@dataclass
+@dataclasses.dataclass
 class Extra:
     bpm: list[BPMEvent]
     effects: list[ExtraEffect]
