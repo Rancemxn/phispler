@@ -396,7 +396,8 @@ def drawRPEButton(
     fillRectEx(*xywh_rect, color, wait_execute=True)
     ctxRestore(wait_execute=True)
     
-    strokeRectEx(*xywh_rect, "black", (w + h) / 650 * scale * fontscale, wait_execute=True)
+    strokeRectEx(*xywh_rect, color, (w + h) / 650 * scale * fontscale, wait_execute=True)
+    strokeRectEx(*xywh_rect, "rgba(255, 255, 255, 0.4)", (w + h) / 650 * scale * fontscale, wait_execute=True)
     
     drawText(
         *uilts.getCenterPointByRect(rect),
@@ -441,7 +442,7 @@ def mainRender():
         globalUIManager.extend_uiitems(uilts.unfold_list([
             [
                 Label(*pos1k(586, 283 + 133 * i), name, "white", f"{(w + h) / 75}px pgrFont", textBaseline="middle"),
-                Input(*pos1k(885, 253 + 133 * i), "", f"{(w + h) / 110}px pgrFont", *pos1k(500, 60), default_text[0] if default_text else None, key)
+                Input(*pos1k(885, 253 + 133 * i), "", f"{(w + h) / 95}px pgrFont", *pos1k(500, 60), default_text[0] if default_text else None, key)
             ]
             for i, (name, key, *default_text) in enumerate([
                 ("谱面名称", "chartName"),
