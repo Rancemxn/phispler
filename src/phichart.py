@@ -921,7 +921,7 @@ class CommonChart:
                 write_func(value)
             
         def _write_eventval(value: eventValueType):
-            valtype = {float: 0, str: 1, tuple: 2}[type(value)]
+            valtype = {float: 0, int: 0, str: 1, tuple: 2}[type(value)]
             writer.writeChar(valtype)
             if valtype == 0: writer.writeFloat(value)
             elif valtype == 1: writer.writeString(value)
