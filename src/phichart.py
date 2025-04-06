@@ -13,7 +13,7 @@ import tempdir
 
 type eventValueType = float|str|tuple[float, float, float]
 
-def _init_events(es: list[LineEvent], *, is_speed: bool = False, default: eventValueType = 0.0):
+def _init_events(es: list[LineEvent], *, is_speed: bool = False, is_text: bool = False, default: eventValueType = 0.0):
     if not es: return
     
     es.sort(key = lambda e: e.startTime)
@@ -50,6 +50,11 @@ def _init_events(es: list[LineEvent], *, is_speed: bool = False, default: eventV
         end = default,
         isFill = True
     ))
+    
+    if not is_text:
+        for i, e in enumerate(es):
+            if e.start == e.end:
+                e.isFill = True
     
     if is_speed:
         fp = 0.0
@@ -543,7 +548,7 @@ class ExtendEventsItem(MemEq):
         _init_events(self.colorEvents, default=(255, 255, 255))
         _init_events(self.scaleXEvents, default=1.0)
         _init_events(self.scaleYEvents, default=1.0)
-        _init_events(self.textEvents, default="")
+        _init_events(self.textEvents, is_text=True, default="")
         _init_events(self.gifEvents, is_speed=True)
 
 @dataclasses.dataclass
