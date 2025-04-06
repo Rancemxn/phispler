@@ -974,7 +974,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
         
     combo = chart_obj.getCombo(now_t) if not noautoplay else pplm.ppps.getCombo()
     draw_ui(
-        process = now_t / audio_length,
+        process = now_t / (audio_length * speed),
         score = stringifyScore((combo * (1000000 / chart_obj.note_num)) if chart_obj.note_num != 0 else 1000000) if not noautoplay else stringifyScore(pplm.ppps.getScore()),
         combo_state = combo >= 3,
         combo = combo,
