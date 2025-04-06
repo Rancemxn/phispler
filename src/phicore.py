@@ -772,6 +772,9 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                 noteWidth = globalNoteWidth * (phira_respack.globalPack.dub_fixscale if note.morebets else 1.0)
                 noteHadHead = not (note.ishold and note.isontime) or phira_respack.globalPack.holdKeepHead
                 
+                if note.alwaysHasHoldHead is not None:
+                    noteHadHead = note.alwaysHasHoldHead
+                
                 if note.ishold:
                     noteEndImg = Resource["Notes"][note.img_end_keyname]
                     holdLength = note.holdLength * h * (note.speed if not chart_obj.options.holdIndependentSpeed else 1.0)

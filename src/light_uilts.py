@@ -5,7 +5,6 @@ import typing
 import threading
 import random
 import struct
-import pickle
 from os import listdir
 from os.path import isfile, abspath
 
@@ -787,11 +786,14 @@ class ByteWriter:
     def write(self, data: bytes|bytearray):
         self.data.extend(data)
     
-    def writeShort(self, data: int):
-        self.write(struct.pack("<h", data))
+    def writeChar(self, data: int):
+        self.write(struct.pack("<b", data))
     
     def writeInt(self, data: int):
         self.write(struct.pack("<i", data))
+    
+    def writeULong(self, data: int):
+        self.write(struct.pack("<Q", data))
 
     def writeFloat(self, data: float):
         self.write(struct.pack("<f", data))
@@ -827,7 +829,7 @@ class ByteWriter:
     def writeOptionalShort(self, data: typing.Optional[int]):
         self.writeBool(data is not None)
         if data is not None:
-            self.writeShort(data)
+            self.writeChar(data)
     
     
     def writeOptionalInt(self, data: typing.Optional[int]):
@@ -878,11 +880,14 @@ class ByteReader:
         else:
             raise ValueError("Invalid whence")
     
-    def readShort(self):
-        return struct.unpack("<h", self.read(2))[0]
+    def readChar(self):
+        return struct.unpack("<b", self.read(1))[0]
     
     def readInt(self):
         return struct.unpack("<i", self.read(4))[0]
+    
+    def readULong(self):
+        return struct.unpack("<Q", self.read(8))[0]
     
     def readFloat(self):
         return struct.unpack("<f", self.read(4))[0]
@@ -913,7 +918,7 @@ class ByteReader:
             raise ValueError("Invalid ease func type")
 
     def readOptionalShort(self):
-        return self.readShort() if self.readBool() else None
+        return self.readChar() if self.readBool() else None
 
     def readOptionalInt(self):
         return self.readInt() if self.readBool() else None

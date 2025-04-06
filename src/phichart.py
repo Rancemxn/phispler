@@ -395,6 +395,8 @@ class Note(MemEq):
     alpha: float = 1.0
     hitsound: typing.Optional[str] = None
     
+    alwaysHasHoldHead: typing.Optional[bool] = None
+    
     def __post_init__(self):
         self.ishold = self.type == const.NOTE_TYPE.HOLD
         self.isontime = False
@@ -425,7 +427,7 @@ class Note(MemEq):
         self.player_holdjudge_tomanager_time: float = float("nan")
         self.player_judge_safe_used: bool = False
         self.player_bad_posandrotate: typing.Optional[tuple[tuple[float, float], float]] = None
-    
+   
     def init(self, master: JudgeLine):
         self.master = master
         self.floorPosition = self.master.getFloorPosition(self.time)
@@ -820,7 +822,7 @@ class CommonChart:
     options: CommonChartOptions = dataclasses.field(default_factory=CommonChartOptions)
     type: int = ChartFormat.unset
     
-    dumpVersion: int = 1
+    dumpVersion: int = 2
     
     def __post_init__(self):
         self.combotimes = []
@@ -880,6 +882,9 @@ class CommonChart:
             if fields is None:
                 assert False, "not a dataclass"
             
+            if isinstance(obj, LineEvent) and obj.isFill:
+                return
+            
             bin_flag = 0
             write_func_calls = []
             
@@ -906,7 +911,7 @@ class CommonChart:
             
         def _write_eventval(value: eventValueType):
             valtype = {float: 0, str: 1, tuple: 2}[type(value)]
-            writer.writeShort(valtype)
+            writer.writeChar(valtype)
             if valtype == 0: writer.writeFloat(value)
             elif valtype == 1: writer.writeString(value)
             elif valtype == 2:
@@ -926,7 +931,6 @@ class CommonChart:
             
         writer = uilts.ByteWriter()
         writer.writeInt(self.dumpVersion)
-        
         writer.writeFloat(self.offset)
         
         writer.writeInt(len(self.lines))
@@ -939,7 +943,7 @@ class CommonChart:
             writer.writeInt(len(line.notes))
             for note in line.notes:
                 _write_dataclass(note, [
-                    ("type", writer.writeShort),
+                    ("type", writer.writeChar),
                     ("time", writer.writeFloat),
                     ("holdTime", writer.writeFloat),
                     ("positionX", writer.writeFloat),
@@ -951,6 +955,7 @@ class CommonChart:
                     ("width", writer.writeFloat),
                     ("alpha", writer.writeFloat),
                     ("hitsound", writer.writeOptionalString),
+                    ("alwaysHasHoldHead", writer.writeOptionalBool),
                     ("master_index", writer.writeInt)
                 ])
             
@@ -984,7 +989,7 @@ class CommonChart:
         writer.writeBool(self.options.holdCoverAtHead)
         writer.writeInt(self.options.rpeVersion)
         writer.writeBool(self.options.alwaysLineOpenAnimation)
-        writer.writeInt(self.options.featureFlags)
+        writer.writeULong(self.options.featureFlags)
         
         writer.writeBool(self.options.globalBpmList is not None)
         if self.options.globalBpmList is not None:
@@ -1028,7 +1033,7 @@ class CommonChart:
                     setattr(obj, field_name, read_func())
         
         def _read_eventval():
-            valtype = reader.readShort()
+            valtype = reader.readChar()
             if valtype == 0: return reader.readFloat()
             elif valtype == 1: return reader.readString()
             elif valtype == 2:
@@ -1064,7 +1069,7 @@ class CommonChart:
             for _ in range(reader.readInt()):
                 note = Note()
                 _read_dataclass(note, [
-                    ("type", reader.readShort),
+                    ("type", reader.readChar),
                     ("time", reader.readFloat),
                     ("holdTime", reader.readFloat),
                     ("positionX", reader.readFloat),
@@ -1076,6 +1081,7 @@ class CommonChart:
                     ("width", reader.readFloat),
                     ("alpha", reader.readFloat),
                     ("hitsound", reader.readOptionalString),
+                    ("alwaysHasHoldHead", reader.readOptionalBool),
                     ("masterIndex", reader.readInt)
                 ])
                 note.__post_init__()
@@ -1113,7 +1119,7 @@ class CommonChart:
         result.options.holdCoverAtHead = reader.readBool()
         result.options.rpeVersion = reader.readInt()
         result.options.alwaysLineOpenAnimation = reader.readBool()
-        result.options.featureFlags = reader.readInt()
+        result.options.featureFlags = reader.readULong()
         
         if reader.readBool():
             result.options.globalBpmList = _read_bpms()
