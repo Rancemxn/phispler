@@ -10,12 +10,16 @@ import check_bin as _
 import json
 import sys
 import time
+import datetime
 import logging
 import typing
 import random
+import math
+import hashlib
 from threading import Thread
-from os import popen
+from os import popen, mkdir
 from os.path import exists, isfile
+from shutil import rmtree
 from ntpath import basename
 
 import requests
@@ -39,6 +43,7 @@ import needrelease
 import phichart
 import phigame_obj
 import rpe_easing
+import dxsmixer_unix
 from dxsmixer import mixer
 from exitfunc import exitfunc
 from graplib_webview import *
@@ -50,30 +55,46 @@ RRPEConfig_default = {
 }
 
 RRPEConfig_chart_default = {
-    
+    "id": None,
+    "name": "",
+    "composer": "",
+    "charter": "",
+    "chartPath": None,
+    "illuPath": None,
+    "musicPath": None,
+    "stdBpm": 140.0
 }
 
 def saveRRPEConfig():
     try:
-        with open("./rrpe_config.json", "w", encoding="utf-8") as f:
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
             f.write(json.dumps(RRPEConfig, indent=4, ensure_ascii=False))
     except Exception as e:
-        logging.error(f"rrpe_config.json save failed: {e}")
+        logging.error(f"config save failed: {e}")
 
 def loadRRPEConfig():
     global RRPEConfig
     
     RRPEConfig = RRPEConfig_default.copy()
     try:
-        RRPEConfig.update(json.loads(open("./rrpe_config.json", "r", encoding="utf-8").read()))
+        RRPEConfig.update(json.loads(open(CONFIG_PATH, "r", encoding="utf-8").read()))
     except Exception as e:
-        logging.error(f"rrpe_config.json load failed: {e}")
+        logging.error(f"config load failed: {e}")
 
 def getConfigData(key: str):
     return RRPEConfig.get(key, RRPEConfig_default[key])
 
 def setConfigData(key: str, value: typing.Any):
     RRPEConfig[key] = value
+
+try: mkdir("./rrpe_data")
+except Exception as e: logging.error(f"rrpe_data mkdir failed: {e}")
+
+CONFIG_PATH = "./rrpe_data/rrpe_config.json"
+CHARTS_PATH = "./rrpe_data/charts"
+
+try: mkdir(CHARTS_PATH)
+except Exception as e: logging.error(f"charts mkdir failed: {e}")
 
 loadRRPEConfig()
 saveRRPEConfig()
@@ -270,7 +291,7 @@ class BaseUI:
     def mouse_down(self, x: int, y: int, i: int): ...
     def mouse_up(self, x: int, y: int, i: int): ...
     def mouse_wheel(self, x: int, y: int, d: int): ...
-    def key_down(self, k: int): ...
+    def key_down(self, k: str): ...
     def key_up(self, k: int): ...
     def when_remove(self): ...
 
@@ -365,12 +386,120 @@ class Input(BaseUI):
         self.default_text = default_text
         self.value_tag = value_tag
         self.id = random.randint(0, 2 << 31)
+        
+        self.removed = False
     
     def render(self):
+        if self.removed:
+            return
+        
         fillRectEx(self.x, self.y, self.width, self.height, "rgba(255, 255, 255, 0.5)", wait_execute=True)
         strokeRectEx(self.x, self.y, self.width, self.height, "white", (w + h) / 650, wait_execute=True)
         
         self.text = root.run_js_code(f"updateCanvasInput({self.id}, {self.x}, {self.y}, {self.width}, {self.height}, \"{self.font}\", {repr(self.default_text) if self.default_text is not None else "null"})")
+    
+    def when_remove(self):
+        self.removed = True
+        root.run_js_code(f"removeCanvasInput({self.id})")
+
+class MessageShower(BaseUI):
+    def __init__(self):
+        self.msgs: list[Message] = []
+        self.max_show_time = 2.0
+    
+    def render(self):
+        for msg in self.msgs.copy():
+            if time.time() - msg.st > self.max_show_time + msg.left_tr.animation_time:
+                self.msgs.remove(msg)
+                continue
+            elif time.time() - msg.st > self.max_show_time and not msg.timeout:
+                msg.timeout = True
+                for msg2 in self.msgs:
+                    msg2.top_tr.target -= msg2.height + h / 25
+                msg.top_tr.target -= h / 25
+            
+            rect = (
+                msg.left_tr.value,
+                msg.top_tr.value,
+                msg.left_tr.value + msg.width,
+                msg.top_tr.value + msg.height
+            )
+            
+            fillRectEx(*uilts.xxyy_rect2_xywh(rect), msg.color, wait_execute=True)
+            strokeRectEx(*uilts.xxyy_rect2_xywh(rect), "rgba(255, 255, 255, 0.4)", (w + h) / 650, wait_execute=True)
+            drawText(
+                rect[0] + msg.padding_x,
+                rect[1] + msg.height / 2,
+                msg.text,
+                font = msg.font,
+                fillStyle = "white",
+                textAlign = "left",
+                textBaseline = "middle",
+                wait_execute = True
+            )
+    
+    def submit(self, msg: Message):
+        vaild_msgs = [i for i in self.msgs if not i.timeout]
+        msg.top_tr.target = max(h / 25 if not vaild_msgs else (vaild_msgs[-1].top_tr.target + vaild_msgs[-1].height + h / 25), h / 25)
+        self.msgs.append(msg)
+
+class Message:
+    INFO_COLOR = "skyblue"
+    WARNING_COLOR = "orange"
+    ERROR_COLOR = "red"
+    
+    def __init__(self, text: str, font: str, color: str):
+        self.text = text
+        self.font = font
+        self.color = color
+        self.st = time.time()
+        self.timeout = False
+        
+        textsize = root.run_js_code(f"ctx.getTextSize({root.string2sctring_hqm(text)}, \"{font}\");")
+        self.padding_x = w / 50
+        self.padding_y = h / 50
+        self.width = textsize[0] + self.padding_x * 2
+        self.height = textsize[1] + self.padding_y * 2
+        
+        self.left_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[9])
+        self.left_tr.target = w * 1.1
+        self.left_tr.target = w - self.width - w / 25
+        
+        self.top_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[9])
+
+class ChartChooser(BaseUI):
+    def __init__(
+        self,
+        change_test: typing.Optional[typing.Callable[[], bool]] = None,
+        when_change: typing.Optional[typing.Callable[[], None]] = None
+    ):
+        self.last_chart = None
+        self.i = 0
+        self.dc = 0
+        
+        self.change_test = change_test
+        self.when_change = when_change
+    
+    def update(self, charts: list[dict]):
+        self.i += self.dc
+        self.dc = 0
+        self.i %= len(charts)
+        
+        chosing_chart = charts[self.i]
+        
+        if chosing_chart != self.last_chart:
+            self.last_chart = chosing_chart
+            if self.when_change is not None:
+                self.when_change()
+    
+    def key_down(self, k: str):
+        if self.change_test is None or self.change_test():
+            if k == "ArrowLeft":
+                self.dc -= 1
+            elif k == "ArrowRight":
+                self.dc += 1
+            else:
+                return
 
 def drawRPEButton(
     x: float, y: float,
@@ -414,11 +543,41 @@ def drawRPEButton(
 def pos1k(x: float, y: float):
     return w * (x / 1920), h * (y / 1080)
 
+def createNewChartId():
+    dt = datetime.datetime.now()
+    return f"{dt.year}.{dt.month}.{dt.day}.{dt.hour}.{dt.minute}.{dt.second}.{dt.microsecond}-{random.randint(0, 1024)}"
+
+def hashChartId(chart_id: str):
+    return "hash_" + hashlib.md5(chart_id.encode("utf-8")).hexdigest()
+
+def web_alert(msg: str):
+    root.run_js_code(f"alert({root.string2sctring_hqm(msg)});")
+
+def web_prompt(msg: str) -> typing.Optional[str]:
+    return root.run_js_code(f"prompt({root.string2sctring_hqm(msg)});")
+
+def web_confirm(msg: str) -> bool:
+    return root.run_js_code(f"confirm({root.string2sctring_hqm(msg)});")
+
 def mainRender():
     nextUI = None
     
     topButtonLock = False
     createChartData = None
+    
+    illuPacker: typing.Optional[webcv.LazyPILResPacker] = None
+    def updateIllus():
+        nonlocal illuPacker
+        
+        if illuPacker is not None:
+            illuPacker.unload(illuPacker.getnames())
+        
+        illuPacker = webcv.LazyPILResPacker(root)
+        
+        for chart in getConfigData("charts"):
+            illuPacker.reg_img(chart["illuPath"], f"illu_{hashChartId(chart["id"])}")
+        
+        illuPacker.load(*illuPacker.pack())
     
     def createChart(*_):
         nonlocal createChartData, topButtonLock
@@ -439,6 +598,82 @@ def mainRender():
             "illu": illu_file
         }
         
+        def _cancal(*_):
+            nonlocal createChartData
+            
+            globalUIManager.remove_uiitems("mainRender-createChart")
+            createChartData = None
+        
+        def _confirm(*_):
+            nonlocal createChartData
+            
+            userInputData = {
+                k: globalUIManager.get_input_value_bytag(k)
+                for k in ["chartName", "chartComposer", "chartCharter", "chartBPM", "chartLines"]
+            }
+            
+            try:
+                v = float(userInputData["chartBPM"])
+                if math.isnan(v) or math.isinf(v) or v == 0.0:
+                    raise ValueError
+            except Exception:
+                globalMsgShower.submit(Message("请输入有效的BPM", f"{(w + h) / 65}px pgrFont", Message.ERROR_COLOR))
+                return
+            
+            try:
+                v = int(userInputData["chartLines"])
+                if v < 0:
+                    raise ValueError
+            except Exception:
+                globalMsgShower.submit(Message("请输入有效的线数", f"{(w + h) / 65}px pgrFont", Message.ERROR_COLOR))
+                return
+            
+            createChartData.update(userInputData)
+            
+            chart_config = RRPEConfig_chart_default.copy()
+            chart_config["name"] = createChartData["chartName"]
+            chart_config["composer"] = createChartData["chartComposer"]
+            chart_config["charter"] = createChartData["chartCharter"]
+            chart_config["stdBpm"] = float(createChartData["chartBPM"])
+            chart_config["id"] = createNewChartId()
+            
+            chart_id = chart_config["id"]
+            
+            try: mkdir(f"{CHARTS_PATH}/{chart_id}")
+            except Exception: logging.error(f"chart mkdir failed: {e}")
+            
+            chart_obj = phichart.CommonChart(lines=[phichart.JudgeLine() for _ in range(int(createChartData["chartLines"]))])
+            
+            with open(f"{CHARTS_PATH}/{chart_id}/chart.bpc", "wb") as f:
+                f.write(chart_obj.dump())
+            
+            try: illu = Image.open(createChartData["illu"])
+            except Exception:
+                illu = Image.new("RGBA", (1920, 1080), (0, 0, 0, 0))
+                logging.error(f"illu open failed: {e}")
+            
+            illu.save(f"{CHARTS_PATH}/{chart_id}/image.png", format="PNG")
+            
+            with open(f"{CHARTS_PATH}/{chart_id}/music.mp3", "wb") as f:
+                try:
+                    with open(createChartData["music"], "rb") as f2:
+                        f.write(f2.read())
+                except Exception:
+                    globalMsgShower.submit(Message("音频读取失败", f"{(w + h) / 65}px pgrFont", Message.ERROR_COLOR))
+                    rmtree(f"{CHARTS_PATH}/{chart_id}")
+                    return
+            
+            chart_config["chartPath"] = f"{CHARTS_PATH}/{chart_id}/chart.bpc"
+            chart_config["illuPath"] = f"{CHARTS_PATH}/{chart_id}/image.png"
+            chart_config["musicPath"] = f"{CHARTS_PATH}/{chart_id}/music.mp3"
+            
+            getConfigData("charts").append(chart_config)
+            saveRRPEConfig()
+            updateIllus()
+            
+            globalUIManager.remove_uiitems("mainRender-createChart")
+            createChartData = None
+        
         globalUIManager.extend_uiitems(uilts.unfold_list([
             [
                 Label(*pos1k(586, 283 + 133 * i), name, "white", f"{(w + h) / 75}px pgrFont", textBaseline="middle"),
@@ -452,10 +687,31 @@ def mainRender():
                 ("基础线数", "chartLines", "24")
             ])
         ] + [
-            Button(*pos1k(529, 883), "取消", "red", size=pos1k(210, 71), fontscale=0.7),
-            Button(*pos1k(1183, 883), "确定", "green", size=pos1k(210, 71), fontscale=0.7),
+            Button(*pos1k(529, 883), "取消", "red", _cancal, size=(210, 71), fontscale=0.9),
+            Button(*pos1k(1183, 883), "确定", "green", _confirm, size=(210, 71), fontscale=0.9),
         ]), "mainRender-createChart")
+        
         topButtonLock = False
+    
+    def deleteChart(*_):
+        charts = getConfigData("charts")
+        
+        if not charts:
+            web_alert("你还没有谱面可以删除...")
+        
+        chooser.update(charts)
+        chosing_chart = charts[chooser.i]
+        
+        if web_confirm(f"你确定要删除谱面 \"{chosing_chart["name"]}\" 吗？\n这个操作不可逆！\n你真的要删除吗？这个谱面会丢失很久（真的很久！）\n\n谱面 config: {json.dumps(chosing_chart, indent=4, ensure_ascii=False)}"):
+            charts.remove(chosing_chart)
+            dxsmixer_unix.mixer.music.stop()
+            dxsmixer_unix.mixer.music.unload()
+            
+            try: rmtree(f"{CHARTS_PATH}/{chosing_chart["id"]}")
+            except Exception as e: logging.error(f"chart rmtree failed: {e}")
+            
+            saveRRPEConfig()
+            updateIllus()
     
     def can_click_top_button(*_):
         return (
@@ -463,23 +719,33 @@ def mainRender():
             createChartData is None
         )
     
+    def chooser_when_change():
+        chart = getConfigData("charts")[chooser.i]
+        dxsmixer_unix.mixer.music.load(chart["musicPath"])
+        dxsmixer_unix.mixer.music.play(-1)
+    
     uiItems = [
         Button(*pos1k(80, 51), "创建谱面", "green", createChart, can_click_top_button),
         Button(*pos1k(462, 51), "导入谱面", "gray", None, can_click_top_button),
         Button(*pos1k(846, 51), "导出谱面", "gray", None, can_click_top_button),
         Button(*pos1k(1124, 192), "分组显示", "gray", None, can_click_top_button),
         Button(*pos1k(1507, 192), "排序方式", "gray", None, can_click_top_button),
-        Button(*pos1k(78, 957), "删除谱面", "red", None, can_click_top_button),
+        Button(*pos1k(78, 957), "删除谱面", "red", deleteChart, can_click_top_button),
         Button(*pos1k(1127, 957), "修改谱面信息", "yellow", None, can_click_top_button),
         Button(*pos1k(1509, 957), "进入编辑", "green", None, can_click_top_button),
     ]
     
+    chooser = ChartChooser(
+        change_test=can_click_top_button,
+        when_change=chooser_when_change
+    )
+    
+    uiItems.append(chooser)
     globalUIManager.extend_uiitems(uiItems, "mainRender")
+    updateIllus()
     
     while True:
         clearCanvas(wait_execute=True)
-        
-        globalUIManager.render("mainRender")
         
         if not getConfigData("charts"):
             drawText(
@@ -491,6 +757,27 @@ def mainRender():
                 fillStyle = "white",
                 wait_execute = True
             )
+        else:
+            charts = getConfigData("charts")
+            chooser.update(charts)
+            chosing_chart = charts[chooser.i]
+            
+            ctxSave(wait_execute=True)
+            bgBlurRatio = (w + h) / 50
+            bgScale = max((w + bgBlurRatio) / w, (h + bgBlurRatio) / h)
+            ctxSetFilter(f"blur({bgBlurRatio}px)", wait_execute=True)
+            ctxTranslate(w / 2, h / 2, wait_execute=True)
+            ctxScale(bgScale, bgScale, wait_execute=True)
+            ctxTranslate(-w / 2 * bgScale, -h / 2 * bgScale, wait_execute=True)
+            drawCoverFullScreenImage(
+                f"illu_{hashChartId(chosing_chart["id"])}",
+                w * bgScale, h * bgScale, wait_execute=True
+            )
+            ctxRestore(wait_execute=True)
+            
+            fillRectEx(0, 0, w, h, "rgba(0, 0, 0, 0.4)", wait_execute=True)
+        
+        globalUIManager.render("mainRender")
         
         if createChartData is not None:
             fillRectEx(0, 0, w, h, "rgba(0, 0, 0, 0.2)", wait_execute=True)
@@ -508,9 +795,15 @@ def mainRender():
             
             globalUIManager.render("mainRender-createChart")
         
+        globalUIManager.render("global")
+        
         root.run_js_wait_code()
         if nextUI is not None:
             globalUIManager.remove_uiitems("mainRender")
+            
+            if illuPacker is not None:
+                illuPacker.unload(illuPacker.getnames())
+                
             Thread(target=nextUI, daemon=True).start()
             return
 
@@ -518,7 +811,7 @@ def init():
     global webdpr
     global w, h
     global Resource
-    global globalUIManager
+    global globalUIManager, globalMsgShower
     
     if webcv.disengage_webview:
         socket_webviewbridge.hook(root)
@@ -535,6 +828,9 @@ def init():
     
     globalUIManager = UIManager()
     globalUIManager.bind_events()
+    
+    globalMsgShower = MessageShower()
+    globalUIManager.extend_uiitems([globalMsgShower], "global")
     
     Resource = loadResource()
 

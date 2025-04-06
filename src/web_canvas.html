@@ -474,7 +474,7 @@ void main() {
         try {
             return eval(c);
         } catch (e) {
-            alert(`has error: \n${e.msg}\n\n${e.stack}`);
+            alert(`卡车丢失！\n那个深入制谱器/模拟器心脏的bug，你无从得知！！！\n\nhas error: \n${e.msg}\n\n${e.stack}`);
             console.log({
                 code: c,
                 err: e
@@ -711,6 +711,12 @@ void main() {
 
         const ele = canvasInputEles.get(id);
         return ele.value;
+    }
+
+    function removeCanvasInput(id) {
+        if (!canvasInputEles.has(id)) return;
+        canvasInputEles.get(id).remove();
+        canvasInputEles.delete(id);
     }
 
     Image.prototype.enable_lazy_load = function (real_srcs) {
