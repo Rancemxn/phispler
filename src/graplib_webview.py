@@ -169,10 +169,13 @@ def drawImage(
 def drawCoverFullScreenImage(
     imname: str,
     w: number, h: number,
+    x: number = 0, y: number = 0,
     wait_execute: bool = False
 ):
+    # fullscreen?
+    
     jvn = root.get_img_jsvarname(imname)
-    root.run_js_code(f"{ctx}.drawCoverFullScreenImage({jvn}, {w}, {h});", wait_execute, order)
+    root.run_js_code(f"{ctx}.drawCoverFullScreenImage({jvn}, {w}, {h}, {x}, {y});", wait_execute, order)
 
 def drawAlphaImage(
     imname: str,

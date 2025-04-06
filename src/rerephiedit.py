@@ -59,6 +59,7 @@ RRPEConfig_chart_default = {
     "name": "",
     "composer": "",
     "charter": "",
+    "level": "UK Lv.1",
     "chartPath": None,
     "illuPath": None,
     "musicPath": None,
@@ -97,6 +98,13 @@ try: mkdir(CHARTS_PATH)
 except Exception as e: logging.error(f"charts mkdir failed: {e}")
 
 loadRRPEConfig()
+
+for chart in getConfigData("charts"):
+    chart_bak = chart.copy()
+    chart.clear()
+    chart.update(RRPEConfig_chart_default)
+    chart.update(chart_bak)
+
 saveRRPEConfig()
 
 def loadResource():
@@ -474,11 +482,30 @@ class ChartChooser(BaseUI):
         when_change: typing.Optional[typing.Callable[[], None]] = None
     ):
         self.last_chart = None
+        self.last_call_wc = time.time()
         self.i = 0
         self.dc = 0
         
         self.change_test = change_test
         self.when_change = when_change
+        self.tr_map: dict[str, tuple[phigame_obj.valueTranformer, ...]] = {}
+    
+    def get_chart_tr_values(self, i: int, is_chosing: bool, chosing_index: int):
+        size = pos1k(800, 450) if is_chosing else pos1k(508, 285)
+        center_pos = uilts.getCenterPointByRect((*pos1k(141, 315), *pos1k(940, 765)))
+        
+        if not is_chosing:
+            di = i - chosing_index
+            di_less = (di - 1) if di > 0 else (di + 1)
+            center_pos = (
+                center_pos[0] + (pos1k(800, 0)[0] / 2 * (1 if di > 0 else -1)) + (di * pos1k(303.5, 0)[0] + di_less * pos1k(253.5, 0)[0]),
+                pos1k(0, 640)[1]
+            )
+            
+        return (
+            size,
+            center_pos
+        )
     
     def update(self, charts: list[dict]):
         self.i += self.dc
@@ -487,10 +514,36 @@ class ChartChooser(BaseUI):
         
         chosing_chart = charts[self.i]
         
-        if chosing_chart != self.last_chart:
+        if chosing_chart != self.last_chart and time.time() - self.last_call_wc > 0.3:
             self.last_chart = chosing_chart
+            self.last_call_wc = time.time()
             if self.when_change is not None:
                 self.when_change()
+        
+        all_ids = []
+        for i, chart in enumerate(charts):
+            chart_id = chart["id"]
+            all_ids.append(chart_id)
+            
+            if chart_id not in self.tr_map:
+                self.tr_map[chart_id] = tuple(
+                    phigame_obj.valueTranformer(rpe_easing.ease_funcs[9])
+                    for _ in range(4)
+                )
+                
+            tr_values = self.get_chart_tr_values(i, chart is chosing_chart, self.i)
+            def _set(i: int, v: float):
+                if self.tr_map[chart_id][i].target != v:
+                    self.tr_map[chart_id][i].target = v
+            
+            _set(0, tr_values[0][0])
+            _set(1, tr_values[0][1])
+            _set(2, tr_values[1][0])
+            _set(3, tr_values[1][1])
+        
+        for k in self.tr_map.copy().keys():
+            if k not in all_ids:
+                self.tr_map.pop(k)
     
     def key_down(self, k: str):
         if self.change_test is None or self.change_test():
@@ -721,8 +774,12 @@ def mainRender():
     
     def chooser_when_change():
         chart = getConfigData("charts")[chooser.i]
-        dxsmixer_unix.mixer.music.load(chart["musicPath"])
-        dxsmixer_unix.mixer.music.play(-1)
+        
+        def _play_preview():
+            dxsmixer_unix.mixer.music.load(chart["musicPath"])
+            dxsmixer_unix.mixer.music.play(-1)
+        
+        Thread(target=_play_preview, daemon=True).start()
     
     uiItems = [
         Button(*pos1k(80, 51), "创建谱面", "green", createChart, can_click_top_button),
@@ -775,7 +832,59 @@ def mainRender():
             )
             ctxRestore(wait_execute=True)
             
-            fillRectEx(0, 0, w, h, "rgba(0, 0, 0, 0.4)", wait_execute=True)
+            fillRectEx(0, 0, w, h, "rgba(0, 0, 0, 0.6)", wait_execute=True)
+            
+            drawText(
+                *pos1k(161, 202),
+                chosing_chart["level"],
+                font = f"{(w + h) / 65}px pgrFont",
+                textAlign = "left",
+                textBaseline = "middle",
+                fillStyle = "white",
+                wait_execute = True
+            )
+            
+            drawText(
+                *pos1k(161, 263),
+                "谱面设计: " + chosing_chart["charter"],
+                font = f"{(w + h) / 65}px pgrFont",
+                textAlign = "left",
+                textBaseline = "middle",
+                fillStyle = "white",
+                wait_execute = True
+            )
+            
+            drawText(
+                *pos1k(161, 820),
+                chosing_chart["name"],
+                font = f"{(w + h) / 60}px pgrFont",
+                textAlign = "left",
+                textBaseline = "middle",
+                fillStyle = "white",
+                wait_execute = True
+            )
+            
+            drawText(
+                *pos1k(161, 880),
+                chosing_chart["composer"],
+                font = f"{(w + h) / 80}px pgrFont",
+                textAlign = "left",
+                textBaseline = "middle",
+                fillStyle = "white",
+                wait_execute = True
+            )
+            
+            for chart in charts:
+                trs = chooser.tr_map[chart["id"]]
+                size, center_pos = (trs[0].value, trs[1].value), (trs[2].value, trs[3].value)
+                
+                drawCoverFullScreenImage(
+                    f"illu_{hashChartId(chart["id"])}",
+                    *size,
+                    center_pos[0] - size[0] / 2,
+                    center_pos[1] - size[1] / 2,
+                    wait_execute=True
+                )
         
         globalUIManager.render("mainRender")
         

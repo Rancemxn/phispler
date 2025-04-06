@@ -467,7 +467,7 @@ CanvasRenderingContext2D.prototype.drawUIItems = function(datas) {
     }
 }
 
-CanvasRenderingContext2D.prototype.drawCoverFullScreenImage = function (img, w, h) {
+CanvasRenderingContext2D.prototype.drawCoverFullScreenImage = function (img, w, h, x = 0, y = 0) {
     let [imw, imh] = [img.width, img.height];
     const ratio = w / h;
     const imratio = imw / imh;
@@ -484,10 +484,10 @@ CanvasRenderingContext2D.prototype.drawCoverFullScreenImage = function (img, w, 
 
     this.save();
     this.beginPath();
-    this.rect(0, 0, w, h);
+    this.rect(x, y, w, h);
     this.clip();
 
-    this.drawImage(img, imx, imy, imw, imh);
+    this.drawImage(img, x + imx, y + imy, imw, imh);
 
     this.restore();
     return [imx, imy, imw, imh];
