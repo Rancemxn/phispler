@@ -874,10 +874,21 @@ def mainRender():
                 wait_execute = True
             )
             
+            
+            uilts.shadowDrawer.root = root
             for chart in charts:
                 trs = chooser.tr_map[chart["id"]]
                 size, center_pos = (trs[0].value, trs[1].value), (trs[2].value, trs[3].value)
                 
+                with uilts.shadowDrawer("rgba(16, 16, 16, 0.8)", (w + h) / 150):
+                    fillRectEx(
+                    center_pos[0] - size[0] / 2,
+                    center_pos[1] - size[1] / 2,
+                    *size,
+                    "black",
+                    wait_execute=True
+                )
+                    
                 drawCoverFullScreenImage(
                     f"illu_{hashChartId(chart["id"])}",
                     *size,
