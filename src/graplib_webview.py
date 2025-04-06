@@ -235,6 +235,15 @@ def fillRectEx(
 ):
     root.run_js_code(f"{ctx}.fillRectEx({x}, {y}, {w}, {h}, '{color}');", wait_execute, order)
 
+def strokeRectEx(
+    x: number, y: number,
+    w: number, h: number,
+    color: str,
+    lineWidth: number = 1,
+    wait_execute: bool = False
+):
+    root.run_js_code(f"{ctx}.strokeRectEx({x}, {y}, {w}, {h}, '{color}', {lineWidth});", wait_execute, order)
+
 class ColorMultiplyFilter:
     def __init__(self, color: tuple[number, number, number], jsorder: int = None):
         self.color = color

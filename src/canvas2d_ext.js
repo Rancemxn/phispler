@@ -129,6 +129,14 @@ CanvasRenderingContext2D.prototype.strokeRectEx = function(x, y, w, h, color, wi
     this.restore();
 }
 
+CanvasRenderingContext2D.prototype.strokeRectEx = function(x, y, w, h, color, width) {
+    this.save();
+    this.strokeStyle = color;
+    this.lineWidth = width;
+    this.strokeRect(x, y, w, h);
+    this.restore();
+}
+
 CanvasRenderingContext2D.prototype.addRoundRectData = function(x, y, w, h, r) {
     if (this._roundDatas == undefined) this._roundDatas = [];
     this._roundDatas.push({ x: x, y: y, w: w, h: h, r: r });

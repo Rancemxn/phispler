@@ -933,3 +933,12 @@ class ByteReader:
 
     def readOptionalBytes(self):
         return self.readBytes() if self.readBool() else None
+
+def unfold_list(data: list[list]):
+    result = []
+    for i in data:
+        if isinstance(i, list):
+            result.extend(unfold_list(i))
+        else:
+            result.append(i)
+    return result

@@ -209,7 +209,7 @@ class ChartFormat:
             line.eventLayers.append(elayer)
             
             result.lines.append(line)
-            
+
         result.init()
         return result
     
@@ -1458,3 +1458,15 @@ def loadExtra(extra_json: dict):
     )
     
     return extra
+
+def update_note(note: Note):
+    note.__post_init__()
+    note.master.master.init()
+
+def update_line(line: JudgeLine):
+    line.__post_init__()
+    line.master.init()
+
+def update_chart(chart: CommonChart):
+    chart.__post_init__()
+    chart.init()
