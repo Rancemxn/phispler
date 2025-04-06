@@ -831,7 +831,6 @@ class ByteWriter:
         if data is not None:
             self.writeChar(data)
     
-    
     def writeOptionalInt(self, data: typing.Optional[int]):
         self.writeBool(data is not None)
         if data is not None:

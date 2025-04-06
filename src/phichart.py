@@ -53,7 +53,7 @@ def _init_events(es: list[LineEvent], *, is_speed: bool = False, is_text: bool =
     
     if not is_text:
         for i, e in enumerate(es):
-            if e.start == e.end:
+            if i != 0 and es[i - 1].end == e.start and e.start == e.end:
                 e.isFill = True
     
     if is_speed:
