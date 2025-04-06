@@ -810,10 +810,10 @@ class ByteWriter:
     
     def writeEaseFunc(self, f: typing.Callable[[float], float]):
         t = getattr(f, "_ease_func_type", 0)
-        self.writeInt(t)
+        self.writeChar(t)
         
         if t == 0:
-            self.writeInt(rpe_easing.ease_funcs.index(f))
+            self.writeChar(rpe_easing.ease_funcs.index(f))
         elif t == 1:
             d = getattr(f, "_ease_func_data")
             self.writeInt(len(d))
@@ -903,10 +903,10 @@ class ByteReader:
         return self.read(length)
 
     def readEaseFunc(self):
-        t = self.readInt()
+        t = self.readChar()
         
         if t == 0:
-            return rpe_easing.ease_funcs[self.readInt()]
+            return rpe_easing.ease_funcs[self.readChar()]
         elif t == 1:
             d = [self.readFloat() for _ in range(self.readInt())]
             return createBezierFunction(d)

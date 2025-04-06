@@ -819,7 +819,7 @@ class CommonChart:
     options: CommonChartOptions = dataclasses.field(default_factory=CommonChartOptions)
     type: int = ChartFormat.unset
     
-    dumpVersion: int = 2
+    dumpVersion: int = 3
     
     def __post_init__(self):
         self.combotimes = []
