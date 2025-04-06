@@ -232,6 +232,11 @@ if speed != 1.0:
 mixer.music.load(audio_fp)
 raw_audio_length = mixer.music.get_length()
 audio_length = raw_audio_length + chart_obj.offset
+
+if "--soundapi-downgrade" in sys.argv and not render_video:
+    seg: AudioSegment = AudioSegment.from_file(audio_fp)
+    speed *= seg.duration_seconds / raw_audio_length
+    
 all_inforamtion = {}
 logging.info("Loading Chart Information...")
 
