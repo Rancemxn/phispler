@@ -177,7 +177,7 @@ class ChartFormat:
                     json_note = json_note,
                     isAbove = True
                 )
-                line.notes[-1].master_index = i
+                line.notes[-1].masterIndex = i
             
             for i, json_note in enumerate(json_line.get("notesBelow", [])):
                 _put_note(
@@ -186,7 +186,7 @@ class ChartFormat:
                     json_note = json_note,
                     isAbove = False
                 )
-                line.notes[-1].master_index = i
+                line.notes[-1].masterIndex = i
             
             if formatVersion == 1:
                 for json_e in json_line.get("judgeLineMoveEvents", []):
@@ -338,7 +338,7 @@ class ChartFormat:
                     hitsound = json_note.get("hitsound", None),
                 )
                 
-                note.master_index = i
+                note.masterIndex = i
                 line.notes.append(note)
             
             for el_json in json_line.get("eventLayers", []):
@@ -408,7 +408,7 @@ class Note(MemEq):
         self.rotate_add = 0 if self.isAbove else 180
         self.draworder = const.NOTE_RORDER_MAP[self.type]
         
-        self.master_index = -1
+        self.masterIndex = -1
         self.nowpos = (0.0, 0.0)
         self.nowrotate = 0.0
         
@@ -557,7 +557,7 @@ class JudgeLine(MemEq):
     notes: list[Note] = dataclasses.field(default_factory=list)
     eventLayers: list[EventLayerItem] = dataclasses.field(default_factory=list)
     extendEvents: ExtendEventsItem = dataclasses.field(default_factory=ExtendEventsItem)
-    father: typing.Optional[JudgeLine]|int = None
+    father: typing.Optional[int] = None
     zOrder: int = 0
     
     isTextureLine: bool = False
@@ -579,10 +579,7 @@ class JudgeLine(MemEq):
         if self.father == -1:
             self.father = None
         
-        self.raw_father = self.father
-        
-        if self.father is not None:
-            self.father = master.lines[self.father]
+        self.fatherLine: JudgeLine = master.lines[self.father] if self.father is not None else None
             
         self.notes.sort(key=lambda note: note.time)
         
@@ -621,9 +618,9 @@ class JudgeLine(MemEq):
             sum(self.getEventsValue(el.moveYEvents, t) for el in self.eventLayers)
         )
         
-        if self.father is not None:
-            fatherPos = self.father.getPos(t)
-            fatherRotate = sum(self.father.getEventsValue(el.rotateEvents, t) for el in self.father.eventLayers)
+        if self.fatherLine is not None:
+            fatherPos = self.fatherLine.getPos(t)
+            fatherRotate = sum(self.fatherLine.getEventsValue(el.rotateEvents, t) for el in self.fatherLine.eventLayers)
             
             if fatherRotate == 0.0:
                 return list(map(lambda v1, v2: v1 + v2, fatherPos, linePos))
@@ -876,25 +873,39 @@ class CommonChart:
     def is_rpe(self): return self.type == ChartFormat.rpe
     
     def dump(self):
-        def _write_dataclass(obj: typing.Any, need_write_fields: list[tuple[str, typing.Callable[[typing.Any], typing.Any]]]):
+        registered_dataclasses: dict[typing.Any, list[tuple[str, typing.Callable[[typing.Any], typing.Any]]]] = {}
+        
+        def _get_field_default(field: dataclasses.Field):
+            return field.default if field.default is not dataclasses.MISSING else field.default_factory()
+        
+        def _register_dataclasses(types: list[tuple[type, list[tuple[str, typing.Callable[[typing.Any], typing.Any]]]]]):
+            writer.writeInt(len(types))
+            
+            for t, fields in types:
+                writer.writeString(t.__name__)
+                writer.writeInt(len(fields))
+                dataclass_fields = getattr(t, "__dataclass_fields__", None)
+                assert dataclass_fields is not None, "not a dataclass"
+                
+                for field_name, *_ in fields:
+                    writer.writeString(field_name)
+                
+                registered_dataclasses[t] = fields
+        
+        def _write_dataclass(obj: typing.Any):
             fields = getattr(obj, "__dataclass_fields__", None)
             
-            if fields is None:
-                assert False, "not a dataclass"
-            
-            if isinstance(obj, LineEvent) and obj.isFill:
-                return
+            assert fields is not None, "not a dataclass"
+            assert type(obj) in registered_dataclasses, "not registered dataclass"
             
             bin_flag = 0
             write_func_calls = []
+            need_write_fields = registered_dataclasses[type(obj)]
             
-            for i, (field_name, write_func) in enumerate(need_write_fields):
+            for i, (field_name, write_func, *default) in enumerate(need_write_fields):
                 value = getattr(obj, field_name)
                 if field_name in fields:
-                    field: dataclasses.Field = fields[field_name]
-                    default_value = field.default if field.default is not dataclasses.MISSING else field.default_factory()
-                    
-                    if value != default_value:
+                    if value != (_get_field_default(fields[field_name]) if not default else default[0]):
                         bin_flag += 1
                         write_func_calls.append((write_func, value))
                 else:
@@ -919,19 +930,51 @@ class CommonChart:
                 for i in value: writer.writeFloat(i)
             
         def _write_events(es: list[LineEvent]):
+            es = [e for e in es if not e.isFill]
             writer.writeInt(len(es))
             for e in es:
-                _write_dataclass(e, [
-                    ("startTime", writer.writeFloat),
-                    ("endTime", writer.writeFloat),
-                    ("start", _write_eventval),
-                    ("end", _write_eventval),
-                    ("ease", writer.writeEaseFunc)
-                ])
+                _write_dataclass(e)
             
         writer = uilts.ByteWriter()
         writer.writeInt(self.dumpVersion)
         writer.writeFloat(self.offset)
+        
+        _register_dataclasses([
+            (Note, [
+                ("type", writer.writeChar),
+                ("time", writer.writeFloat),
+                ("holdTime", writer.writeFloat),
+                ("positionX", writer.writeFloat),
+                ("speed", writer.writeFloat),
+                ("isAbove", writer.writeBool),
+                ("isFake", writer.writeBool),
+                ("yOffset", writer.writeFloat),
+                ("visibleTime", writer.writeOptionalFloat),
+                ("width", writer.writeFloat),
+                ("alpha", writer.writeFloat),
+                ("hitsound", writer.writeOptionalString),
+                ("alwaysHasHoldHead", writer.writeOptionalBool),
+                ("masterIndex", writer.writeInt, -1)
+            ]),
+            (JudgeLine, [
+                ("father", writer.writeOptionalInt),
+                ("zOrder", writer.writeInt),
+                ("isTextureLine", writer.writeBool),
+                ("isGifLine", writer.writeBool),
+                ("texture", writer.writeOptionalString),
+                ("isAttachUI", writer.writeBool),
+                ("attachUI", writer.writeOptionalString),
+                ("enableCover", writer.writeBool),
+                ("index", writer.writeInt, -1)
+            ]),
+            (LineEvent, [
+                ("startTime", writer.writeFloat),
+                ("endTime", writer.writeFloat),
+                ("start", _write_eventval),
+                ("end", _write_eventval),
+                ("ease", writer.writeEaseFunc)
+            ])
+        ])
         
         writer.writeInt(len(self.lines))
         for line in self.lines:
@@ -942,22 +985,7 @@ class CommonChart:
             
             writer.writeInt(len(line.notes))
             for note in line.notes:
-                _write_dataclass(note, [
-                    ("type", writer.writeChar),
-                    ("time", writer.writeFloat),
-                    ("holdTime", writer.writeFloat),
-                    ("positionX", writer.writeFloat),
-                    ("speed", writer.writeFloat),
-                    ("isAbove", writer.writeBool),
-                    ("isFake", writer.writeBool),
-                    ("yOffset", writer.writeFloat),
-                    ("visibleTime", writer.writeOptionalFloat),
-                    ("width", writer.writeFloat),
-                    ("alpha", writer.writeFloat),
-                    ("hitsound", writer.writeOptionalString),
-                    ("alwaysHasHoldHead", writer.writeOptionalBool),
-                    ("master_index", writer.writeInt)
-                ])
+                _write_dataclass(note)
             
             writer.writeInt(len(line.eventLayers))
             for el in line.eventLayers:
@@ -973,17 +1001,7 @@ class CommonChart:
             _write_events(line.extendEvents.textEvents)
             _write_events(line.extendEvents.gifEvents)
             
-            _write_dataclass(line, [
-                ("raw_father", writer.writeOptionalInt),
-                ("zOrder", writer.writeInt),
-                ("isTextureLine", writer.writeBool),
-                ("isGifLine", writer.writeBool),
-                ("texture", writer.writeOptionalString),
-                ("isAttachUI", writer.writeBool),
-                ("attachUI", writer.writeOptionalString),
-                ("enableCover", writer.writeBool),
-                ("index", writer.writeInt)
-            ])
+            _write_dataclass(line)
         
         writer.writeBool(self.options.holdIndependentSpeed)
         writer.writeBool(self.options.holdCoverAtHead)
@@ -1020,36 +1038,98 @@ class CommonChart:
         if (v := reader.readInt()) != CommonChart.dumpVersion:
             raise ValueError(f"bad dump version: {v}(bpc) != {CommonChart.dumpVersion}")
         
-        def _read_dataclass(obj: typing.Any, need_read_fields: list[tuple[str, typing.Callable[[], typing.Any]]]):
-            fields = getattr(obj, "__dataclass_fields__", None)
-            
-            if fields is None:
-                assert False, "not a dataclass"
-                
-            bin_flag = bin(int.from_bytes(reader.read((len(need_read_fields) - 1) // 8 + 1)))[2:].zfill(len(need_read_fields))
-            
-            for i, (field_name, read_func) in enumerate(need_read_fields):
-                if bin_flag[i] == "1":
-                    setattr(obj, field_name, read_func())
-        
         def _read_eventval():
             valtype = reader.readChar()
             if valtype == 0: return reader.readFloat()
             elif valtype == 1: return reader.readString()
             elif valtype == 2:
                 return [reader.readFloat() for _ in range(reader.readInt())]
+            
+        registered_dataclasses: dict[typing.Any, list[tuple[str, typing.Callable[[], typing.Any]]]] = {}
+        
+        dataclasses_namemap = {i.__name__: i for i in (
+            Note, LineEvent,
+            EventLayerItem,
+            ExtendEventsItem,
+            BPMEvent, JudgeLine,
+            CommonChart
+        )}
+        
+        dataclasses_readmethod_namemap = {
+            Note: {
+                "type": reader.readChar,
+                "time": reader.readFloat,
+                "holdTime": reader.readFloat,
+                "positionX": reader.readFloat,
+                "speed": reader.readFloat,
+                "isAbove": reader.readBool,
+                "isFake": reader.readBool,
+                "yOffset": reader.readFloat,
+                "visibleTime": reader.readOptionalFloat,
+                "width": reader.readFloat,
+                "alpha": reader.readFloat,
+                "hitsound": reader.readOptionalString,
+                "alwaysHasHoldHead": reader.readOptionalBool,
+                "masterIndex": reader.readInt
+            },
+            JudgeLine: {
+                "father": reader.readOptionalInt,
+                "zOrder": reader.readInt,
+                "isTextureLine": reader.readBool,
+                "isGifLine": reader.readBool,
+                "texture": reader.readOptionalString,
+                "isAttachUI": reader.readBool,
+                "attachUI": reader.readOptionalString,
+                "enableCover": reader.readBool,
+                "index": reader.readInt
+            },
+            LineEvent: {
+                "startTime": reader.readFloat,
+                "endTime": reader.readFloat,
+                "start": _read_eventval,
+                "end": _read_eventval,
+                "ease": reader.readEaseFunc
+            }
+        }
+        
+        def _read_registered_dataclasses():
+            for _ in range(reader.readInt()):
+                cls = dataclasses_namemap[reader.readString()]
+                if cls not in dataclasses_readmethod_namemap:
+                    raise ValueError(f"no read method for {cls.__name__}")
+                
+                readmethod_namemap = dataclasses_readmethod_namemap[cls]
+                defaults = []
+                
+                for _ in range(reader.readInt()):
+                    field_name = reader.readString()
+                    if field_name not in readmethod_namemap:
+                        raise ValueError(f"no read method for {cls.__name__}.{field_name}")
+                    
+                    defaults.append((field_name, readmethod_namemap[field_name]))
+                
+                registered_dataclasses[cls] = defaults
+        
+        def _read_dataclass(obj: typing.Any):
+            fields = getattr(obj, "__dataclass_fields__", None)
+            
+            assert fields is not None, "not a dataclass"
+            
+            if type(obj) not in registered_dataclasses:
+                raise ValueError(f"not registered dataclass: {type(obj).__name__}")
+            
+            need_read_fields = registered_dataclasses[type(obj)]
+            bin_flag = bin(int.from_bytes(reader.read((len(need_read_fields) - 1) // 8 + 1)))[2:].zfill(len(need_read_fields))
+            
+            for i, (field_name, read_func) in enumerate(need_read_fields):
+                if bin_flag[i] == "1":
+                    setattr(obj, field_name, read_func())
         
         def _read_events():
             result = []
             for _ in range(reader.readInt()):
                 e = LineEvent()
-                _read_dataclass(e, [
-                    ("startTime", reader.readFloat),
-                    ("endTime", reader.readFloat),
-                    ("start", _read_eventval),
-                    ("end", _read_eventval),
-                    ("ease", reader.readEaseFunc)
-                ])
+                _read_dataclass(e)
                 result.append(e)
             return result
         
@@ -1062,28 +1142,15 @@ class CommonChart:
         result = CommonChart()
         result.offset = reader.readFloat()
         
+        _read_registered_dataclasses()
+        
         for _ in range(reader.readInt()):
             line = JudgeLine()
             line.bpms = _read_bpms()
             
             for _ in range(reader.readInt()):
                 note = Note()
-                _read_dataclass(note, [
-                    ("type", reader.readChar),
-                    ("time", reader.readFloat),
-                    ("holdTime", reader.readFloat),
-                    ("positionX", reader.readFloat),
-                    ("speed", reader.readFloat),
-                    ("isAbove", reader.readBool),
-                    ("isFake", reader.readBool),
-                    ("yOffset", reader.readFloat),
-                    ("visibleTime", reader.readOptionalFloat),
-                    ("width", reader.readFloat),
-                    ("alpha", reader.readFloat),
-                    ("hitsound", reader.readOptionalString),
-                    ("alwaysHasHoldHead", reader.readOptionalBool),
-                    ("masterIndex", reader.readInt)
-                ])
+                _read_dataclass(note)
                 note.__post_init__()
                 line.notes.append(note)
             
@@ -1101,17 +1168,7 @@ class CommonChart:
             line.extendEvents.textEvents = _read_events()
             line.extendEvents.gifEvents = _read_events()
             
-            _read_dataclass(line, [
-                ("father", reader.readOptionalInt),
-                ("zOrder", reader.readInt),
-                ("isTextureLine", reader.readBool),
-                ("isGifLine", reader.readBool),
-                ("texture", reader.readOptionalString),
-                ("isAttachUI", reader.readBool),
-                ("attachUI", reader.readOptionalString),
-                ("enableCover", reader.readBool),
-                ("index", reader.readInt)
-            ])
+            _read_dataclass(line)
             
             result.lines.append(line)
         

@@ -867,7 +867,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
                             )
                     
                     if debug:
-                        drawDebugText(f"{line.index}+{note.master_index}", x, y, lineToNoteRotate, "rgba(0, 255, 255, 0.5)")
+                        drawDebugText(f"{line.index}+{note.masterIndex}", x, y, lineToNoteRotate, "rgba(0, 255, 255, 0.5)")
                         
                         root.run_js_code(
                             f"ctx.fillRectEx(\
