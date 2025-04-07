@@ -617,6 +617,7 @@ def mainRender():
     
     topButtonLock = False
     createChartData = None
+    needUpdateIllus = False
     
     illuPacker: typing.Optional[webcv.LazyPILResPacker] = None
     def updateIllus():
@@ -658,7 +659,7 @@ def mainRender():
             createChartData = None
         
         def _confirm(*_):
-            nonlocal createChartData
+            nonlocal createChartData, needUpdateIllus
             
             userInputData = {
                 k: globalUIManager.get_input_value_bytag(k)
@@ -722,7 +723,7 @@ def mainRender():
             
             getConfigData("charts").append(chart_config)
             saveRRPEConfig()
-            updateIllus()
+            needUpdateIllus = True
             
             globalUIManager.remove_uiitems("mainRender-createChart")
             createChartData = None
@@ -747,6 +748,8 @@ def mainRender():
         topButtonLock = False
     
     def deleteChart(*_):
+        nonlocal needUpdateIllus
+        
         charts = getConfigData("charts")
         
         if not charts:
@@ -764,7 +767,7 @@ def mainRender():
             except Exception as e: logging.error(f"chart rmtree failed: {e}")
             
             saveRRPEConfig()
-            updateIllus()
+            needUpdateIllus = True
     
     def can_click_top_button(*_):
         return (
@@ -918,6 +921,11 @@ def mainRender():
         globalUIManager.render("global")
         
         root.run_js_wait_code()
+        
+        if needUpdateIllus:
+            updateIllus()
+            needUpdateIllus = False
+        
         if nextUI is not None:
             globalUIManager.remove_uiitems("mainRender")
             
