@@ -13,8 +13,19 @@ import tempdir
 
 type eventValueType = float|str|tuple[float, float, float]
 
+initialized_events = []
+
+def events_set_changed(es: list[LineEvent]):
+    if id(es) in initialized_events:
+        initialized_events.remove(id(es))
+
 def _init_events(es: list[LineEvent], *, is_speed: bool = False, is_text: bool = False, default: eventValueType = 0.0):
     if not es: return
+    
+    if id(es) in initialized_events:
+        return
+    
+    initialized_events.append(id(es))
     
     es.sort(key = lambda e: e.startTime)
     
@@ -475,8 +486,11 @@ class Note(MemEq):
                     uilts.newRandomBlocks(),
                     self.getNoteClickPos(t)
                 ))
-                
+        
         self.player_effect_times = self.effect_times.copy()
+    
+    def fast_init(self):
+        self.isontime = False
     
     def getNoteClickPos(self, time: float) -> tuple[typing.Callable[[int, int], tuple[float, float]], float]:
         linePos = self.master.master.options.posConverter(self.master.getPos(time))
@@ -598,6 +612,15 @@ class JudgeLine(MemEq):
         for note in self.notes:
             note.init(self)
         
+        self.renderNotes = split_notes(self.notes)
+        self.effectNotes = [i for i in self.notes if not i.isFake]
+    
+    def fast_init(self):
+        self.preinit(self.master)
+        
+        for note in self.notes:
+            note.fast_init()
+
         self.renderNotes = split_notes(self.notes)
         self.effectNotes = [i for i in self.notes if not i.isFake]
         
@@ -847,6 +870,20 @@ class CommonChart:
         
         for line in self.lines:
             line.init()
+        
+        self.sorted_lines = sorted(self.lines, key=lambda line: line.zOrder)
+    
+    def fast_init(self):
+        "for editor"
+        
+        self.combotimes = []
+        self.note_num = len([i for i in self.all_notes if not i.isFake])
+        
+        self.checkMorebets()
+        self.initCombotimes()
+        
+        for line in self.lines:
+            line.fast_init()
         
         self.sorted_lines = sorted(self.lines, key=lambda line: line.zOrder)
     

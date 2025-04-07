@@ -649,7 +649,11 @@ class ChartEditor:
         ...
 
     def when_timejump(self, new_t: float):
-        self.chart.init()
+        self.chart.fast_init()
+        
+        for line in self.chart.lines:
+            for note in line.notes:
+                note.isontime = note.time < new_t
     
     @property
     def chart_now_t(self) -> float:
@@ -766,8 +770,7 @@ def editorRender(chart_config: dict):
         extasks = phicore.renderChart_Common(editor.chart_now_t, clear=False, rjc=False)
         phicore.processExTask(extasks)
         
-        if editor.chart_now_t > 5:
-            editor.seek_by(-5)
+        editor.seek_by(random.uniform(-1/30,1/15))
         
         globalUIManager.render("global")
         
