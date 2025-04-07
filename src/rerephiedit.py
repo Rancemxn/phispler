@@ -415,6 +415,7 @@ class MessageShower(BaseUI):
     def __init__(self):
         self.msgs: list[Message] = []
         self.max_show_time = 2.0
+        self.padding_y = h / 50
     
     def render(self):
         for msg in self.msgs.copy():
@@ -423,9 +424,11 @@ class MessageShower(BaseUI):
                 continue
             elif time.time() - msg.st > self.max_show_time and not msg.timeout:
                 msg.timeout = True
+                msg.top_tr.target -= self.padding_y
+                msg.alpha_tr.target = 0.0
+                
                 for msg2 in self.msgs:
-                    msg2.top_tr.target -= msg2.height + h / 25
-                msg.top_tr.target -= h / 25
+                    msg2.top_tr.target -= msg2.height + self.padding_y
             
             rect = (
                 msg.left_tr.value,
@@ -434,8 +437,10 @@ class MessageShower(BaseUI):
                 msg.top_tr.value + msg.height
             )
             
+            ctxSave(wait_execute=True)
+            ctxMutGlobalAlpha(msg.alpha_tr.value, wait_execute=True)
+            
             fillRectEx(*uilts.xxyy_rect2_xywh(rect), msg.color, wait_execute=True)
-            strokeRectEx(*uilts.xxyy_rect2_xywh(rect), "rgba(255, 255, 255, 0.4)", (w + h) / 650, wait_execute=True)
             drawText(
                 rect[0] + msg.padding_x,
                 rect[1] + msg.height / 2,
@@ -446,10 +451,30 @@ class MessageShower(BaseUI):
                 textBaseline = "middle",
                 wait_execute = True
             )
+            
+            timeout_p = uilts.fixorp((time.time() - msg.st) / self.max_show_time)
+            timeout_height = msg.padding_y * 0.4
+            fillRectEx(
+                rect[0],
+                rect[1] + (rect[3] - rect[1]) - timeout_height,
+                (rect[2] - rect[0]) * timeout_p,
+                timeout_height,
+                "rgba(255, 255, 255, 0.4)",
+                wait_execute = True
+            )
+            
+            ctxRestore(wait_execute=True)
     
     def submit(self, msg: Message):
         vaild_msgs = [i for i in self.msgs if not i.timeout]
-        msg.top_tr.target = max(h / 25 if not vaild_msgs else (vaild_msgs[-1].top_tr.target + vaild_msgs[-1].height + h / 25), h / 25)
+        
+        msg.top_tr.target = max(
+            self.padding_y
+            if not vaild_msgs else
+            (vaild_msgs[-1].top_tr.target + vaild_msgs[-1].height + self.padding_y),
+            
+            self.padding_y
+        )
         self.msgs.append(msg)
 
 class Message:
@@ -457,24 +482,29 @@ class Message:
     WARNING_COLOR = "orange"
     ERROR_COLOR = "red"
     
-    def __init__(self, text: str, font: str, color: str):
+    TEXT_SIZE = 79
+    
+    def __init__(self, text: str, color: str):
         self.text = text
-        self.font = font
+        self.font = f"{(w + h) / Message.TEXT_SIZE}px pgrFont"
         self.color = color
         self.st = time.time()
         self.timeout = False
         
-        textsize = root.run_js_code(f"ctx.getTextSize({root.string2sctring_hqm(text)}, \"{font}\");")
-        self.padding_x = w / 50
-        self.padding_y = h / 50
+        textsize = root.run_js_code(f"ctx.getTextSize({root.string2sctring_hqm(text)}, \"{self.font}\");")
+        self.padding_x = w / 75
+        self.padding_y = h / 65
         self.width = textsize[0] + self.padding_x * 2
         self.height = textsize[1] + self.padding_y * 2
         
         self.left_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[9])
         self.left_tr.target = w * 1.1
-        self.left_tr.target = w - self.width - w / 25
+        self.left_tr.target = w - self.width - w / 60
         
         self.top_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[9])
+        
+        self.alpha_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[9])
+        self.alpha_tr.target = 1.0
 
 class ChartChooser(BaseUI):
     def __init__(
@@ -555,6 +585,49 @@ class ChartChooser(BaseUI):
             else:
                 return
 
+class ChartEditor:
+    def __init__(self, chart: phichart.CommonChart):
+        self.chart = chart
+        
+        self.step_dumps: list[bytes] = []
+        self.can_undo = False
+        self.now_step_i = -1
+    
+    def emit_command(self, command: EditBaseCmd):
+        self.new_dump()
+        self.can_undo = True
+        
+        if isinstance(command, ...):
+            ...
+            
+        elif isinstance(command, EditBaseCmd):
+            pass
+        else:
+            assert False, f"Unknown command type: {type(command)}"
+    
+    def new_dump(self):
+        if self.can_undo:
+            if self.now_step_i < len(self.step_dumps) - 1:
+                self.step_dumps = self.step_dumps[:self.now_step_i + 1]
+            
+        self.step_dumps.append(self.chart.dump())
+        self.now_step_i += 1
+    
+    def undo(self):
+        if self.can_undo:
+            self.now_step_i -= 1
+            self.load_chart_from_dumps()
+    
+    def load_chart_from_dumps(self):
+        self.chart = phichart.CommonChart.loaddump(self.step_dumps[self.now_step_i])
+
+class EditBaseCmd:
+    ...
+
+class Edit_NewNote(EditBaseCmd):
+    def __init__(self, note: phichart.Note):
+        self.note = note
+    
 def drawRPEButton(
     x: float, y: float,
     text: str, color: str,
@@ -672,7 +745,7 @@ def mainRender():
                 if math.isnan(v) or math.isinf(v) or v == 0.0:
                     raise ValueError
             except Exception:
-                globalMsgShower.submit(Message("请输入有效的BPM", f"{(w + h) / 65}px pgrFont", Message.ERROR_COLOR))
+                globalMsgShower.submit(Message("请输入有效的BPM", Message.ERROR_COLOR))
                 return
             
             try:
@@ -680,7 +753,7 @@ def mainRender():
                 if v < 0:
                     raise ValueError
             except Exception:
-                globalMsgShower.submit(Message("请输入有效的线数", f"{(w + h) / 65}px pgrFont", Message.ERROR_COLOR))
+                globalMsgShower.submit(Message("请输入有效的线数", Message.ERROR_COLOR))
                 return
             
             createChartData.update(userInputData)
@@ -714,7 +787,7 @@ def mainRender():
                     with open(createChartData["music"], "rb") as f2:
                         f.write(f2.read())
                 except Exception:
-                    globalMsgShower.submit(Message("音频读取失败", f"{(w + h) / 65}px pgrFont", Message.ERROR_COLOR))
+                    globalMsgShower.submit(Message("音频读取失败", Message.ERROR_COLOR))
                     rmtree(f"{CHARTS_PATH}/{chart_id}")
                     return
             
@@ -781,7 +854,13 @@ def mainRender():
         
         def _play_preview():
             dxsmixer_unix.mixer.music.load(chart["musicPath"])
-            dxsmixer_unix.mixer.music.play(-1)
+            
+            try:
+                dxsmixer_unix.mixer.music.play(-1)
+            except Exception as e:
+                logging.error(f"music play failed: {e}")
+                globalMsgShower.submit(Message(f"音频播放失败: {e}", Message.ERROR_COLOR))
+                return
         
         Thread(target=_play_preview, daemon=True).start()
     
