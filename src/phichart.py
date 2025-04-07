@@ -404,7 +404,6 @@ class Note(MemEq):
     
     def __post_init__(self):
         self.ishold = self.type == const.NOTE_TYPE.HOLD
-        self.isontime = False
         self.morebets = False
         self.holdEndTime = self.time + self.holdTime
         self.giveComboTime = self.time if not self.ishold else max(self.time, self.holdEndTime - 0.2)
@@ -434,6 +433,8 @@ class Note(MemEq):
         self.player_bad_posandrotate: typing.Optional[tuple[tuple[float, float], float]] = None
    
     def init(self, master: JudgeLine):
+        self.isontime = False
+        
         self.master = master
         self.floorPosition = self.master.getFloorPosition(self.time)
         self.holdLength = (
@@ -826,10 +827,9 @@ class CommonChart:
     
     dumpVersion: int = 3
     
-    def __post_init__(self):
-        self.combotimes = []
-    
     def init(self):
+        self.combotimes = []
+        
         self.options.featureFlags |= CommonChartOptionFeatureFlags.PRELOADED_FEATURE_FLAGS[self.type]
         self.options.posConverter = posCoverters[self.type]
         

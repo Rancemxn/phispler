@@ -603,6 +603,8 @@ class ChartEditor:
         self.step_dumps: list[bytes] = []
         self.can_undo = False
         self.now_step_i = -1
+        self.last_chart_now_t = 0
+        self.paused = True
     
     def emit_command(self, command: EditBaseCmd):
         self.new_dump()
@@ -633,14 +635,31 @@ class ChartEditor:
         self.chart = phichart.CommonChart.loaddump(self.step_dumps[self.now_step_i])
     
     def pause_play(self):
+        self.paused = True
         mixer.music.pause()
         
     def unpause_play(self):
+        self.paused = False
         mixer.music.unpause()
+    
+    def seek_by(self, delta: float):
+        mixer.music.set_pos(mixer.music.get_pos() + delta)
+    
+    def update(self):
+        ...
 
+    def when_timejump(self, new_t: float):
+        self.chart.init()
+    
     @property
     def chart_now_t(self) -> float:
-        return mixer.music.get_pos()
+        ret = mixer.music.get_pos()
+        
+        if ret < self.last_chart_now_t:
+            self.when_timejump(ret)
+        
+        self.last_chart_now_t = ret
+        return ret
 
 class EditBaseCmd:
     ...
@@ -743,8 +762,12 @@ def editorRender(chart_config: dict):
     while True:
         clearCanvas(wait_execute=True)
         
+        editor.update()
         extasks = phicore.renderChart_Common(editor.chart_now_t, clear=False, rjc=False)
         phicore.processExTask(extasks)
+        
+        if editor.chart_now_t > 5:
+            editor.seek_by(-5)
         
         globalUIManager.render("global")
         
