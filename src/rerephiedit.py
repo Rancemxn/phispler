@@ -741,14 +741,20 @@ def editorRender(chart_config: dict):
     
     respacker = webcv.LazyPILResPacker(root)
     
-    chart_image = Image.open(chart_config["illuPath"])
+    chart_image_ve: uilts.ValueEvent[Image.Image] = uilts.ValueEvent()
     
-    if chart_image.mode != "RGB":
-        chart_image = chart_image.convert("RGB")
+    def load_res():
+        chart_image = Image.open(chart_config["illuPath"])
     
-    background_image_blur = chart_image.filter(ImageFilter.GaussianBlur(sum(chart_image.size) / 50))
-    respacker.reg_img(background_image_blur, "background_blur")
-    respacker.reg_img(chart_image, "chart_image")
+        if chart_image.mode != "RGB":
+            chart_image = chart_image.convert("RGB")
+
+        chart_image_ve.set(chart_image)
+    
+    Thread(target=load_res, daemon=True).start()
+    
+    respacker.reg_img(lambda: chart_image_ve.wait().filter(ImageFilter.GaussianBlur(sum(chart_image_ve.wait().size) / 50)), "background_blur")
+    respacker.reg_img(chart_image_ve.wait, "chart_image")
     
     respacker.load(*respacker.pack())
     

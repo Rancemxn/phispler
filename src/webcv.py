@@ -86,7 +86,9 @@ def _img2bytes(im: Image.Image):
         im.save(bio, "png")
         return bio.getvalue()
 
-def _packerimg2bytes(im: Image.Image|bytes|str):
+type respacker_imtype = Image.Image|bytes|str|typing.Callable[[], respacker_imtype]
+
+def _packerimg2bytes(im: respacker_imtype):
     if isinstance(im, Image.Image):
         if hasattr(im, "byteData"):
             return im.byteData
@@ -96,6 +98,8 @@ def _packerimg2bytes(im: Image.Image|bytes|str):
         return im
     elif isinstance(im, str):
         return _packerimg2bytes(Image.open(im))
+    elif isinstance(im, typing.Callable):
+        return _packerimg2bytes(im())
 
 class WebCanvas_FileServerHandler(http.server.BaseHTTPRequestHandler):
     _canvas: WebCanvas
@@ -184,10 +188,10 @@ class JsApi:
 class PILResPacker:
     def __init__(self, cv: WebCanvas):
         self.cv = cv
-        self.imgs: list[tuple[str, Image.Image|bytes|str]] = []
+        self.imgs: list[tuple[str, respacker_imtype]] = []
         self._imgopted: dict[str, threading.Event] = {}
     
-    def reg_img(self, img: Image.Image|bytes|str, name: str):
+    def reg_img(self, img: respacker_imtype, name: str):
         self.imgs.append((name, img))
         
     def pack(self):
@@ -249,11 +253,11 @@ class PILResPacker:
 class LazyPILResPacker:
     def __init__(self, cv: WebCanvas):
         self.cv = cv
-        self.imgs: dict[str, list[Image.Image|bytes|str]] = {}
+        self.imgs: dict[str, list[respacker_imtype]] = {}
         self._imgcache: dict[str, bytes] = {}
         self._loadcbs: dict[str, typing.Callable[[], bytes]] = {}
     
-    def reg_img(self, img: Image.Image|bytes|str, name: str):
+    def reg_img(self, img: respacker_imtype, name: str):
         if name not in self.imgs:
             self.imgs[name] = []
             

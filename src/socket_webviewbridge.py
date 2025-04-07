@@ -8,21 +8,11 @@ import websockets
 import json
 import logging
 
-class ValueEvent:
-    def __init__(self):
-        self.e = threading.Event()
-    
-    def set(self, value):
-        self.value = value
-        self.e.set()
-
-    def wait(self):
-        self.e.wait()
-        return self.value
+import uilts
 
 def start_server(window: webcv.WebCanvas, addr: str, port: int):
-    client = ValueEvent()
-    tasks: dict[int, ValueEvent] = {}
+    client = uilts.ValueEvent()
+    tasks: dict[int, uilts.ValueEvent] = {}
     
     async def main_logic(ws: websockets.WebSocketServerProtocol, path: str):
         nonlocal client
@@ -47,7 +37,7 @@ def start_server(window: webcv.WebCanvas, addr: str, port: int):
         *args, **kwargs
     ):
         tid = random.randint(0, 2 << 31)
-        tasks[tid] = ValueEvent()
+        tasks[tid] = uilts.ValueEvent()
         
         protocol: websockets.WebSocketServerProtocol = client.wait()
         

@@ -942,3 +942,17 @@ def unfold_list(data: list[list]):
         else:
             result.append(i)
     return result
+
+ValueEventT = typing.TypeVar("ValueEventT")
+class ValueEvent(typing.Generic[ValueEventT]):
+    def __init__(self):
+        self.e = threading.Event()
+    
+    def set(self, value: ValueEventT):
+        self.value = value
+        self.e.set()
+
+    def wait(self) -> ValueEventT:
+        self.e.wait()
+        return self.value
+    
