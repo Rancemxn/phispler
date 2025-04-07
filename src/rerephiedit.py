@@ -770,8 +770,6 @@ def editorRender(chart_config: dict):
         extasks = phicore.renderChart_Common(editor.chart_now_t, clear=False, rjc=False)
         phicore.processExTask(extasks)
         
-        editor.seek_by(random.uniform(-1/30,1/15))
-        
         globalUIManager.render("global")
         
         root.run_js_wait_code()
