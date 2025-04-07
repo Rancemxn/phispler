@@ -58,6 +58,7 @@ RRPEConfig_chart_default = {
     "id": None,
     "name": "",
     "composer": "",
+    "illustrator": "",
     "charter": "",
     "level": "UK Lv.1",
     "chartPath": None,
@@ -230,25 +231,31 @@ root = webcv.WebCanvas(
     renderdemand = True, renderasync = True
 )
 
-def updateCoreConfig():
-    global PhiCoreConfigObject
+def updateCoreConfig(chart_config: dict, editor: ChartEditor):
+    chart_information = {
+        "Name": chart_config["name"],
+        "Artist": chart_config["composer"],
+        "Level": chart_config["level"],
+        "Illustrator": chart_config["illustrator"],
+        "Charter": chart_config["charter"],
+        "BackgroundDim": 0.6
+    }
     
-    PhiCoreConfigObject = phicore.PhiCoreConfig(
+    phicore.CoreConfigure(phicore.PhiCoreConfig(
         SETTER = lambda vn, vv: globals().update({vn: vv}),
         root = root, w = w, h = h,
         chart_information = chart_information,
-        chart_obj = chart_obj,
+        chart_obj = editor.chart,
         Resource = Resource,
         globalNoteWidth = globalNoteWidth,
-        note_max_size_half = note_max_size_half, audio_length = audio_length,
-        raw_audio_length = raw_audio_length, show_start_time = float("nan"),
-        chart_image = chart_image,
+        note_max_size_half = note_max_size_half,
+        raw_audio_length = raw_audio_length,
         chart_res = chart_res,
         cksmanager = cksmanager,
         showfps = True,
-        debug = True, combotips = "EDITOR",
-    )
-    phicore.CoreConfigure(PhiCoreConfigObject)
+        # debug = True, 
+        combotips = "EDITOR",
+    ))
     
 class UIManager:
     def __init__(self):
@@ -541,7 +548,11 @@ class ChartChooser(BaseUI):
     def update(self, charts: list[dict]):
         self.i += self.dc
         self.dc = 0
-        self.i %= len(charts)
+        
+        if charts:
+            self.i %= len(charts)
+        else:
+            return
         
         chosing_chart = charts[self.i]
         
@@ -620,6 +631,16 @@ class ChartEditor:
     
     def load_chart_from_dumps(self):
         self.chart = phichart.CommonChart.loaddump(self.step_dumps[self.now_step_i])
+    
+    def pause_play(self):
+        mixer.music.pause()
+        
+    def unpause_play(self):
+        mixer.music.unpause()
+
+    @property
+    def chart_now_t(self) -> float:
+        return mixer.music.get_pos()
 
 class EditBaseCmd:
     ...
@@ -685,6 +706,55 @@ def web_prompt(msg: str) -> typing.Optional[str]:
 
 def web_confirm(msg: str) -> bool:
     return root.run_js_code(f"confirm({root.string2sctring_hqm(msg)});")
+
+def editorRender(chart_config: dict):
+    global raw_audio_length
+    
+    mixer.music.stop()
+    mixer.music.unload()
+    
+    chart = phichart.CommonChart.loaddump(open(chart_config["chartPath"], "rb").read())
+    editor = ChartEditor(chart)
+    
+    respacker = webcv.LazyPILResPacker(root)
+    
+    chart_image = Image.open(chart_config["illuPath"])
+    
+    if chart_image.mode != "RGB":
+        chart_image = chart_image.convert("RGB")
+    
+    background_image_blur = chart_image.filter(ImageFilter.GaussianBlur(sum(chart_image.size) / 50))
+    respacker.reg_img(background_image_blur, "background_blur")
+    respacker.reg_img(chart_image, "chart_image")
+    
+    respacker.load(*respacker.pack())
+    
+    mixer.music.load(chart_config["musicPath"])
+    mixer.music.play()
+    mixer.music.pause()
+    
+    raw_audio_length = mixer.music.get_length()
+    updateCoreConfig(chart_config, editor)
+    
+    nextUI = None
+    
+    editor.unpause_play()
+    
+    while True:
+        clearCanvas(wait_execute=True)
+        
+        extasks = phicore.renderChart_Common(editor.chart_now_t, clear=False, rjc=False)
+        phicore.processExTask(extasks)
+        
+        globalUIManager.render("global")
+        
+        root.run_js_wait_code()
+        
+        if nextUI is not None:
+            globalUIManager.remove_uiitems("editorRender")
+            respacker.unload(respacker.getnames())
+            Thread(target=nextUI, daemon=True).start()
+            return
 
 def mainRender():
     nextUI = None
@@ -782,18 +852,17 @@ def mainRender():
             
             illu.save(f"{CHARTS_PATH}/{chart_id}/image.png", format="PNG")
             
-            with open(f"{CHARTS_PATH}/{chart_id}/music.mp3", "wb") as f:
-                try:
-                    with open(createChartData["music"], "rb") as f2:
-                        f.write(f2.read())
-                except Exception:
-                    globalMsgShower.submit(Message("音频读取失败", Message.ERROR_COLOR))
-                    rmtree(f"{CHARTS_PATH}/{chart_id}")
-                    return
+            try:
+                seg: AudioSegment = AudioSegment.from_file(createChartData["music"])
+                seg.export(f"{CHARTS_PATH}/{chart_id}/music.wav", format="wav")
+            except Exception:
+                globalMsgShower.submit(Message("音频读取失败", Message.ERROR_COLOR))
+                rmtree(f"{CHARTS_PATH}/{chart_id}")
+                return
             
             chart_config["chartPath"] = f"{CHARTS_PATH}/{chart_id}/chart.bpc"
             chart_config["illuPath"] = f"{CHARTS_PATH}/{chart_id}/image.png"
-            chart_config["musicPath"] = f"{CHARTS_PATH}/{chart_id}/music.mp3"
+            chart_config["musicPath"] = f"{CHARTS_PATH}/{chart_id}/music.wav"
             
             getConfigData("charts").append(chart_config)
             saveRRPEConfig()
@@ -827,7 +896,8 @@ def mainRender():
         charts = getConfigData("charts")
         
         if not charts:
-            web_alert("你还没有谱面可以删除...")
+            globalMsgShower.submit(Message("你还没有谱面可以删除...", Message.ERROR_COLOR))
+            return
         
         chooser.update(charts)
         chosing_chart = charts[chooser.i]
@@ -843,6 +913,18 @@ def mainRender():
             saveRRPEConfig()
             needUpdateIllus = True
     
+    def gotoEditor(*_):
+        nonlocal nextUI
+        
+        charts = getConfigData("charts")
+        
+        if not charts:
+            globalMsgShower.submit(Message("你还没有谱面可以编辑...", Message.ERROR_COLOR))
+            return
+        
+        chart_config = charts[chooser.i]
+        nextUI = lambda: editorRender(chart_config)
+    
     def can_click_top_button(*_):
         return (
             not topButtonLock and
@@ -853,9 +935,8 @@ def mainRender():
         chart = getConfigData("charts")[chooser.i]
         
         def _play_preview():
-            dxsmixer_unix.mixer.music.load(chart["musicPath"])
-            
             try:
+                dxsmixer_unix.mixer.music.load(chart["musicPath"])
                 dxsmixer_unix.mixer.music.play(-1)
             except Exception as e:
                 logging.error(f"music play failed: {e}")
@@ -872,7 +953,7 @@ def mainRender():
         Button(*pos1k(1507, 192), "排序方式", "gray", None, can_click_top_button),
         Button(*pos1k(78, 957), "删除谱面", "red", deleteChart, can_click_top_button),
         Button(*pos1k(1127, 957), "修改谱面信息", "yellow", None, can_click_top_button),
-        Button(*pos1k(1509, 957), "进入编辑", "green", None, can_click_top_button),
+        Button(*pos1k(1509, 957), "进入编辑", "green", gotoEditor, can_click_top_button),
     ]
     
     chooser = ChartChooser(
@@ -1008,6 +1089,7 @@ def mainRender():
         
         if nextUI is not None:
             globalUIManager.remove_uiitems("mainRender")
+            dxsmixer_unix.mixer.music.fadeout(250)
             
             if illuPacker is not None:
                 illuPacker.unload(illuPacker.getnames())

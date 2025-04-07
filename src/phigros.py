@@ -3494,19 +3494,16 @@ def chartPlayerRender(
     
     ud_popuper = UserDataPopuper()
     chart_obj = const.SPEC_VALS.RES_NOLOADED
-    audio_length = const.SPEC_VALS.RES_NOLOADED
     raw_audio_length = const.SPEC_VALS.RES_NOLOADED
     
     def _threadres_loader():
         global raw_audio_length
         nonlocal chart_obj
-        nonlocal audio_length
         
         chartJsonData: dict = json.loads(open(chartFile, "r", encoding="utf-8").read())
         chart_obj = phichart.load(chartJsonData)
         mixer.music.load(chartAudio)
         raw_audio_length = mixer.music.get_length()
-        audio_length = raw_audio_length + chart_obj.offset
         
         threadres_loaded.set()
     
@@ -3521,8 +3518,7 @@ def chartPlayerRender(
             Resource = Resource,
             globalNoteWidth = globalNoteWidth,
             note_max_size_half = note_max_size_half,
-            audio_length = audio_length, raw_audio_length = raw_audio_length,
-            show_start_time = float("nan"), chart_image = chart_image,
+            raw_audio_length = raw_audio_length,
             clickeffect_randomblock_roundn = 0.0,
             chart_res = {},
             cksmanager = cksmanager,
@@ -3788,7 +3784,6 @@ def chartPlayerRender(
         if not paused and pauseP == 1.0 and pauseSt == pauseSt and not mixer.music.get_busy():
             mixer.music.unpause()
             show_start_time += time.time() - pauseSt
-            coreConfig.show_start_time = show_start_time
             phicore.CoreConfigure(coreConfig)
             pauseSt = float("nan")
         

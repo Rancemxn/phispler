@@ -249,6 +249,17 @@ CanvasRenderingContext2D.prototype.drawDiagonalRectangleClipImage = function(x0,
     this.restore();
 }
 
+CanvasRenderingContext2D.prototype.drawDiagonalRectangleCoverClipImage = function(x0, y0, x1, y1, im, power, alpha) {
+    if (alpha == 0.0) return;
+    this.save();
+    this.globalAlpha *= alpha;
+    this.beginPath();
+    this._diagonalRectangle(x0, y0, x1, y1, power);
+    this.clip();
+    this.drawCoverFullScreenImage(im, x1 - x0, y1 - y0, x0, y0);
+    this.restore();
+}
+
 CanvasRenderingContext2D.prototype.drawGrd = function(grdpos, steps, x0, y0, x1, y1) {
     const grd = this.createLinearGradient(...grdpos);
     for (const step of steps) {

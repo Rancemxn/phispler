@@ -231,7 +231,6 @@ if speed != 1.0:
 
 mixer.music.load(audio_fp)
 raw_audio_length = mixer.music.get_length()
-audio_length = raw_audio_length + chart_obj.offset
 
 if "--soundapi-downgrade" in sys.argv and not render_video:
     seg: AudioSegment = AudioSegment.from_file(audio_fp)
@@ -492,7 +491,6 @@ def playerStart():
     phicore.lineOpenAnimation()
 
     show_start_time = time.time() - skip_time
-    PhiCoreConfigObject.show_start_time = show_start_time
     updateCoreConfig()
     now_t = 0
     
@@ -619,7 +617,7 @@ def playerStart():
         httpd, port = wcv2matlike.createServer()
         
         now_t = 0.0
-        while now_t < audio_length:
+        while now_t < raw_audio_length + chart_obj.offset:
             extasks = phicore.renderChart_Common(now_t, None)
                 
             root.wait_jspromise(f"uploadFrame('http://127.0.0.1:{port}/');")
@@ -718,9 +716,8 @@ def updateCoreConfig():
         chart_obj = chart_obj,
         Resource = Resource,
         globalNoteWidth = globalNoteWidth,
-        note_max_size_half = note_max_size_half, audio_length = audio_length,
-        raw_audio_length = raw_audio_length, show_start_time = float("nan"),
-        chart_image = chart_image,
+        note_max_size_half = note_max_size_half,
+        raw_audio_length = raw_audio_length,
         clickeffect_randomblock_roundn = clickeffect_randomblock_roundn,
         chart_res = chart_res,
         cksmanager = cksmanager,

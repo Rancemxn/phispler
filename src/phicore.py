@@ -72,15 +72,11 @@ class PhiCoreConfig:
     Resource: dict
     globalNoteWidth: float
     note_max_size_half: float
-    audio_length: float
     raw_audio_length: float
     
-    show_start_time: float
-    chart_image: Image.Image
-    
-    clickeffect_randomblock_roundn: int
     chart_res: dict[str, tuple[Image.Image, tuple[int, int]]]
     cksmanager: ClickSoundManager
+    clickeffect_randomblock_roundn: float = 0.0
     enable_clicksound: bool = True
     rtacc: bool = False
     noautoplay: bool = False
@@ -101,9 +97,8 @@ def CoreConfigure(config: PhiCoreConfig):
     global chart_obj
     global Resource
     global globalNoteWidth
-    global note_max_size_half, audio_length
-    global raw_audio_length, show_start_time
-    global chart_image
+    global note_max_size_half
+    global raw_audio_length
     global clickeffect_randomblock_roundn
     global chart_res, cksmanager
     global enable_clicksound, rtacc, noautoplay
@@ -121,10 +116,7 @@ def CoreConfigure(config: PhiCoreConfig):
     Resource = config.Resource
     globalNoteWidth = config.globalNoteWidth
     note_max_size_half = config.note_max_size_half
-    audio_length = config.audio_length
     raw_audio_length = config.raw_audio_length
-    show_start_time = config.show_start_time
-    chart_image = config.chart_image
     clickeffect_randomblock_roundn = config.clickeffect_randomblock_roundn
     chart_res = config.chart_res
     cksmanager = config.cksmanager
@@ -167,6 +159,7 @@ class ClickSoundManager:
             if nt is None:
                 self.queue.put(None)
                 break
+            
             self.res[nt].play()
 
 def processClickEffectBase(
@@ -974,7 +967,7 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
         
     combo = chart_obj.getCombo(now_t) if not noautoplay else pplm.ppps.getCombo()
     draw_ui(
-        process = now_t / (audio_length * speed),
+        process = now_t / ((raw_audio_length + chart_obj.offset) * speed),
         score = stringifyScore((combo * (1000000 / chart_obj.note_num)) if chart_obj.note_num != 0 else 1000000) if not noautoplay else stringifyScore(pplm.ppps.getScore()),
         combo_state = combo >= 3,
         combo = combo,
@@ -1472,22 +1465,12 @@ def settlementAnimationFrame(
     baimg_h = h * (624 / 1080)
     dpower = uilts.getDPower(baimg_w, baimg_h, 75)
     
-    baimg_rawr = chart_image.width / chart_image.height
-    baimg_r = baimg_w / baimg_h
-    if baimg_rawr > baimg_r:
-        baimg_draww = baimg_h * baimg_rawr
-        baimg_drawh = baimg_h
-    else:
-        baimg_draww = baimg_w
-        baimg_drawh = baimg_w / baimg_rawr
-    
     root.run_js_code(
-        f"ctx.drawDiagonalRectangleClipImage(\
+        f"ctx.drawDiagonalRectangleCoverClipImage(\
             {w * 0.315625 - baimg_w / 2 + im_ease_pos}, {h * (539 / 1080) - baimg_h / 2},\
             {w * 0.315625 + baimg_w / 2 + im_ease_pos}, {h * (539 / 1080) + baimg_h / 2},\
             {root.get_img_jsvarname("chart_image")},\
-            {baimg_w / 2 - baimg_draww / 2}, {baimg_h / 2 - baimg_drawh / 2},\
-            {baimg_draww}, {baimg_drawh}, {dpower}, 1.0\
+            {dpower}, 1.0\
         );",
         wait_execute = True
     )
