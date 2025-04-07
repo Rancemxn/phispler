@@ -63,7 +63,8 @@ RRPEConfig_chart_default = {
     "chartPath": None,
     "illuPath": None,
     "musicPath": None,
-    "stdBpm": 140.0
+    "stdBpm": 140.0,
+    "group": "Default"
 }
 
 def saveRRPEConfig():
