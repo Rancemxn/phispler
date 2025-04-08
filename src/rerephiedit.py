@@ -156,7 +156,13 @@ def loadResource():
             Image.open(f"./resources/challenge_mode_levels/{i}.png")
             for i in range(6)
         ],
-        "le_warn": Image.open("./resources/le_warn.png"),
+        "bd_icons": {
+            k: Image.open(f"./resources/bytedance_icons/{k}.png")
+            for k in (
+                "pause", "unpause",
+                "setting"
+            )
+        },
         "Retry": Image.open("./resources/Retry.png"),
         "Arrow_Right": Image.open("./resources/Arrow_Right.png"),
         "Over": mixer.Sound("./resources/Over.mp3"),
@@ -184,8 +190,10 @@ def loadResource():
     
     for i, v in enumerate(Resource["challenge_mode_levels"]):
         respacker.reg_img(v, f"cmlevel_{i}")
+    
+    for k, v in Resource["bd_icons"].items():
+        respacker.reg_img(v, f"bdi_{k}")
         
-    respacker.reg_img(Resource["le_warn"], "le_warn")
     respacker.reg_img(Resource["Retry"], "Retry")
     respacker.reg_img(Resource["Arrow_Right"], "Arrow_Right")
     respacker.reg_img(Resource["PauseImg"], "PauseImg")
@@ -330,6 +338,48 @@ class Button(BaseUI):
         if uilts.inrect(x, y, self.rect) and self.command is not None:
             if self.test is None or self.test(x, y):
                 self.command(x, y)
+
+class IconButton(BaseUI):
+    def __init__(
+        self,
+        x: float, y: float,
+        icon: str,
+        command: typing.Optional[typing.Callable[[], None]] = None
+    ):
+        self.x = x
+        self.y = y
+        self.icon = icon
+        self.size = (w + h) / 57
+        self.command = command
+        self.mouse_isin = False
+        self.rect = (
+            self.x - self.size / 2, self.y - self.size / 2,
+            self.x + self.size / 2, self.y + self.size / 2
+        )
+        
+        self.scale_value_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[9], 0.3)
+        self.scale_value_tr.target = 1.0
+
+    def render(self):
+        s = self.size * self.scale_value_tr.value
+        
+        drawImage(
+            f"bdi_{self.icon}",
+            self.x - s / 2, self.y - s / 2,
+            s, s,
+            wait_execute = True
+        )
+    
+    def mouse_move(self, x: int, y: int):
+        isin = uilts.inrect(x, y, self.rect)
+        
+        if isin != self.mouse_isin:
+            self.scale_value_tr.target = 1.1 if isin else 1.0
+            self.mouse_isin = isin
+    
+    def mouse_down(self, x: int, y: int, _):
+        if uilts.inrect(x, y, self.rect) and self.command is not None:
+            self.command()
 
 class Label(BaseUI):
     def __init__(
@@ -571,6 +621,63 @@ class ChartChooser(BaseUI):
             else:
                 return
 
+class Slider(BaseUI):
+    def __init__(
+        self,
+        minv: float, maxv: float,
+        value: float,
+        x: float, y: float,
+        width: float,
+        when_change: typing.Callable[[float], typing.Any]
+    ):
+        self.min = minv
+        self.max = maxv
+        self.value = value
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = h / 50
+        self.when_change = when_change
+
+        self.rect = (
+            x, y - self.height / 2,
+            width, self.height
+        )
+        
+        self._ismousedown = False
+    
+    def render(self):
+        p = (self.value - self.min) / (self.max - self.min)
+        
+        prect = (
+            self.x, self.y - self.height / 2,
+            self.width * p, self.height
+        )
+        
+        pady = self.height / 4
+        brect = (
+            self.x + self.width * p,
+            self.y - self.height / 2 - pady,
+            w / 125, self.height + pady * 2
+        )
+        
+        fillRectEx(*self.rect, "#e8e7ff", wait_execute=True)
+        fillRectEx(*prect, "#acafff", wait_execute=True)
+        fillRectEx(*brect, "#787ddd", wait_execute=True)
+    
+    def mouse_down(self, x: int, y: int, _):
+        self._ismousedown = uilts.inrect(x, y, uilts.xywh_rect2_xxyy(self.rect))
+        self.mouse_move(x, y)
+    
+    def mouse_move(self, x: int, y: int):
+        if self._ismousedown:
+            p = uilts.fixorp((x - self.x) / self.width)
+            self.value = self.min + p * (self.max - self.min)
+            self.when_change(self.value)
+    
+    def mouse_up(self, x: int, y: int, _):
+        self._ismousedown = False
+    
 class ChartEditor:
     def __init__(self, chart: phichart.CommonChart):
         self.chart = chart
@@ -617,26 +724,32 @@ class ChartEditor:
         self.paused = False
         mixer.music.unpause()
     
+    def seek_to(self, t: float):
+        mixer.music.set_pos(t)
+        
     def seek_by(self, delta: float):
-        mixer.music.set_pos(mixer.music.get_pos() + delta)
+        self.seek_to(mixer.music.get_pos() + delta)
     
     def update(self):
         ...
 
-    def when_timejump(self, new_t: float):
-        self.chart.fast_init()
-        
-        for line in self.chart.lines:
-            for note in line.notes:
-                note.isontime = note.time < new_t
+    def when_timejump(self, new_t: float, is_negtive: bool):
+        if is_negtive:
+            self.chart.fast_init()
+            
+            for line in self.chart.lines:
+                for note in line.notes:
+                    note.isontime = note.time < new_t
+        else:
+            for line in self.chart.lines:
+                for nc in line.renderNotes:
+                    for note in nc:
+                        note.isontime = note.isontime or new_t - note.time > 0.5
     
     @property
     def chart_now_t(self) -> float:
         ret = mixer.music.get_pos()
-        
-        if ret < self.last_chart_now_t:
-            self.when_timejump(ret)
-        
+        self.when_timejump(ret, ret < self.last_chart_now_t)
         self.last_chart_now_t = ret
         return ret
 
@@ -754,7 +867,7 @@ def editorRender(chart_config: dict):
             "BackgroundDim": 0.6
         }
         
-        new_w, new_h = preview_area.chart_rect[2:]
+        new_w, new_h = chart_rect[2:]
         globalNoteWidth = new_w * const.NOTE_DEFAULTSIZE
         
         phicore.CoreConfigure(phicore.PhiCoreConfig(
@@ -806,8 +919,30 @@ def editorRender(chart_config: dict):
     
     nextUI = None
     preview_area = EditorPreviewArea(0.75)
+    preview_rect, chart_rect = preview_area.get_rect()
+    top_more = preview_rect[1]
+    right_more = w - preview_rect[2]
+    
+    def posm(x: float, y: float):
+        return w * (x / 1920), top_more * (y / 145)
+    
+    def getButtonPos(c: int, r: int):
+        return posm(42 * 1.1 + 63 * c * 1.3, 38 / 2 * 1.1 + 63 * r * 1.3)
+    
     updateCoreConfig()
     
+    chart_time_slider = Slider(
+        0.0, raw_audio_length, 0.0,
+        preview_rect[2] + w / 150, h / 50 + h / 100,
+        (w - preview_rect[2]) - w / 150 * 2, editor.seek_to
+    )
+    
+    globalUIManager.extend_uiitems([
+        chart_time_slider,
+        IconButton(*getButtonPos(0, 0), "setting", None),
+        IconButton(*getButtonPos(1, 0), "unpause", editor.unpause_play),
+        IconButton(*getButtonPos(2, 0), "pause", editor.pause_play)
+    ], "editorRender")
     editor.unpause_play()
     
     while True:
@@ -815,8 +950,7 @@ def editorRender(chart_config: dict):
         
         editor.update()
         editor_now_t = editor.chart_now_t
-        
-        preview_rect, chart_rect = preview_area.get_rect()
+        chart_time_slider.value = editor_now_t
         
         fillRectEx(*preview_rect, "rgb(64, 64, 64)", wait_execute=True)
         
@@ -834,6 +968,7 @@ def editorRender(chart_config: dict):
         
         phicore.processExTask(extasks)
         
+        globalUIManager.render("editorRender")
         globalUIManager.render("global")
         
         root.run_js_wait_code()

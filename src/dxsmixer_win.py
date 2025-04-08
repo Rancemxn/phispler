@@ -113,7 +113,7 @@ class musicCls:
         self._setBufferPosition(int(pos * self.dxs._sdesc.lpwfxFormat.nAvgBytesPerSec))
         
     def get_pos(self) -> float:
-        return self._getBufferPosition() / self.dxs._sdesc.lpwfxFormat.nAvgBytesPerSec
+        return (self._getBufferPosition() if not self._paused else self._pause_pos) / self.dxs._sdesc.lpwfxFormat.nAvgBytesPerSec
     
     def get_length(self) -> float:
         return self.dxs._sdesc.dwBufferBytes / self.dxs._sdesc.lpwfxFormat.nAvgBytesPerSec
