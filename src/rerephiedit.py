@@ -109,10 +109,25 @@ for chart in getConfigData("charts"):
 
 saveRRPEConfig()
 
+def get_note_max_size_half(globalNoteWidth: float):
+    note_max_width = globalNoteWidth * phira_respack.globalPack.dub_fixscale
+    note_max_height = max((
+        note_max_width / Resource["Notes"]["Tap"].width * Resource["Notes"]["Tap"].height,
+        note_max_width / Resource["Notes"]["Tap_dub"].width * Resource["Notes"]["Tap_dub"].height,
+        note_max_width / Resource["Notes"]["Drag"].width * Resource["Notes"]["Drag"].height,
+        note_max_width / Resource["Notes"]["Drag_dub"].width * Resource["Notes"]["Drag_dub"].height,
+        note_max_width / Resource["Notes"]["Flick"].width * Resource["Notes"]["Flick"].height,
+        note_max_width / Resource["Notes"]["Flick_dub"].width * Resource["Notes"]["Flick_dub"].height,
+        note_max_width / Resource["Notes"]["Hold_Head"].width * Resource["Notes"]["Hold_Head"].height,
+        note_max_width / Resource["Notes"]["Hold_Head_dub"].width * Resource["Notes"]["Hold_Head_dub"].height,
+        note_max_width / Resource["Notes"]["Hold_End"].width * Resource["Notes"]["Hold_End"].height
+    ))
+    
+    note_max_size_half = ((note_max_width ** 2 + note_max_height ** 2) ** 0.5) / 2
+    
+    return note_max_size_half
+
 def loadResource():
-    global globalNoteWidth
-    global note_max_width, note_max_height
-    global note_max_size_half
     global WaitLoading, LoadSuccess
     global chart_res
     global cksmanager
@@ -121,7 +136,6 @@ def loadResource():
     WaitLoading = mixer.Sound("./resources/WaitLoading.mp3")
     LoadSuccess = mixer.Sound("./resources/LoadSuccess.wav")
     LoadSuccess.set_volume(0.75)
-    globalNoteWidth = w * const.NOTE_DEFAULTSIZE
     
     phi_rpack = phira_respack.PhiraResourcePack("./resources/resource_packs/default")
     phi_rpack.setToGlobal()
@@ -190,19 +204,6 @@ def loadResource():
     root.unreg_res("pgrFontThin.ttf")
     
     # root.file_server.shutdown()
-    note_max_width = globalNoteWidth * phira_respack.globalPack.dub_fixscale
-    note_max_height = max((
-        note_max_width / Resource["Notes"]["Tap"].width * Resource["Notes"]["Tap"].height,
-        note_max_width / Resource["Notes"]["Tap_dub"].width * Resource["Notes"]["Tap_dub"].height,
-        note_max_width / Resource["Notes"]["Drag"].width * Resource["Notes"]["Drag"].height,
-        note_max_width / Resource["Notes"]["Drag_dub"].width * Resource["Notes"]["Drag_dub"].height,
-        note_max_width / Resource["Notes"]["Flick"].width * Resource["Notes"]["Flick"].height,
-        note_max_width / Resource["Notes"]["Flick_dub"].width * Resource["Notes"]["Flick_dub"].height,
-        note_max_width / Resource["Notes"]["Hold_Head"].width * Resource["Notes"]["Hold_Head"].height,
-        note_max_width / Resource["Notes"]["Hold_Head_dub"].width * Resource["Notes"]["Hold_Head_dub"].height,
-        note_max_width / Resource["Notes"]["Hold_End"].width * Resource["Notes"]["Hold_End"].height
-    ))
-    note_max_size_half = ((note_max_width ** 2 + note_max_height ** 2) ** 0.5) / 2
                 
     shaders = {
         "chromatic": open("./shaders/chromatic.glsl", "r", encoding="utf-8").read(),
@@ -230,32 +231,6 @@ root = webcv.WebCanvas(
     resizable = False,
     renderdemand = True, renderasync = True
 )
-
-def updateCoreConfig(chart_config: dict, editor: ChartEditor):
-    chart_information = {
-        "Name": chart_config["name"],
-        "Artist": chart_config["composer"],
-        "Level": chart_config["level"],
-        "Illustrator": chart_config["illustrator"],
-        "Charter": chart_config["charter"],
-        "BackgroundDim": 0.6
-    }
-    
-    phicore.CoreConfigure(phicore.PhiCoreConfig(
-        SETTER = lambda vn, vv: globals().update({vn: vv}),
-        root = root, w = w, h = h,
-        chart_information = chart_information,
-        chart_obj = editor.chart,
-        Resource = Resource,
-        globalNoteWidth = globalNoteWidth,
-        note_max_size_half = note_max_size_half,
-        raw_audio_length = raw_audio_length,
-        chart_res = chart_res,
-        cksmanager = cksmanager,
-        showfps = True,
-        # debug = True, 
-        combotips = "EDITOR",
-    ))
     
 class UIManager:
     def __init__(self):
@@ -671,7 +646,44 @@ class EditBaseCmd:
 class Edit_NewNote(EditBaseCmd):
     def __init__(self, note: phichart.Note):
         self.note = note
+
+class EditorPreviewArea:
+    def __init__(self, size: float):
+        self.size = size
+        self.ratio = 16 / 9
+        self.ratio = 4 / 3
     
+    def get_rect(self):
+        preview_w, preview_h = w * self.size, h * self.size
+        preview_ratio = preview_w / preview_h
+        chart_ratio = self.ratio
+        
+        if preview_ratio > chart_ratio:
+            chart_h = preview_h
+            chart_w = chart_h * chart_ratio
+        else:
+            chart_w = preview_w
+            chart_h = chart_w / chart_ratio
+
+        preview_x = 0
+        preivew_y = h - preview_h
+        
+        chart_x = preview_x + (preview_w - chart_w) / 2
+        chart_y = preivew_y + (preview_h - chart_h) / 2
+        
+        return (
+            (preview_x, preivew_y, preview_w, preview_h),
+            (chart_x, chart_y, chart_w, chart_h)
+        )
+    
+    @property
+    def preview_rect(self):
+        return self.get_rect()[0]
+    
+    @property
+    def chart_rect(self):
+        return self.get_rect()[1]
+
 def drawRPEButton(
     x: float, y: float,
     text: str, color: str,
@@ -732,6 +744,35 @@ def web_confirm(msg: str) -> bool:
 
 def editorRender(chart_config: dict):
     global raw_audio_length
+
+    def updateCoreConfig():
+        chart_information = {
+            "Name": chart_config["name"],
+            "Artist": chart_config["composer"],
+            "Level": chart_config["level"],
+            "Illustrator": chart_config["illustrator"],
+            "Charter": chart_config["charter"],
+            "BackgroundDim": 0.6
+        }
+        
+        new_w, new_h = preview_area.chart_rect[2:]
+        globalNoteWidth = new_w * const.NOTE_DEFAULTSIZE
+        
+        phicore.CoreConfigure(phicore.PhiCoreConfig(
+            SETTER = lambda vn, vv: globals().update({vn: vv}),
+            root = root, w = new_w, h = new_h,
+            chart_information = chart_information,
+            chart_obj = editor.chart,
+            Resource = Resource,
+            globalNoteWidth = globalNoteWidth,
+            note_max_size_half = get_note_max_size_half(globalNoteWidth),
+            raw_audio_length = raw_audio_length,
+            chart_res = chart_res,
+            cksmanager = cksmanager,
+            showfps = True,
+            # debug = True, 
+            combotips = "EDITOR",
+        ))
     
     mixer.music.stop()
     mixer.music.unload()
@@ -763,9 +804,10 @@ def editorRender(chart_config: dict):
     mixer.music.pause()
     
     raw_audio_length = mixer.music.get_length()
-    updateCoreConfig(chart_config, editor)
     
     nextUI = None
+    preview_area = EditorPreviewArea(0.6)
+    updateCoreConfig()
     
     editor.unpause_play()
     
@@ -773,7 +815,20 @@ def editorRender(chart_config: dict):
         clearCanvas(wait_execute=True)
         
         editor.update()
-        extasks = phicore.renderChart_Common(editor.chart_now_t, clear=False, rjc=False)
+        editor_now_t = editor.chart_now_t
+        
+        preview_rect, chart_rect = preview_area.get_rect()
+        
+        fillRectEx(*preview_rect, "rgb(64, 64, 64)", wait_execute=True)
+        
+        ctxSave(wait_execute=True)
+        ctxTranslate(*chart_rect[:2], wait_execute=True)
+        ctxBeginPath(wait_execute=True)
+        ctxRect(0, 0, *chart_rect[2:], wait_execute=True)
+        ctxClip(wait_execute=True)
+        extasks = phicore.renderChart_Common(editor_now_t, clear=False, rjc=False, need_deepbg=False)
+        ctxRestore(wait_execute=True)
+        
         phicore.processExTask(extasks)
         
         globalUIManager.render("global")

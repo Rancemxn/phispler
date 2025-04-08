@@ -524,14 +524,21 @@ def processExTask(extasks: list[tuple[str, typing.Any]]):
         
     return break_flag
 
-def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm: typing.Optional[uilts.PhigrosPlayLogicManager] = None):
+def renderChart_Common(
+    now_t: float, clear: bool = True, rjc: bool = True,
+    pplm: typing.Optional[uilts.PhigrosPlayLogicManager] = None,
+    need_deepbg: bool = True
+):
     extasks = []
     
     if clear:
         clearCanvas(wait_execute=True)
     
     rrmStart()
-    drawDeepBgAndClipScreen()
+    
+    if need_deepbg:
+        drawDeepBgAndClipScreen()
+        
     drawBg()
     
     if noplaychart:
@@ -976,7 +983,9 @@ def renderChart_Common(now_t: float, clear: bool = True, rjc: bool = True, pplm:
         background = False,
         **delDrawuiDefaultVals(attachUIData)
     )
-    undoClipScreen()
+    
+    if need_deepbg:
+        undoClipScreen()
     
     if chart_obj.extra is not None:
         extra_values = chart_obj.extra.getShaderEffect(now_t, True)

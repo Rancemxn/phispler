@@ -13,19 +13,23 @@ import tempdir
 
 type eventValueType = float|str|tuple[float, float, float]
 
-initialized_events = []
-
-def events_set_changed(es: list[LineEvent]):
-    if id(es) in initialized_events:
-        initialized_events.remove(id(es))
+initialized_events: dict[int, int] = {}
 
 def _init_events(es: list[LineEvent], *, is_speed: bool = False, is_text: bool = False, default: eventValueType = 0.0):
     if not es: return
     
-    if id(es) in initialized_events:
+    es_hash = hash((hash((
+        e.startTime,
+        e.endTime,
+        e.start,
+        e.end,
+        e.isFill
+    )) for e in es))
+    
+    if id(es) in initialized_events and initialized_events[id(es)] == es_hash:
         return
     
-    initialized_events.append(id(es))
+    initialized_events[id(es)] = es_hash
     
     es.sort(key = lambda e: e.startTime)
     
@@ -73,7 +77,7 @@ def _init_events(es: list[LineEvent], *, is_speed: bool = False, is_text: bool =
             e.floorPosotion = fp
             fp += (e.start + e.end) * (e.endTime - e.startTime) / 2
 
-def findevent(es: list[LineEvent], t: float):
+def findevent(es: list[LineEvent], t: float) -> typing.Optional[LineEvent]:
     if not es:
         return None
     
@@ -823,6 +827,8 @@ class CommonChartOptions:
     enableOverlappedNoteOptimization: bool = True
     overlappedNoteOptimizationLimit: int = 5
     
+    viewRatio: float = 16 / 9
+    
     lineWidthUnit: tuple[float, float] = (0.0, 0.0)
     lineHeightUnit: tuple[float, float] = (0.0, 0.0)
     
@@ -848,7 +854,7 @@ class CommonChart:
     options: CommonChartOptions = dataclasses.field(default_factory=CommonChartOptions)
     type: int = ChartFormat.unset
     
-    dumpVersion: int = 3
+    dumpVersion: int = 4
     
     def init(self):
         self.combotimes = []
@@ -976,6 +982,18 @@ class CommonChart:
             writer.writeInt(len(es))
             for e in es:
                 _write_dataclass(e)
+        
+        def _write_optional_bpmlist(bpms: typing.Optional[list[BPMEvent]]):
+            writer.writeBool(bpms is not None)
+            if bpms is not None:
+                writer.writeInt(len(bpms))
+                for e in bpms:
+                    writer.writeFloat(e.time)
+                    writer.writeFloat(e.bpm)
+        
+        def _write_line_sizeunit(unit: tuple[float, float]):
+            writer.writeFloat(unit[0])
+            writer.writeFloat(unit[1])
             
         writer = uilts.ByteWriter()
         writer.writeInt(self.dumpVersion)
@@ -1015,6 +1033,24 @@ class CommonChart:
                 ("start", _write_eventval),
                 ("end", _write_eventval),
                 ("ease", writer.writeEaseFunc)
+            ]),
+            (CommonChartOptions, [
+                ("holdIndependentSpeed", writer.writeBool),
+                ("holdCoverAtHead", writer.writeBool),
+                ("rpeVersion", writer.writeInt),
+                ("alwaysLineOpenAnimation", writer.writeBool),
+                ("featureFlags", writer.writeULong),
+                ("globalBpmList", _write_optional_bpmlist),
+                ("enableOverlappedNoteOptimization", writer.writeBool),
+                ("overlappedNoteOptimizationLimit", writer.writeInt),
+                ("lineWidthUnit", _write_line_sizeunit),
+                ("lineHeightUnit", _write_line_sizeunit),
+                ("res_ext_song", writer.writeOptionalString),
+                ("res_ext_background", writer.writeOptionalString),
+                ("meta_ext_name", writer.writeOptionalString),
+                ("meta_ext_composer", writer.writeOptionalString),
+                ("meta_ext_level", writer.writeOptionalString),
+                ("meta_ext_charter", writer.writeOptionalString)
             ])
         ])
         
@@ -1045,31 +1081,7 @@ class CommonChart:
             
             _write_dataclass(line)
         
-        writer.writeBool(self.options.holdIndependentSpeed)
-        writer.writeBool(self.options.holdCoverAtHead)
-        writer.writeInt(self.options.rpeVersion)
-        writer.writeBool(self.options.alwaysLineOpenAnimation)
-        writer.writeULong(self.options.featureFlags)
-        
-        writer.writeBool(self.options.globalBpmList is not None)
-        if self.options.globalBpmList is not None:
-            writer.writeInt(len(self.options.globalBpmList))
-            for bpm in self.options.globalBpmList:
-                writer.writeFloat(bpm.time)
-                writer.writeFloat(bpm.bpm)
-        
-        writer.writeBool(self.options.enableOverlappedNoteOptimization)
-        writer.writeInt(self.options.overlappedNoteOptimizationLimit)
-        writer.writeFloat(self.options.lineWidthUnit[0])
-        writer.writeFloat(self.options.lineWidthUnit[1])
-        writer.writeFloat(self.options.lineHeightUnit[0])
-        writer.writeFloat(self.options.lineHeightUnit[1])
-        writer.writeOptionalString(self.options.res_ext_song)
-        writer.writeOptionalString(self.options.res_ext_background)
-        writer.writeOptionalString(self.options.meta_ext_name)
-        writer.writeOptionalString(self.options.meta_ext_composer)
-        writer.writeOptionalString(self.options.meta_ext_level)
-        writer.writeOptionalString(self.options.meta_ext_charter)
+        _write_dataclass(self.options)
         writer.writeInt(self.type)
         
         return writer.getData()
@@ -1086,6 +1098,15 @@ class CommonChart:
             elif valtype == 1: return reader.readString()
             elif valtype == 2:
                 return [reader.readFloat() for _ in range(reader.readInt())]
+        
+        def _read_optional_bpmlist():
+            return [
+                BPMEvent(reader.readFloat(), reader.readFloat())
+                for _ in range(reader.readInt())
+            ] if reader.readBool() else None
+        
+        def _read_line_sizeunit():
+            return (reader.readFloat(), reader.readFloat())
             
         registered_dataclasses: dict[typing.Any, list[tuple[str, typing.Callable[[], typing.Any]]]] = {}
         
@@ -1094,7 +1115,7 @@ class CommonChart:
             EventLayerItem,
             ExtendEventsItem,
             BPMEvent, JudgeLine,
-            CommonChart
+            CommonChart, CommonChartOptions
         )}
         
         dataclasses_readmethod_namemap = {
@@ -1131,6 +1152,24 @@ class CommonChart:
                 "start": _read_eventval,
                 "end": _read_eventval,
                 "ease": reader.readEaseFunc
+            },
+            CommonChartOptions: {
+                "holdIndependentSpeed": reader.readBool,
+                "holdCoverAtHead": reader.readBool,
+                "rpeVersion": reader.readInt,
+                "alwaysLineOpenAnimation": reader.readBool,
+                "featureFlags": reader.readULong,
+                "globalBpmList": _read_optional_bpmlist,
+                "enableOverlappedNoteOptimization": reader.readBool,
+                "overlappedNoteOptimizationLimit": reader.readInt,
+                "lineWidthUnit": _read_line_sizeunit,
+                "lineHeightUnit": _read_line_sizeunit,
+                "res_ext_song": reader.readOptionalString,
+                "res_ext_background": reader.readOptionalString,
+                "meta_ext_name": reader.readOptionalString,
+                "meta_ext_composer": reader.readOptionalString,
+                "meta_ext_level": reader.readOptionalString,
+                "meta_ext_charter": reader.readOptionalString,
             }
         }
         
@@ -1172,6 +1211,7 @@ class CommonChart:
             for _ in range(reader.readInt()):
                 e = LineEvent()
                 _read_dataclass(e)
+                e.__post_init__()
                 result.append(e)
             return result
         
@@ -1196,13 +1236,13 @@ class CommonChart:
                 note.__post_init__()
                 line.notes.append(note)
             
-            line.eventLayers = [EventLayerItem(
+            line.eventLayers.extend([EventLayerItem(
                 alphaEvents = _read_events(),
                 moveXEvents = _read_events(),
                 moveYEvents = _read_events(),
                 rotateEvents = _read_events(),
                 speedEvents = _read_events()
-            ) for _ in range(reader.readInt())]
+            ) for _ in range(reader.readInt())])
             
             line.extendEvents.colorEvents = _read_events()
             line.extendEvents.scaleXEvents = _read_events()
@@ -1214,25 +1254,7 @@ class CommonChart:
             
             result.lines.append(line)
         
-        result.options.holdIndependentSpeed = reader.readBool()
-        result.options.holdCoverAtHead = reader.readBool()
-        result.options.rpeVersion = reader.readInt()
-        result.options.alwaysLineOpenAnimation = reader.readBool()
-        result.options.featureFlags = reader.readULong()
-        
-        if reader.readBool():
-            result.options.globalBpmList = _read_bpms()
-        
-        result.options.enableOverlappedNoteOptimization = reader.readBool()
-        result.options.overlappedNoteOptimizationLimit = reader.readInt()
-        result.options.lineWidthUnit = (reader.readFloat(), reader.readFloat())
-        result.options.lineHeightUnit = (reader.readFloat(), reader.readFloat())
-        result.options.res_ext_song = reader.readOptionalString()
-        result.options.res_ext_background = reader.readOptionalString()
-        result.options.meta_ext_name = reader.readOptionalString()
-        result.options.meta_ext_composer = reader.readOptionalString()
-        result.options.meta_ext_level = reader.readOptionalString()
-        result.options.meta_ext_charter = reader.readOptionalString()
+        _read_dataclass(result.options)
         result.type = reader.readInt()
         
         result.init()
