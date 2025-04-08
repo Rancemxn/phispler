@@ -651,7 +651,6 @@ class EditorPreviewArea:
     def __init__(self, size: float):
         self.size = size
         self.ratio = 16 / 9
-        self.ratio = 4 / 3
     
     def get_rect(self):
         preview_w, preview_h = w * self.size, h * self.size
@@ -806,7 +805,7 @@ def editorRender(chart_config: dict):
     raw_audio_length = mixer.music.get_length()
     
     nextUI = None
-    preview_area = EditorPreviewArea(0.6)
+    preview_area = EditorPreviewArea(0.75)
     updateCoreConfig()
     
     editor.unpause_play()
@@ -820,6 +819,10 @@ def editorRender(chart_config: dict):
         preview_rect, chart_rect = preview_area.get_rect()
         
         fillRectEx(*preview_rect, "rgb(64, 64, 64)", wait_execute=True)
+        
+        fillRectEx(0, 0, w, preview_rect[1], "rgb(24, 24, 24)", wait_execute=True)
+        fillRectEx(preview_rect[2], 0, w, preview_rect[1], "rgb(32, 32, 32)", wait_execute=True)
+        fillRectEx(preview_rect[2], preview_rect[1], w, h, "rgb(48, 48, 48)", wait_execute=True)
         
         ctxSave(wait_execute=True)
         ctxTranslate(*chart_rect[:2], wait_execute=True)
@@ -1191,7 +1194,7 @@ def init():
     if webcv.disengage_webview:
         socket_webviewbridge.hook(root)
 
-    w, h, webdpr, _, _ = root.init_window_size_and_position(0.6)
+    w, h, webdpr, _, _ = root.init_window_size_and_position(0.75)
     
     webdpr = root.run_js_code("window.devicePixelRatio;")
     
