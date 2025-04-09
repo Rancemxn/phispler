@@ -229,16 +229,6 @@ def loadResource():
     cksmanager = phicore.ClickSoundManager(Resource["Note_Click_Audio"])
     logging.info("Load Resource Successfully")
     return Resource
-
-logging.info("Loading Window...")
-root = webcv.WebCanvas(
-    width = 1, height = 1,
-    x = -webcv.screen_width, y = -webcv.screen_height,
-    title = "phispler - editor",
-    debug = "--debug" in sys.argv,
-    resizable = False,
-    renderdemand = True, renderasync = True
-)
     
 class UIManager:
     def __init__(self):
@@ -1346,6 +1336,17 @@ def mainRender():
                 
             Thread(target=nextUI, daemon=True).start()
             return
+
+
+logging.info("Loading Window...")
+root = webcv.WebCanvas(
+    width = 1, height = 1,
+    x = -webcv.screen_width, y = -webcv.screen_height,
+    title = "phispler - editor",
+    debug = "--debug" in sys.argv,
+    resizable = False,
+    renderdemand = True, renderasync = True
+)
 
 def init():
     global webdpr
