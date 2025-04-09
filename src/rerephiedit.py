@@ -378,8 +378,14 @@ class IconButton(BaseUI):
             self.mouse_isin = isin
     
     def mouse_down(self, x: int, y: int, _):
-        if utils.inrect(x, y, self.rect) and self.command is not None:
-            self.command()
+        if utils.inrect(x, y, self.rect):
+            if self.command is not None:
+                self.command()
+            self.scale_value_tr.target -= 0.3
+    
+    def mouse_up(self, x: int, y: int, _):
+        if utils.inrect(x, y, self.rect):
+            self.scale_value_tr.target += 0.3
 
 class Label(BaseUI):
     def __init__(
@@ -687,6 +693,7 @@ class ChartEditor:
         self.now_step_i = -1
         self.last_chart_now_t = 0
         self.paused = True
+        self.editing_line = 0
     
     def emit_command(self, command: EditBaseCmd):
         self.new_dump()
@@ -747,6 +754,7 @@ class ChartEditor:
                         note.isontime = note.isontime or new_t - note.time > 0.5
     
     @property
+    @utils.thread_lock_func
     def chart_now_t(self) -> float:
         ret = mixer.music.get_pos()
         self.when_timejump(ret, ret < self.last_chart_now_t)
@@ -881,9 +889,7 @@ def editorRender(chart_config: dict):
             raw_audio_length = raw_audio_length,
             chart_res = chart_res,
             cksmanager = cksmanager,
-            showfps = True,
-            # debug = True, 
-            combotips = "EDITOR",
+            showfps = True, debug = True,  combotips = "EDITOR",
         ))
     
     mixer.music.stop()
@@ -929,16 +935,36 @@ def editorRender(chart_config: dict):
     def getButtonPos(c: int, r: int):
         return posm(42 * 1.1 + 63 * c * 1.3, 38 / 2 * 1.1 + 63 * r * 1.3)
     
+    def seek_time(t: float):
+        update_time_show_labels()
+        editor.seek_to(t)
+    
+    def update_time_show_labels():
+        editing_line = editor.chart.lines[editor.editing_line]
+        now_t = chart_time_slider.value
+        chart_time_show_labels[0].text = f"beat: {editing_line.sec2beat(now_t):.2f}"
+        chart_time_show_labels[1].text = f"bpm: {editing_line.getBpm(now_t):.2f}"
+        chart_time_show_labels[2].text = f"{now_t:.2f}/{raw_audio_length:.2f}s"
+    
     updateCoreConfig()
     
     chart_time_slider = Slider(
         0.0, raw_audio_length, 0.0,
         preview_rect[2] + w / 150, h / 50 + h / 100,
-        (w - preview_rect[2]) - w / 150 * 2, editor.seek_to
+        (w - preview_rect[2]) - w / 150 * 2, seek_time
     )
+    
+    chart_time_show_labels_pady = h / 50
+    chart_time_show_labels = [
+        Label(chart_time_slider.x, chart_time_slider.y + chart_time_show_labels_pady, "", "white", f"{(w + h) / 150}px pgrFont", "left"),
+        Label(chart_time_slider.x + chart_time_slider.width / 2, chart_time_slider.y + chart_time_show_labels_pady, "", "white", f"{(w + h) / 150}px pgrFont", "center"),
+        Label(chart_time_slider.x + chart_time_slider.width, chart_time_slider.y + chart_time_show_labels_pady, "", "white", f"{(w + h) / 150}px pgrFont", "right")
+    ]
+    update_time_show_labels()
     
     globalUIManager.extend_uiitems([
         chart_time_slider,
+        *chart_time_show_labels,
         IconButton(*getButtonPos(0, 0), "setting", None),
         IconButton(*getButtonPos(1, 0), "unpause", editor.unpause_play),
         IconButton(*getButtonPos(2, 0), "pause", editor.pause_play)
@@ -951,6 +977,7 @@ def editorRender(chart_config: dict):
         editor.update()
         editor_now_t = editor.chart_now_t
         chart_time_slider.value = editor_now_t
+        update_time_show_labels()
         
         fillRectEx(*preview_rect, "rgb(64, 64, 64)", wait_execute=True)
         

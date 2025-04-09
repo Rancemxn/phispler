@@ -67,6 +67,10 @@ class musicCls:
         
     def unpause(self):
         # if not self._paused: return
+        
+        if not self._paused:
+            self._pause_pos = self._getBufferPosition()
+            
         self._paused = False
         
         self.buffer.Play(self.lflag)

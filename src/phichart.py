@@ -427,7 +427,9 @@ class Note(MemEq):
         self.rotate_add = 0 if self.isAbove else 180
         self.draworder = const.NOTE_RORDER_MAP[self.type]
         
-        self.masterIndex = -1
+        if not hasattr(self, "masterIndex"):
+            self.masterIndex = -1
+            
         self.nowpos = (0.0, 0.0)
         self.nowrotate = 0.0
         

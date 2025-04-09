@@ -955,4 +955,12 @@ class ValueEvent(typing.Generic[ValueEventT]):
     def wait(self) -> ValueEventT:
         self.e.wait()
         return self.value
+
+def thread_lock_func(func: typing.Callable):
+    lock = threading.Lock()
     
+    def wrapper(*args, **kwargs):
+        with lock:
+            return func(*args, **kwargs)
+        
+    return wrapper
