@@ -66,7 +66,7 @@ class musicCls:
         self._setBufferVolume(0.0)
         
     def unpause(self):
-        if not self._paused: return
+        # if not self._paused: return
         self._paused = False
         
         self.buffer.Play(self.lflag)
@@ -110,7 +110,9 @@ class musicCls:
         return self.buffer is not None and (self.buffer.GetStatus() != 0 and not self._paused)
     
     def set_pos(self, pos: float):
-        self._setBufferPosition(int(pos * self.dxs._sdesc.lpwfxFormat.nAvgBytesPerSec))
+        bufpos = int(pos * self.dxs._sdesc.lpwfxFormat.nAvgBytesPerSec)
+        self._setBufferPosition(bufpos)
+        self._pause_pos = bufpos
         
     def get_pos(self) -> float:
         return (self._getBufferPosition() if not self._paused else self._pause_pos) / self.dxs._sdesc.lpwfxFormat.nAvgBytesPerSec
