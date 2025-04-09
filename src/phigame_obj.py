@@ -9,7 +9,7 @@ import uuid
 
 from PIL import Image
 
-import uilts
+import utils
 import const
 import rpe_easing
 import dxsound
@@ -49,22 +49,22 @@ class EventManager:
         self.releaseEvents: list[ReleaseEvent] = []
     
     def _callClickCallback(self, e: ClickEvent, x: int, y: int) -> None:
-        if uilts.inrect(x, y, e.rect):
+        if utils.inrect(x, y, e.rect):
             e.callback(x, y)
             if e.once:
                 self.unregEvent(e)
                 
-    @uilts.runByThread
+    @utils.runByThread
     def click(self, x: int, y: int) -> None:
         for e in self.clickEvents:
             self._callClickCallback(e, x, y)
             
-    @uilts.runByThread
+    @utils.runByThread
     def move(self, x: int, y: int) -> None:
         for e in self.moveEvents:
             e.callback(x, y)
     
-    @uilts.runByThread
+    @utils.runByThread
     def release(self, x: int, y: int) -> None:
         for e in self.releaseEvents:
             e.callback(x, y)
@@ -255,7 +255,7 @@ class SettingState:
         st = self.aSTime
         et = self.aSTime + self.atime
         p = (time.time() - st) / (et - st)
-        p = uilts.fixorp(p)
+        p = utils.fixorp(p)
         p = self._ease_slow(p)
         return p * (ev - sv) + sv
     
@@ -267,7 +267,7 @@ class SettingState:
         st = self.aSTime
         et = self.aSTime + self.atime
         p = (time.time() - st) / (et - st)
-        p = uilts.fixorp(p)
+        p = utils.fixorp(p)
         p = self._ease_fast(p)
         return p * (ev - sv) + sv
     
@@ -279,7 +279,7 @@ class SettingState:
         st = self.aSTime
         et = self.aSTime + self.atime
         p = (time.time() - st) / (et - st)
-        p = uilts.fixorp(p)
+        p = utils.fixorp(p)
         p = self._ease_slow(p)
         return p * (ev - sv) + sv
     
@@ -298,7 +298,7 @@ class SettingState:
             st = self.aSTime
             et = self.aSTime + self.atime
             p = (time.time() - st) / (et - st)
-            p = uilts.fixorp(p)
+            p = utils.fixorp(p)
             
             # 这里奇怪的算法: 为了视觉上好看和还原一点
             absv = abs(self.aFrom - self.aTo) if self.aFrom != self.aTo else 1.0
@@ -320,10 +320,10 @@ class SettingState:
             st = self.aSTime
             et = self.aSTime + self.atime
             p = (time.time() - st) / (et - st)
-            p = uilts.fixorp(p)
+            p = utils.fixorp(p)
             p = self._ease_slow(p)
             
-            return uilts.linear_interpolation(p, 0.0, 1.0, 1.175, 1.0) if self.aFrom == t else uilts.linear_interpolation(p, 0.0, 1.0, 1.0, 1.175)
+            return utils.linear_interpolation(p, 0.0, 1.0, 1.175, 1.0) if self.aFrom == t else utils.linear_interpolation(p, 0.0, 1.0, 1.0, 1.175)
     
     def getShadowRect(self):
         sv = const.PHIGROS_SETTING_SHADOW_XRECT_MAP[self.aFrom]
@@ -333,7 +333,7 @@ class SettingState:
         st = self.aSTime
         et = self.aSTime + self.atime
         p = (time.time() - st) / (et - st)
-        p = uilts.fixorp(p)
+        p = utils.fixorp(p)
         p = self._ease_slow(p)
         return (
             p * (ev[0] - sv[0]) + sv[0],
@@ -363,7 +363,7 @@ class SettingState:
         st = self.aSTime
         et = self.aSTime + self.atime
         p = (time.time() - st) / (et - st) if self.aSTime != float("-inf") else 1.0
-        p = uilts.fixorp(p)
+        p = utils.fixorp(p)
         p = self._ease_slow(p)
         
         drawPlaySettingDx = self.getSettingDx(shadowRectLeft, w, const.PHIGROS_SETTING_STATE.PLAY)
@@ -432,14 +432,14 @@ class PhiSlider(PhiBaseWidget):
     
     def _SliderEvent(self, x: int, y: int):
         if not self._mouseDown or (
-            uilts.inrect(x, y, self.rconButtonRect)
-            or uilts.inrect(x, y, self.lconButtonRect)
+            utils.inrect(x, y, self.rconButtonRect)
+            or utils.inrect(x, y, self.lconButtonRect)
         ):
             return
         
         p = (x - self.sliderRect[0]) / (self.sliderRect[2] - self.sliderRect[0])
         p = 0.0 if p < 0.02 else (1.0 if p > 0.97 else p)
-        v = uilts.sliderValueValue(p, self.number_points)
+        v = utils.sliderValueValue(p, self.number_points)
         if self.sliderUnit != self.sliderUnit: # nan
             self.value = v
         else:
@@ -450,10 +450,10 @@ class PhiSlider(PhiBaseWidget):
         self._fixValue()
     
     def _ConButtonEvent(self, x: int, y: int):
-        if uilts.inrect(x, y, self.lconButtonRect):
+        if utils.inrect(x, y, self.lconButtonRect):
             self.value -= self.conUnit
             
-        elif uilts.inrect(x, y, self.rconButtonRect):
+        elif utils.inrect(x, y, self.rconButtonRect):
             self.value += self.conUnit
         
         self._fixValue()
@@ -472,9 +472,9 @@ class PhiSlider(PhiBaseWidget):
     
     def InRect(self, x: int, y: int):
         return any([
-            uilts.inrect(x, y, self.sliderRect),
-            uilts.inrect(x, y, self.lconButtonRect),
-            uilts.inrect(x, y, self.rconButtonRect)
+            utils.inrect(x, y, self.sliderRect),
+            utils.inrect(x, y, self.lconButtonRect),
+            utils.inrect(x, y, self.rconButtonRect)
         ])
     
 @dataclass
@@ -499,7 +499,7 @@ class PhiCheckbox(PhiBaseWidget):
         self._mouseDown = False
     
     def InRect(self, x: int, y: int):
-        return uilts.inrect(x, y, self.checkboxRect)
+        return utils.inrect(x, y, self.checkboxRect)
 
 @dataclass
 class PhiButton(PhiBaseWidget):
@@ -517,7 +517,7 @@ class PhiButton(PhiBaseWidget):
             self.command()
 
     def InRect(self, x: int, y: int):
-        return uilts.inrect(x, y, self.buttonRect)
+        return utils.inrect(x, y, self.buttonRect)
 
 class WidgetEventManager:
     def __init__(self, widgets: list[PhiBaseWidget], condition: typing.Callable[[int, int], bool]):
@@ -787,12 +787,12 @@ class ChooseChartControler:
             w * -0.009375, 0,
             w * 0.4921875, h
         )
-        self._chartsShadowRectDPower = uilts.getDPower(*uilts.getSizeByRect(self._chartsShadowRect), 75)
+        self._chartsShadowRectDPower = utils.getDPower(*utils.getSizeByRect(self._chartsShadowRect), 75)
         self._previewBgRect = (
             w * 0.4375, h * (219 / 1080),
             w * 0.9453125, h * (733 / 1080)
         )
-        self._previewBgRectDPower = uilts.getDPower(*uilts.getSizeByRect(self._previewBgRect), 75)
+        self._previewBgRectDPower = utils.getDPower(*utils.getSizeByRect(self._previewBgRect), 75)
         
         self.changeUisound = changeUisound
         self.itemHeight = h * (120 / 1080)
@@ -802,11 +802,11 @@ class ChooseChartControler:
         self._slideControl = SlideControler(
             eventRect = [
                 (
-                    (lambda x, y: uilts.indrect(x, y, self._chartsShadowRect, self._chartsShadowRectDPower) and y > h * (123 / 1080)),
+                    (lambda x, y: utils.indrect(x, y, self._chartsShadowRect, self._chartsShadowRectDPower) and y > h * (123 / 1080)),
                     1.0
                 ),
                 (
-                    (lambda x, y: uilts.indrect(x, y, self._previewBgRect, self._previewBgRectDPower)),
+                    (lambda x, y: utils.indrect(x, y, self._previewBgRect, self._previewBgRectDPower)),
                     0.2
                 )
             ],
@@ -935,7 +935,7 @@ class ChooseChartControler:
         
         return myevent
     
-    @uilts.runByThread
+    @utils.runByThread
     def _start_preview(self):
         myevent = self._toae()
         song = self.chapter.scsd_songs[self.vaildNowIndex]
@@ -956,7 +956,7 @@ class ChooseChartControler:
         if not myevent.is_set() or self._released:
             return
         
-        mixer.music.load(uilts.gtpresp(song.preview), needlength=False)
+        mixer.music.load(utils.gtpresp(song.preview), needlength=False)
         if not myevent.is_set() or self._released: return
         mixer.music.play()
         mixer.music.set_volume(0.0)
@@ -977,7 +977,7 @@ class ChooseChartControler:
         
         mixer.music.set_volume(1.0)
     
-    @uilts.runByThread
+    @utils.runByThread
     def _preview_checker(self):
         while not self._released:
             time.sleep(1 / 10)
@@ -1156,7 +1156,7 @@ class valueTranformer:
         if p > 1.0:
             self._value = self._target_value
         else:
-            self._value = uilts.easing_interpolation(
+            self._value = utils.easing_interpolation(
                 p, 0.0, 1.0,
                 self._last_value, self._target_value,
                 self.ease

@@ -5,7 +5,7 @@ import time
 from sys import argv
 
 import dxsound
-import uilts
+import utils
 
 class musicCls:
     def __init__(self):
@@ -73,7 +73,7 @@ class musicCls:
         self._setBufferVolume(self._pause_volume)            
         self._setBufferPosition(self._pause_pos)
     
-    @uilts.runByThread
+    @utils.runByThread
     def fadeout(self, t: int):
         if self._paused: return
         

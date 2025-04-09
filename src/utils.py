@@ -19,7 +19,7 @@ import phira_respack
 import tempdir
 import webcv
 import graplib_webview
-from light_uilts import *
+from light_utils import *
 
 note_id = -1
 random_block_num = eval(argv[argv.index("--random-block-num") + 1]) if "--random-block-num" in argv else 4

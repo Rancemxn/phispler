@@ -22,7 +22,7 @@ from pydub import AudioSegment
 import webcv
 import dxsound
 import const
-import uilts
+import utils
 import dialog
 import info_loader
 import ppr_help
@@ -125,7 +125,7 @@ files_dict = {
 chartimages = {}
 cfrfp_procer: typing.Callable[[str], str] = lambda x: x.replace(f"{temp_dir}/", "")
 
-for item in uilts.getAllFiles(temp_dir):
+for item in utils.getAllFiles(temp_dir):
     if item.endswith("info.txt") or item.endswith("info.csv") or item.endswith("info.yml") or item.endswith("extra.json") or item.endswith(".glsl"):
         continue
     
@@ -346,8 +346,8 @@ def loadResource():
                 ]
                 
                 for p in paths:
-                    if uilts.fileinlist(p, imfns):
-                        texture_index = uilts.findfileinlist(p, imfns)
+                    if utils.fileinlist(p, imfns):
+                        texture_index = utils.findfileinlist(p, imfns)
                         texture: Image.Image = imobjs[texture_index]
                         chart_res[line.texture] = (texture.convert("RGBA"), texture.size)
                         logging.info(f"Loaded line texture {line.texture}")
@@ -359,7 +359,7 @@ def loadResource():
                     
                 respacker.reg_img(chart_res[line.texture][0], f"lineTexture_{line.index}")
             else:
-                h264data, size = uilts.video2h264(f"{temp_dir}/{line.texture}")
+                h264data, size = utils.video2h264(f"{temp_dir}/{line.texture}")
                 chart_res[line.texture] = (None, size)
                 name = f"lineTexture_{line.index}"
                 root.reg_res(h264data, f"{name}.mp4")
@@ -420,8 +420,8 @@ def loadResource():
             for effect in chart_obj.extra.effects:
                 if effect.shader not in shaders.keys():
                     try:
-                        shaders[effect.shader] = uilts.fixShader(open(f"{temp_dir}/{effect.shader}", "r", encoding="utf-8").read())
-                        const.EXTRA_DEFAULTS[effect.shader] = uilts.getShaderDefault(shaders[effect.shader])
+                        shaders[effect.shader] = utils.fixShader(open(f"{temp_dir}/{effect.shader}", "r", encoding="utf-8").read())
+                        const.EXTRA_DEFAULTS[effect.shader] = utils.getShaderDefault(shaders[effect.shader])
                     except Exception as e:
                         logging.warning(f"Cannot load shader {effect.shader} due to {e}")
             
@@ -454,7 +454,7 @@ def showStart():
     while time.time() - animationst < 1.0:
         clearCanvas(wait_execute=True)
         p = (time.time() - animationst) / 1.0
-        dle_warn(1.0 - (1.0 - uilts.fixorp(p)) ** 4)
+        dle_warn(1.0 - (1.0 - utils.fixorp(p)) ** 4)
         root.run_js_wait_code()
     
     time.sleep(0.35)
@@ -464,7 +464,7 @@ def showStart():
         clearCanvas(wait_execute=True)
         phicore.drawBg()
         p = (time.time() - animationst) / 1.0
-        dle_warn((uilts.fixorp(p) - 1.0) ** 4)
+        dle_warn((utils.fixorp(p) - 1.0) ** 4)
         root.run_js_wait_code()
     
     time.sleep(0.25)
@@ -476,7 +476,7 @@ def showStart():
 def checkOffset(now_t: float):
     global show_start_time
     
-    dt = uilts.checkOffset(now_t, raw_audio_length, mixer)
+    dt = utils.checkOffset(now_t, raw_audio_length, mixer)
     if dt != 0.0:
         show_start_time += dt
         updateCoreConfig()
@@ -502,8 +502,8 @@ def playerStart():
         if noautoplay:
             pplm_proxy = phichart.PPLMProxy_CommonChart(chart_obj)
             
-            pppsm = uilts.PhigrosPlayManager(chart_obj.note_num)
-            pplm = uilts.PhigrosPlayLogicManager(
+            pppsm = utils.PhigrosPlayManager(chart_obj.note_num)
+            pplm = utils.PhigrosPlayLogicManager(
                 pplm_proxy, pppsm,
                 enable_clicksound, lambda nt: Resource["Note_Click_Audio"][nt].play(),
                 globalNoteWidth * const.MPBJUDGE_RANGE_X,
@@ -526,7 +526,7 @@ def playerStart():
         
         def _f(): nonlocal play_restart_flag; play_restart_flag = True
         
-        @uilts.runByThread
+        @utils.runByThread
         def space():
             global show_start_time
             nonlocal pause_flag, pause_st
@@ -542,7 +542,7 @@ def playerStart():
                 pause_flag = False
         
         choosing_dump = False
-        @uilts.runByThread
+        @utils.runByThread
         def dumpChart():
             nonlocal choosing_dump
             if noautoplay or choosing_dump: return
@@ -610,7 +610,7 @@ def playerStart():
         needrelease.add(writer.release)
         
         def writeFrame(data: bytes):
-            matlike = uilts.bytes2matlike(data, w, h)
+            matlike = utils.bytes2matlike(data, w, h)
             writer.write(matlike)
         
         wcv2matlike.callback = writeFrame

@@ -8,7 +8,7 @@ import dataclasses
 
 import const
 import rpe_easing
-import uilts
+import utils
 import tempdir
 
 type eventValueType = float|str|tuple[float, float, float]
@@ -174,7 +174,7 @@ class ChartFormat:
             formatVersion = 3
         
         if formatVersion == 2:
-            data = uilts.fv22fv3(data)
+            data = utils.fv22fv3(data)
         
         result = CommonChart()
         result.type = ChartFormat.phi
@@ -212,8 +212,8 @@ class ChartFormat:
                 for json_e in json_line.get("judgeLineMoveEvents", []):
                     json_e: dict
                     
-                    json_e["start"], json_e["start2"] = uilts.unpack_pos(json_e.get("start", 0))
-                    json_e["end"], json_e["end2"] = uilts.unpack_pos(json_e.get("end", 0))
+                    json_e["start"], json_e["start2"] = utils.unpack_pos(json_e.get("start", 0))
+                    json_e["end"], json_e["end2"] = utils.unpack_pos(json_e.get("end", 0))
             
             elayer = EventLayerItem()
             _put_events(elayer.alphaEvents, json_line.get("judgeLineDisappearEvents", []), lambda x: x)
@@ -279,12 +279,12 @@ class ChartFormat:
                 easingType = json_e.get("easingType", 1)
                 bezier = json_e.get("bezier", False)
                 bezierPoints = json_e.get("bezierPoints", [0.0])
-                easingFunc = geteasing_func(easingType) if not bezier else uilts.createBezierFunction(bezierPoints)
+                easingFunc = geteasing_func(easingType) if not bezier else utils.createBezierFunction(bezierPoints)
                 easingLeft = max(0.0, min(1.0, json_e.get("easingLeft", 0.0)))
                 easingRight = max(0.0, min(1.0, json_e.get("easingRight", 1.0)))
                 
                 if easingLeft != 0.0 or easingRight != 1.0:
-                    easingFunc = uilts.createCuttingEasingFunction(easingFunc, easingLeft, easingRight)
+                    easingFunc = utils.createCuttingEasingFunction(easingFunc, easingLeft, easingRight)
             
                 es.append(LineEvent(
                     startTime = _beat2sec(line, json_e.get("startTime", [0, 0, 1])),
@@ -389,7 +389,7 @@ class ChartFormat:
     
     @staticmethod
     def load_pec(data: str):
-        return ChartFormat.load_rpe(uilts.pec2rpe(data))
+        return ChartFormat.load_rpe(utils.pec2rpe(data))
 
 @dataclasses.dataclass
 class MemEq:
@@ -475,7 +475,7 @@ class Note(MemEq):
         self.effect_times = []
         self.effect_times.append((
             self.time,
-            uilts.newRandomBlocks(),
+            utils.newRandomBlocks(),
             self.getNoteClickPos(self.time)
         ))
         
@@ -487,7 +487,7 @@ class Note(MemEq):
                 
                 self.effect_times.append((
                     t,
-                    uilts.newRandomBlocks(),
+                    utils.newRandomBlocks(),
                     self.getNoteClickPos(t)
                 ))
         
@@ -507,7 +507,7 @@ class Note(MemEq):
             nonlocal cached, cachedata
             
             if cached: return cachedata
-            cached, cachedata = True, uilts.rotate_point(
+            cached, cachedata = True, utils.rotate_point(
                 linePos[0] * w, linePos[1] * h,
                 lineRotate, self.positionX * w
             )
@@ -529,11 +529,11 @@ class LineEvent(MemEq):
     
     def __post_init__(self):
         if isinstance(self.start, int|float):
-            self.get = lambda t: uilts.easing_interpolation(t, self.startTime, self.endTime, self.start, self.end, self.ease)
+            self.get = lambda t: utils.easing_interpolation(t, self.startTime, self.endTime, self.start, self.end, self.ease)
         elif isinstance(self.start, str):
-            self.get = lambda t: uilts.rpe_text_tween(self.start, self.end, uilts.easing_interpolation(t, 0.0, 1.0, 0.0, 1.0, self.ease), self.isFill)
+            self.get = lambda t: utils.rpe_text_tween(self.start, self.end, utils.easing_interpolation(t, 0.0, 1.0, 0.0, 1.0, self.ease), self.isFill)
         elif isinstance(self.start, typing.Iterable):
-            self.get = lambda t: tuple(uilts.easing_interpolation(t, self.startTime, self.endTime, self.start[i], self.end[i], self.ease) for i in range(len(self.start)))
+            self.get = lambda t: tuple(utils.easing_interpolation(t, self.startTime, self.endTime, self.start[i], self.end[i], self.ease) for i in range(len(self.start)))
         else:
             raise ValueError(f"Invalid event value type: {type(self.start)}")
     
@@ -659,10 +659,10 @@ class JudgeLine(MemEq):
                 return list(map(lambda v1, v2: v1 + v2, fatherPos, linePos))
             
             return list(map(lambda v1, v2: v1 + v2, fatherPos,
-                uilts.rotate_point(
+                utils.rotate_point(
                     0.0, 0.0,
                     90 - (math.degrees(math.atan2(*linePos)) + fatherRotate),
-                    uilts.getLineLength(*linePos, 0.0, 0.0)
+                    utils.getLineLength(*linePos, 0.0, 0.0)
                 )
             ))
         
@@ -812,7 +812,7 @@ class CommonChartOptionFeatureFlags:
 posCoverters = {
     ChartFormat.unset: lambda pos: pos,
     ChartFormat.phi: lambda pos: pos,
-    ChartFormat.rpe: uilts.conrpepos
+    ChartFormat.rpe: utils.conrpepos
 }
 
 @dataclasses.dataclass
@@ -995,7 +995,7 @@ class CommonChart:
             writer.writeFloat(unit[0])
             writer.writeFloat(unit[1])
             
-        writer = uilts.ByteWriter()
+        writer = utils.ByteWriter()
         writer.writeInt(self.dumpVersion)
         writer.writeFloat(self.offset)
         
@@ -1088,7 +1088,7 @@ class CommonChart:
 
     @staticmethod
     def loaddump(data: bytes):
-        reader = uilts.ByteReader(data)
+        reader = utils.ByteReader(data)
         if (v := reader.readInt()) != CommonChart.dumpVersion:
             raise ValueError(f"bad dump version: {v}(bpc) != {CommonChart.dumpVersion}")
         
@@ -1260,7 +1260,7 @@ class CommonChart:
         result.init()
         return result
 
-class PPLMProxy_CommonChart(uilts.PPLM_ProxyBase):
+class PPLMProxy_CommonChart(utils.PPLM_ProxyBase):
     def __init__(self, cobj: CommonChart): self.cobj = cobj
     
     def get_lines(self) -> list[JudgeLine]: return self.cobj.lines
@@ -1344,9 +1344,9 @@ class ExtraVar:
         self.ease = geteasing_func(self.easingType)
         
         if isinstance(self.start, int|float):
-            self.get = lambda t: uilts.easing_interpolation(t, self.startTime, self.endTime, self.start, self.end, self.ease)
+            self.get = lambda t: utils.easing_interpolation(t, self.startTime, self.endTime, self.start, self.end, self.ease)
         elif isinstance(self.start, typing.Iterable):
-            self.get = lambda t: tuple(uilts.easing_interpolation(t, self.startTime, self.endTime, self.start[i], self.end[i], self.ease) for i in range(len(self.start)))
+            self.get = lambda t: tuple(utils.easing_interpolation(t, self.startTime, self.endTime, self.start[i], self.end[i], self.ease) for i in range(len(self.start)))
         else:
             raise ValueError(f"Invalid event value type: {type(self.start)}")
     
@@ -1390,7 +1390,7 @@ class ExtraVideo:
             logging.warning(f"Invalid scale type {self.scale} for video {self.path}")
             self.scale = "cropCenter"
         
-        self.h264data, self.size = uilts.video2h264(f"{tempdir.createTempDir()}/{self.path}")
+        self.h264data, self.size = utils.video2h264(f"{tempdir.createTempDir()}/{self.path}")
         self.unqique_id = f"extra_video_{random.randint(0, 2 << 31)}"
 
 @dataclasses.dataclass

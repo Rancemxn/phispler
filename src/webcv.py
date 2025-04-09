@@ -22,7 +22,7 @@ if not disengage_webview: import webview
 from PIL import Image
 
 import graplib_webview
-import uilts
+import utils
 
 if not disengage_webview:
     from ctypes import windll
@@ -396,7 +396,7 @@ class WebCanvas:
         else:
             self.web_hwnd = -1
         
-        self.fileserver_port = uilts.getNewPort()
+        self.fileserver_port = utils.getNewPort()
         WebCanvas_FileServerHandler._canvas = self
         self.file_server = http.server.HTTPServer(("", self.fileserver_port), WebCanvas_FileServerHandler)
         threading.Thread(target=self.file_server.serve_forever, daemon=True).start()

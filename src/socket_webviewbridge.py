@@ -8,11 +8,11 @@ import websockets
 import json
 import logging
 
-import uilts
+import utils
 
 def start_server(window: webcv.WebCanvas, addr: str, port: int):
-    client = uilts.ValueEvent()
-    tasks: dict[int, uilts.ValueEvent] = {}
+    client = utils.ValueEvent()
+    tasks: dict[int, utils.ValueEvent] = {}
     
     async def main_logic(ws: websockets.WebSocketServerProtocol, path: str):
         nonlocal client
@@ -37,7 +37,7 @@ def start_server(window: webcv.WebCanvas, addr: str, port: int):
         *args, **kwargs
     ):
         tid = random.randint(0, 2 << 31)
-        tasks[tid] = uilts.ValueEvent()
+        tasks[tid] = utils.ValueEvent()
         
         protocol: websockets.WebSocketServerProtocol = client.wait()
         
