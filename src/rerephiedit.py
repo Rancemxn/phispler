@@ -674,6 +674,180 @@ class Slider(BaseUI):
     def mouse_up(self, x: int, y: int, _):
         self._ismousedown = False
     
+class WindowBar(BaseUI):
+    def __init__(self):
+        _create_color_tr = lambda: tuple(phigame_obj.valueTranformer(rpe_easing.ease_funcs[9]) for _ in range(4))
+        self.butsize = (44, 34)
+        self._ismousedown = False
+        self._iszoomed = False
+        self.buttons = [
+            {"tag": "minimize", "bg_tr": _create_color_tr(), "foucs_color": (255, 255, 255, 1 / 3)},
+            {"tag": "maximize", "bg_tr": _create_color_tr(), "foucs_color": (255, 255, 255, 1 / 3)},
+            {"tag": "close", "bg_tr": _create_color_tr(), "foucs_color": (255, 16, 16, 1)}
+        ]
+        
+        for i, button in enumerate(reversed(self.buttons)):
+            left_x = w - (i + 1) * self.butsize[0]
+            rect = (
+                left_x, 0,
+                *self.butsize 
+            )
+            button["rect"] = rect
+            self._set_color_tr(button["bg_tr"], (0, 0, 0, 0))
+    
+    def _set_color_tr(self, trs: tuple[phigame_obj.valueTranformer], color: tuple[float]):
+        for i in range(len(trs)):
+            if trs[i].target != color[i]:
+                trs[i].target = color[i]
+    
+    def _fix_color(self, color: tuple[float]):
+        return (
+            max(0, min(255, color[0])),
+            max(0, min(255, color[1])),
+            max(0, min(255, color[2])),
+            max(0, min(1, color[3]))
+        )
+    
+    def _more_light(self, color: tuple[float], x: float):
+        return self._fix_color((
+            color[0] + x,
+            color[1] + x,
+            color[2] + x,
+            color[3] + x / 255
+        ))
+    
+    def _more_dark(self, color: tuple[float], x: float):
+        return self._fix_color((
+            color[0] - x,
+            color[1] - x,
+            color[2] - x,
+            color[3] + x / 255
+        ))
+    
+    def _butpos(self, rect: tuple[float], x: float, y: float, dx: float = 0, dy: float = 0):
+        return (
+            int(rect[0] + rect[2] * x + dx),
+            int(rect[1] + rect[3] * y + dy)
+        )
+    
+    def _drawLine(self, x1: float, y1: float, x2: float, y2: float, width: float, color: str, i: int = 1):
+        for _ in range(i):
+            drawLine(x1, y1, x2, y2, width, color, wait_execute=True)
+    
+    def _strokeRectEx(self, x: float, y: float, width: float, height: float, color: str, lwidth: float, i: int = 1):
+        for _ in range(i):
+            strokeRectEx(x, y, width, height, color, lwidth, wait_execute=True)
+    
+    def render(self):
+        lw = 1
+        
+        for i, button in enumerate(reversed(self.buttons)):
+            fillRectEx(*button["rect"], f"rgba{tuple(tr.value for tr in button["bg_tr"])}", wait_execute=True)
+            
+            match button["tag"]:
+                case "minimize":
+                    self._drawLine(
+                        *self._butpos(button["rect"], 0.35, 0.5),
+                        *self._butpos(button["rect"], 0.65, 0.5),
+                        lw,
+                        "white",
+                        2
+                    )
+                
+                case "maximize":
+                    if not self._iszoomed:
+                        me_lhh = 5
+                        
+                        self._strokeRectEx(
+                            *self._butpos(button["rect"], 0.5, 0.5, -me_lhh, -me_lhh),
+                            me_lhh * 2, me_lhh * 2,
+                            "white",
+                            lw,
+                            2
+                        )
+                    else:
+                        me_lhh = 3.8
+                        d = 1.9
+                        me_lh = ((me_lhh ** 2) / 2) ** 0.5
+                        
+                        self._strokeRectEx(
+                            *self._butpos(button["rect"], 0.5, 0.5, -me_lhh - d, -me_lhh + d),
+                            me_lhh * 2, me_lhh * 2,
+                            "white",
+                            lw,
+                            2
+                        )
+                        
+                        self._drawLine(
+                            *self._butpos(button["rect"], 0.5, 0.5, -me_lhh - d + me_lh / 2, -me_lhh + d),
+                            *self._butpos(button["rect"], 0.5, 0.5, -me_lhh - d + me_lh / 2, -me_lhh + d - me_lh / 5),
+                            lw,
+                            "white",
+                            2
+                        )
+                        
+                        self._drawLine(
+                            *self._butpos(button["rect"], 0.5, 0.5, -me_lhh - d + me_lh / 2, -me_lhh + d - me_lh / 5),
+                            *self._butpos(button["rect"], 0.5, 0.5, -me_lhh - d + me_lh + me_lh / 4, -me_lhh + d - me_lh / 5),
+                            lw,
+                            "white",
+                            2
+                        )
+                        
+                        self._drawLine(
+                            *self._butpos(button["rect"], 0.5, 0.5, -me_lhh - d + me_lh + me_lh / 4, -me_lhh + d - me_lh / 5),
+                            *self._butpos(button["rect"], 0.5, 0.5, -me_lhh - d + me_lh + me_lh / 4, -me_lhh + d),
+                            lw,
+                            "white",
+                            2
+                        )
+                        
+                        self._drawLine(
+                            *self._butpos(button["rect"], 0.5, 0.5, -me_lhh - d + me_lh + me_lhh / 4, -me_lh + d),
+                            *self._butpos(button["rect"], 0.5, 0.5, -me_lhh - d + me_lh, -me_lhh + d),
+                            lw,
+                            "white",
+                            2
+                        )
+
+                case "close":
+                    close_lhh = 5
+                    
+                    self._drawLine(
+                        *self._butpos(button["rect"], 0.5, 0.5, -close_lhh, -close_lhh),
+                        *self._butpos(button["rect"], 0.5, 0.5, close_lhh, close_lhh),
+                        lw,
+                        "white"
+                    )
+                    
+                    self._drawLine(
+                        *self._butpos(button["rect"], 0.5, 0.5, -close_lhh, close_lhh),
+                        *self._butpos(button["rect"], 0.5, 0.5, close_lhh, -close_lhh),
+                        lw,
+                        "white"
+                    )
+    
+    def mouse_move(self, x: int, y: int):
+        for button in self.buttons:
+            if utils.inrect(x, y, utils.xywh_rect2_xxyy(button["rect"])):
+                if not self._ismousedown:
+                    self._set_color_tr(button["bg_tr"], button["foucs_color"])
+                else:
+                    if button["tag"] != "close":
+                        self._set_color_tr(button["bg_tr"], self._more_light(button["foucs_color"], 32))
+                    else:
+                        self._set_color_tr(button["bg_tr"], self._more_dark(button["foucs_color"], 64))
+            else:
+                self._set_color_tr(button["bg_tr"], (0, 0, 0, 0))
+    
+    def mouse_down(self, x: int, y: int, _):
+        self._ismousedown = True
+        self.mouse_move(x, y)
+    
+    def mouse_up(self, x: int, y: int, _):
+        self._ismousedown = False
+        self.mouse_move(x, y)
+
 class ChartEditor:
     def __init__(self, chart: phichart.CommonChart):
         self.chart = chart
@@ -1345,7 +1519,8 @@ root = webcv.WebCanvas(
     title = "phispler - editor",
     debug = "--debug" in sys.argv,
     resizable = False,
-    renderdemand = True, renderasync = True
+    renderdemand = True, renderasync = True,
+    frameless = True
 )
 
 def init():
@@ -1371,7 +1546,7 @@ def init():
     globalUIManager.bind_events()
     
     globalMsgShower = MessageShower()
-    globalUIManager.extend_uiitems([globalMsgShower], "global")
+    globalUIManager.extend_uiitems([globalMsgShower, WindowBar()], "global")
     
     Resource = loadResource()
 

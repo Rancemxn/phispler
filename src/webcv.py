@@ -372,7 +372,7 @@ class WebCanvas:
             resizable = resizable,
             js_api = self.jsapi,
             frameless = frameless,
-            hidden = hidden
+            hidden = hidden,
         ) if not disengage_webview else None
         self.evaljs = lambda x, *args, **kwargs: (self.web.evaluate_js(x) if not disengage_webview else None)
         self.init = lambda func: (self._init(width, height, x, y), func())
