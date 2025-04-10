@@ -272,12 +272,20 @@ class UIManager:
             
         self.uiItems.extend(items)
     
-    def remove_uiitems(self, tag: str):
+    def remove_ui_bytag(self, tag: str):
         for ui in self.uiItems.copy():
             if ui.tag == tag:
                 self._check_ui(ui)
                 ui.when_remove()
                 self.uiItems.remove(ui)
+    
+    def remove_ui(self, ui: BaseUI):
+        for ui2 in self.uiItems.copy():
+            if ui2 is ui:
+                self._check_ui(ui)
+                ui.when_remove()
+                self.uiItems.remove(ui2)
+                return
     
     def get_input_value_bytag(self, tag: str):
         for ui in self.uiItems:
@@ -351,6 +359,7 @@ class Button(BaseUI):
             self.mouse_isin = isin
     
     def mouse_down(self, x: int, y: int, _):
+        self.mouse_move(x, y)
         if utils.inrect(x, y, self.rect) and self.command is not None:
             if self.test is None or self.test(x, y):
                 self.command(x, y)
@@ -729,10 +738,10 @@ class ButtonList(BaseUI):
         self.width = width
         self.height = height
         
-        self.butheight = h / 15
+        self.butheight = h / 30
         self.fontsize = fontsize
-        self.pady = h / 50
-        self.padx = w / 50
+        self.pady = h / 75
+        self.padx = w / 75
         
         self.buts = [
             Button(
@@ -740,17 +749,10 @@ class ButtonList(BaseUI):
                 butcfg["text"], "skyblue",
                 butcfg["command"],
                 size = apos1k(width - self.padx * 2, self.butheight),
-                fontscale = 0.7
+                fontscale = 0.5
             )
             for i, butcfg in enumerate(buts)
         ]
-        
-        self.search_input = Input(
-            x + self.padx, y + self.pady,
-            "", height * 0.8,
-            width - self.padx * 2,
-            self.butheight * 0.6
-        )
         
         self.set_scroll(0.0)
     
@@ -761,7 +763,7 @@ class ButtonList(BaseUI):
         ctxBeginPath(wait_execute=True)
         ctxRect(0, self.y + self.pady, w, h - self.pady * 2, wait_execute=True)
         ctxClip(wait_execute=True)
-        self.master.render_items([self.search_input, *self.buts])
+        self.master.render_items(self.buts)
         ctxRestore(wait_execute=True)
     
     def set_master(self, master: UIManager):
@@ -772,7 +774,7 @@ class ButtonList(BaseUI):
     
     def set_scroll(self, scroll: float):
         for i in self.buts:
-            i.dy = -scroll + self.pady + self.butheight
+            i.dy = -scroll + self.pady
 
 class ChartEditor:
     def __init__(self, chart: phichart.CommonChart):
@@ -1044,17 +1046,19 @@ def editorRender(chart_config: dict):
         chart_time_show_labels[2].text = f"{now_t:.2f}/{raw_audio_length:.2f}s"
     
     def popupMenu():
-        globalUIManager.extend_uiitems([ModalUI(
-            [ButtonList(
-                0, 0, w / 5, h,
-                [
-                    {"text": "关闭菜单", "command": None},
-                    {"text": "回到主界面", "command": None},
-                    {"text": "保存", "command": None},
-                    {"text": "另存为", "command": None},
-                ], (w + h) / 150
-            )]
-        )], "modal")
+        butlst = ButtonList(
+            0, 0, w / 6, h,
+            [
+                {"text": "关闭菜单", "command": lambda *_: globalUIManager.remove_ui(modal)},
+                {"text": "保存并返回主界面", "command": None},
+                {"text": "保存", "command": None},
+                {"text": "另存为", "command": None},
+            ], (w + h) / 150
+        )
+        
+        modal = ModalUI([butlst])
+        
+        globalUIManager.extend_uiitems([modal], "modal")
     
     updateCoreConfig()
     
@@ -1111,7 +1115,7 @@ def editorRender(chart_config: dict):
         root.run_js_wait_code()
         
         if nextUI is not None:
-            globalUIManager.remove_uiitems("editorRender")
+            globalUIManager.remove_ui_bytag("editorRender")
             respacker.unload(respacker.getnames())
             Thread(target=nextUI, daemon=True).start()
             return
@@ -1159,7 +1163,7 @@ def mainRender():
         def _cancal(*_):
             nonlocal createChartData
             
-            globalUIManager.remove_uiitems("mainRender-createChart")
+            globalUIManager.remove_ui_bytag("mainRender-createChart")
             createChartData = None
         
         def _confirm(*_):
@@ -1228,7 +1232,7 @@ def mainRender():
             saveRRPEConfig()
             needUpdateIllus = True
             
-            globalUIManager.remove_uiitems("mainRender-createChart")
+            globalUIManager.remove_ui_bytag("mainRender-createChart")
             createChartData = None
         
         globalUIManager.extend_uiitems(utils.unfold_list([
@@ -1448,7 +1452,7 @@ def mainRender():
             needUpdateIllus = False
         
         if nextUI is not None:
-            globalUIManager.remove_uiitems("mainRender")
+            globalUIManager.remove_ui_bytag("mainRender")
             dxsmixer_unix.mixer.music.fadeout(250)
             
             if illuPacker is not None:
