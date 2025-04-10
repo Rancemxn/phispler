@@ -160,7 +160,7 @@ def loadResource():
             k: Image.open(f"./resources/bytedance_icons/{k}.png")
             for k in (
                 "pause", "unpause",
-                "setting"
+                "setting", "menu"
             )
         },
         "Retry": Image.open("./resources/Retry.png"),
@@ -234,10 +234,13 @@ class UIManager:
     def __init__(self):
         self.uiItems: list[BaseUI] = []
     
+    def _check_ui(self, ui: BaseUI):
+        ui.set_master(self)
+    
     def bind_events(self):
         def _bind_event(name: str, target_name: str, args_eval: str):
             apiname = f"uim_event_{target_name}"
-            root.jsapi.set_attr(apiname, lambda *args: self._event_proxy(target_name, *args))
+            root.jsapi.set_attr(apiname, lambda *args: self.event_proxy(self.uiItems, target_name, *args))
             root.run_js_code(f"window.addEventListener(\"{name}\", e => pywebview.api.call_attr(\"{apiname}\", {args_eval}));")
         
         _bind_event("mousemove", "mouse_move", "e.x, e.y")
@@ -246,26 +249,35 @@ class UIManager:
         _bind_event("wheel", "mouse_wheel", "e.x, e.y, e.deltaY")
         _bind_event("keydown", "key_down", "e.key")
     
-    def render(self, tag: str):
-        for ui in self.uiItems:
-            if ui.tag == tag:
-                ui.render()
+    def render_bytag(self, tag: str):
+        self.render_items([ui for ui in self.uiItems if ui.tag == tag])
     
-    def _event_proxy(self, name: str, *args):
-        for ui in self.uiItems:
+    def render_items(self, uis: list[BaseUI]):
+        for ui in uis:
+            self._check_ui(ui)
+            ui.render()
+    
+    def event_proxy(self, uis: list[BaseUI], name: str, *args):
+        for ui in reversed(uis):
+            self._check_ui(ui)
             getattr(ui, name)(*args)
+            ui.event_proxy(name, *args)
+            if ui.break_event_chain():
+                break
     
     def extend_uiitems(self, items: list[BaseUI], tag: str):
-        for item in items:
-            item.tag = tag
+        for ui in items:
+            ui.tag = tag
+            self._check_ui(ui)
             
         self.uiItems.extend(items)
     
     def remove_uiitems(self, tag: str):
-        for i in self.uiItems.copy():
-            if i.tag == tag:
-                i.when_remove()
-                self.uiItems.remove(i)
+        for ui in self.uiItems.copy():
+            if ui.tag == tag:
+                self._check_ui(ui)
+                ui.when_remove()
+                self.uiItems.remove(ui)
     
     def get_input_value_bytag(self, tag: str):
         for ui in self.uiItems:
@@ -283,7 +295,11 @@ class BaseUI:
     def key_down(self, k: str): ...
     def key_up(self, k: int): ...
     def when_remove(self): ...
-
+    
+    def set_master(self, master: UIManager): ...
+    def break_event_chain(self) -> bool: return False
+    def event_proxy(self, name: str, *args): ...
+    
 class Button(BaseUI):
     def __init__(
         self,
@@ -294,8 +310,10 @@ class Button(BaseUI):
         size: typing.Optional[tuple[int, int]] = None,
         fontscale: float = 1.0,
     ):
-        self.x = x
-        self.y = y
+        self._x = x
+        self._y = y
+        self.dx = 0
+        self.dy = 0
         self.text = text
         self.color = color
         self.fontscale = fontscale
@@ -307,6 +325,14 @@ class Button(BaseUI):
         
         self.scale_value_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[9], 0.3)
         self.scale_value_tr.target = 1.0
+    
+    @property
+    def x(self):
+        return self._x + self.dx
+    
+    @property
+    def y(self):
+        return self._y + self.dy
     
     def render(self):
         self.rect = drawRPEButton(
@@ -673,7 +699,81 @@ class Slider(BaseUI):
     
     def mouse_up(self, x: int, y: int, _):
         self._ismousedown = False
+
+class ModalUI(BaseUI):
+    def __init__(self, uis: list[BaseUI], mark_color: str = "black"):
+        self.uis = uis
+        self.mark_color = mark_color
+        
+    def render(self):
+        ctxSave(wait_execute=True)
+        ctxMutGlobalAlpha(0.4, wait_execute=True)
+        fillRectEx(0, 0, w, h, self.mark_color, wait_execute=True)
+        ctxRestore(wait_execute=True)
+        
+        self.master.render_items(self.uis)
     
+    def set_master(self, master: UIManager):
+        self.master = master
+        
+    def break_event_chain(self):
+        return True
+    
+    def event_proxy(self, name: str, *args):
+        self.master.event_proxy(self.uis, name, *args)
+        
+class ButtonList(BaseUI):
+    def __init__(self, x: float, y: float, width: float, height: float, buts: list[dict], fontsize: float):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        
+        self.butheight = h / 15
+        self.fontsize = fontsize
+        self.pady = h / 50
+        self.padx = w / 50
+        
+        self.buts = [
+            Button(
+                x + self.padx, y + self.pady + i * (self.butheight + self.pady),
+                butcfg["text"], "skyblue",
+                butcfg["command"],
+                size = apos1k(width - self.padx * 2, self.butheight),
+                fontscale = 0.7
+            )
+            for i, butcfg in enumerate(buts)
+        ]
+        
+        self.search_input = Input(
+            x + self.padx, y + self.pady,
+            "", height * 0.8,
+            width - self.padx * 2,
+            self.butheight * 0.6
+        )
+        
+        self.set_scroll(0.0)
+    
+    def render(self):
+        fillRectEx(self.x, self.y, self.width, self.height, "#7474ff", wait_execute=True)
+        
+        ctxSave(wait_execute=True)
+        ctxBeginPath(wait_execute=True)
+        ctxRect(0, self.y + self.pady, w, h - self.pady * 2, wait_execute=True)
+        ctxClip(wait_execute=True)
+        self.master.render_items([self.search_input, *self.buts])
+        ctxRestore(wait_execute=True)
+    
+    def set_master(self, master: UIManager):
+        self.master = master
+    
+    def event_proxy(self, name: str, *args):
+        self.master.event_proxy(self.buts, name, *args)
+    
+    def set_scroll(self, scroll: float):
+        for i in self.buts:
+            i.dy = -scroll + self.pady + self.butheight
+
 class ChartEditor:
     def __init__(self, chart: phichart.CommonChart):
         self.chart = chart
@@ -836,6 +936,9 @@ def drawRPEButton(
 def pos1k(x: float, y: float):
     return w * (x / 1920), h * (y / 1080)
 
+def apos1k(x: float, y: float):
+    return x / w * 1920, y / h * 1080
+
 def createNewChartId():
     dt = datetime.datetime.now()
     return f"{dt.year}.{dt.month}.{dt.day}.{dt.hour}.{dt.minute}.{dt.second}.{dt.microsecond}-{random.randint(0, 1024)}"
@@ -851,6 +954,10 @@ def web_prompt(msg: str) -> typing.Optional[str]:
 
 def web_confirm(msg: str) -> bool:
     return root.run_js_code(f"confirm({root.string2sctring_hqm(msg)});")
+
+def renderGlobalItems():
+    globalUIManager.render_bytag("modal")
+    globalUIManager.render_bytag("global")
 
 def editorRender(chart_config: dict):
     global raw_audio_length
@@ -936,6 +1043,19 @@ def editorRender(chart_config: dict):
         chart_time_show_labels[1].text = f"bpm: {editing_line.getBpm(now_t):.2f}"
         chart_time_show_labels[2].text = f"{now_t:.2f}/{raw_audio_length:.2f}s"
     
+    def popupMenu():
+        globalUIManager.extend_uiitems([ModalUI(
+            [ButtonList(
+                0, 0, w / 5, h,
+                [
+                    {"text": "关闭菜单", "command": None},
+                    {"text": "回到主界面", "command": None},
+                    {"text": "保存", "command": None},
+                    {"text": "另存为", "command": None},
+                ], (w + h) / 150
+            )]
+        )], "modal")
+    
     updateCoreConfig()
     
     chart_time_slider = Slider(
@@ -955,7 +1075,7 @@ def editorRender(chart_config: dict):
     globalUIManager.extend_uiitems([
         chart_time_slider,
         *chart_time_show_labels,
-        IconButton(*getButtonPos(0, 0), "setting", None),
+        IconButton(*getButtonPos(0, 0), "menu", popupMenu),
         IconButton(*getButtonPos(1, 0), "unpause", editor.unpause_play),
         IconButton(*getButtonPos(2, 0), "pause", editor.pause_play)
     ], "editorRender")
@@ -985,8 +1105,8 @@ def editorRender(chart_config: dict):
         
         phicore.processExTask(extasks)
         
-        globalUIManager.render("editorRender")
-        globalUIManager.render("global")
+        globalUIManager.render_bytag("editorRender")
+        renderGlobalItems()
         
         root.run_js_wait_code()
         
@@ -1301,7 +1421,7 @@ def mainRender():
                     wait_execute=True
                 )
         
-        globalUIManager.render("mainRender")
+        globalUIManager.render_bytag("mainRender")
         
         if createChartData is not None:
             fillRectEx(0, 0, w, h, "rgba(0, 0, 0, 0.2)", wait_execute=True)
@@ -1317,9 +1437,9 @@ def mainRender():
                 wait_execute = True
             )
             
-            globalUIManager.render("mainRender-createChart")
+            globalUIManager.render_bytag("mainRender-createChart")
         
-        globalUIManager.render("global")
+        renderGlobalItems()
         
         root.run_js_wait_code()
         
