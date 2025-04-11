@@ -480,6 +480,7 @@ class MessageShower(BaseUI):
         self.max_show_time = 2.0
         self.padding_y = h / 50
     
+    @utils.thread_lock_func
     def render(self):
         for msg in self.msgs.copy():
             if time.time() - msg.st > self.max_show_time + msg.left_tr.animation_time:
@@ -528,6 +529,7 @@ class MessageShower(BaseUI):
             
             ctxRestore(wait_execute=True)
     
+    @utils.thread_lock_func(lock=render.lock)
     def submit(self, msg: Message):
         vaild_msgs = [i for i in self.msgs if not i.timeout]
         
@@ -795,8 +797,10 @@ class ButtonList(BaseUI):
                 i.dy = -scroll + self.pady
 
 class ChartEditor:
-    def __init__(self, chart: phichart.CommonChart):
+    def __init__(self, chart: phichart.CommonChart, chart_config: dict):
         self.chart = chart
+        self.chart_config = chart_config
+        self.chart_dir = f"{CHARTS_PATH}/{chart_config["id"]}"
         
         self.step_dumps: list[bytes] = []
         self.can_undo = False
@@ -870,6 +874,25 @@ class ChartEditor:
         self.when_timejump(ret, ret < self.last_chart_now_t)
         self.last_chart_now_t = ret
         return ret
+    
+    @utils.thread_lock_func
+    def new_save(self):
+        globalMsgShower.submit(Message(f"保存...", Message.INFO_COLOR))
+        
+        try: mkdir(f"{self.chart_dir}/baks")
+        except Exception as e: logging.error(f"baks mkdir failed: {e}")
+    
+        dt = datetime.datetime.now()
+        fn = f"{dt.year}.{dt.month}.{dt.day}.{dt.hour}.{dt.minute}.{dt.second}.{dt.microsecond}.bpc"
+        dmp = self.chart.dump()
+        
+        with open(f"{self.chart_dir}/baks/{fn}", "wb") as f:
+            f.write(dmp)
+        
+        with open(f"{self.chart_config["chartPath"]}", "wb") as f:
+            f.write(dmp)
+        
+        globalMsgShower.submit(Message(f"保存成功, 已创建备份文件: {fn}", Message.INFO_COLOR))
 
 class EditBaseCmd:
     ...
@@ -1013,7 +1036,7 @@ def editorRender(chart_config: dict):
     mixer.music.unload()
     
     chart = phichart.CommonChart.loaddump(open(chart_config["chartPath"], "rb").read())
-    editor = ChartEditor(chart)
+    editor = ChartEditor(chart, chart_config)
     
     respacker = webcv.LazyPILResPacker(root)
     
@@ -1069,7 +1092,7 @@ def editorRender(chart_config: dict):
             [
                 {"text": "关闭菜单", "command": lambda *_: globalUIManager.remove_ui(modal)},
                 None,
-                {"text": "保存", "command": None},
+                {"text": "保存", "command": lambda *_: editor.new_save()},
                 {"text": "另存为", "command": None},
                 None,
                 {"text": "保存并返回主界面", "command": None},
