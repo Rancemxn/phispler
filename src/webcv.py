@@ -473,8 +473,7 @@ class WebCanvas:
             self._raevent.clear()
             threading.Thread(target=self._rjwc, args=(codes, ), daemon=True).start()
     
-    def string2cstring(self, code: str): return code.replace("\\", "\\\\").replace("'", "\\'").replace("\"", "\\\"").replace("`", "\\`").replace("\n", "\\n")
-    def string2sctring_hqm(self, code: str): return f"'{self.string2cstring(code)}'"
+    string2sctring_hqm = repr
     def get_framerate(self) -> int|float: return self._framerate
     
     def get_img_jsvarname(self, imname: str):

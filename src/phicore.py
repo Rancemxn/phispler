@@ -658,7 +658,7 @@ def renderChart_Common(
             elif lineText is not None:
                 root.run_js_code(
                     f"ctx.drawRPEMultipleRotateText(\
-                        '{root.string2cstring(lineText)}',\
+                        '{root.string2sctring_hqm(lineText)}',\
                         {linePos[0]},\
                         {linePos[1]},\
                         {lineRotate},\

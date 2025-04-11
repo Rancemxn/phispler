@@ -473,6 +473,9 @@ class Input(BaseUI):
     def when_remove(self):
         self.removed = True
         root.run_js_code(f"removeCanvasInput({self.id})")
+    
+    def set_text(self, value: str):
+        root.run_js_code(f"setCanvasInputText({self.id}, {root.string2sctring_hqm(value)})")
 
 class MessageShower(BaseUI):
     def __init__(self):

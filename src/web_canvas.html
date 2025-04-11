@@ -719,6 +719,11 @@ void main() {
         canvasInputEles.delete(id);
     }
 
+    function setCanvasInputText(id, value) {
+        if (!canvasInputEles.has(id)) return;
+        canvasInputEles.get(id).value = value;
+    }
+
     Image.prototype.enable_lazy_load = function (real_srcs) {
         this._enabled_lazy_load = true;
         this._lazy_realsrcs = real_srcs;
