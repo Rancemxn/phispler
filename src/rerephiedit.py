@@ -16,7 +16,7 @@ import typing
 import random
 import math
 import hashlib
-from threading import Thread
+from threading import Thread, Timer
 from os import popen, mkdir
 from os.path import exists, isfile
 from shutil import rmtree
@@ -755,15 +755,31 @@ class ButtonList(BaseUI):
         ]
         
         self.set_scroll(0.0)
+        self.w_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[9])
+        self.h_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[9])
+        self.a_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[15])
+        self.w_tr.target = 0.0
+        self.h_tr.target = 0.0
+        self.a_tr.target = 0.0
+        self.w_tr.target = 1.0
+        self.h_tr.target = 1.0
+        self.a_tr.target = 1.0
     
     def render(self):
-        fillRectEx(self.x, self.y, self.width, self.height, "#7474ff", wait_execute=True)
+        ctxSave(wait_execute=True)
+        ctxTranslate(self.x, self.y, wait_execute=True)
+        ctxScale(self.w_tr.value, self.h_tr.value, wait_execute=True)
+        ctxMutGlobalAlpha(self.a_tr.value, wait_execute=True)
+        
+        fillRectEx(0, 0, self.width, self.height, "#7474ff", wait_execute=True)
         
         ctxSave(wait_execute=True)
         ctxBeginPath(wait_execute=True)
         ctxRect(0, self.y + self.pady, w, h - self.pady * 2, wait_execute=True)
         ctxClip(wait_execute=True)
         self.master.render_items(self.buts)
+        ctxRestore(wait_execute=True)
+        
         ctxRestore(wait_execute=True)
     
     def set_master(self, master: UIManager):
