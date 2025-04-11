@@ -609,19 +609,24 @@ def playerStart():
         )
         needrelease.add(writer.release)
         
-        def writeFrame(data: bytes):
-            matlike = utils.bytes2matlike(data, w, h)
-            writer.write(matlike)
+        def writeFrame(frames: list[bytes]):
+            for data in frames:
+                matlike = utils.bytes2matlike(data, w, h)
+                writer.write(matlike)
         
         wcv2matlike.callback = writeFrame
         httpd, port = wcv2matlike.createServer()
+        
+        root.run_js_code(f"initUploadFrame(30, 'http://127.0.0.1:{port}/');")
         
         now_t = 0.0
         while now_t < raw_audio_length + chart_obj.offset:
             extasks = phicore.renderChart_Common(now_t, None)
                 
-            root.wait_jspromise(f"uploadFrame('http://127.0.0.1:{port}/');")
+            root.wait_jspromise("uploadFrame();")
             now_t += 1 / render_video_fps
+        
+        root.wait_jspromise("upload_all_frames(true);")
         
         httpd.shutdown()
         writer.release()

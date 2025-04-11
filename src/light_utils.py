@@ -884,6 +884,9 @@ class ByteReader:
     
     def readInt(self):
         return struct.unpack("<i", self.read(4))[0]
+
+    def readUInt(self):
+        return struct.unpack("<I", self.read(4))[0]
     
     def readULong(self):
         return struct.unpack("<Q", self.read(8))[0]

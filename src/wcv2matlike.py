@@ -13,9 +13,18 @@ class ArrayBufferHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "*")
         self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+        
         data = self.rfile.read(int(self.headers["Content-Length"]))
-        callback(data)
+        reader = utils.ByteReader(data)
+        
+        frame_num = reader.readUInt()
+        frame_size = reader.readUInt()
+        
+        callback([reader.read(frame_size) for _ in range(frame_num)])
+        
         self.end_headers()
+        self.wfile.write(b"{}")
+        self.wfile.flush()
         
     def log_request(self, *args, **kwargs) -> None: ...
     
