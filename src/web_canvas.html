@@ -383,33 +383,41 @@ void main() {
 
     upload_all_frames_promise = null;
     async function upload_all_frames(last_call = false) {
-        frames = upload_frames.map(rgba2bgr);
+        frames = upload_frames.concat([]);
+        upload_frames.length = 0;
 
         if (upload_all_frames_promise !== null) {
             await upload_all_frames_promise;
             upload_all_frames_promise = null;
         }
 
-        pm = fetch(upload_frame_url, {
-            method: "POST",
-            body: new Blob([
-                new Uint32Array([
-                    frames.length,
-                    frames[0].length
-                ]),
-                ...frames
-            ])
-        });
+        pm = (async () => {
+            console.log(frames);
+            frames = frames.map(temp_ctx => rgba2bgr(temp_ctx.getImageData(0, 0, canvas_ele.width, canvas_ele.height).data));
+            return await fetch(upload_frame_url, {
+                method: "POST",
+                body: new Blob([
+                    new Uint32Array([
+                        frames.length,
+                        frames[0].length
+                    ]),
+                    ...frames
+                ])
+            })
+        })();
 
         if (!last_call) upload_all_frames_promise = pm;
         else await pm;
-
-        upload_frames = [];
     }
 
     async function uploadFrame() {
         try {
-            upload_frames.push(ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data);
+            const temp_cv = document.createElement("canvas");
+            temp_cv.width = canvas_ele.width;
+            temp_cv.height = canvas_ele.height;
+            const temp_ctx = temp_cv.getContext("2d");
+            temp_ctx.drawImage(ctx.canvas, 0, 0);
+            upload_frames.push(temp_ctx);
 
             if (upload_frames.length >= upload_frame_cache_limit) {
                 await upload_all_frames();
@@ -654,7 +662,7 @@ void main() {
     }
 
     function toLowQualityImage(im) {
-        if (im.tagName && im.tagName.toLowerCase() == "video") return im;
+        if (im.tagName && ["videos", "canvas"].includes(im.tagName.toLowerCase())) return im;
         if (im.nobitmap_tag) return im;
         if (lowquality_imweakmap.has(im)) return lowquality_imweakmap.get(im);
 
