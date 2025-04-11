@@ -878,21 +878,24 @@ class ChartEditor:
     @utils.thread_lock_func
     def new_save(self):
         globalMsgShower.submit(Message(f"保存...", Message.INFO_COLOR))
-        
-        try: mkdir(f"{self.chart_dir}/baks")
-        except Exception as e: logging.error(f"baks mkdir failed: {e}")
-    
-        dt = datetime.datetime.now()
-        fn = f"{dt.year}.{dt.month}.{dt.day}.{dt.hour}.{dt.minute}.{dt.second}.{dt.microsecond}.bpc"
         dmp = self.chart.dump()
-        
-        with open(f"{self.chart_dir}/baks/{fn}", "wb") as f:
-            f.write(dmp)
         
         with open(f"{self.chart_config["chartPath"]}", "wb") as f:
             f.write(dmp)
         
-        globalMsgShower.submit(Message(f"保存成功, 已创建备份文件: {fn}", Message.INFO_COLOR))
+        self.new_bak(dmp)
+    
+    def new_bak(self, dmp: bytes):
+        try: mkdir(f"{self.chart_dir}/baks")
+        except Exception as e: logging.error(f"baks mkdir failed: {e}")
+        
+        dt = datetime.datetime.now()
+        fn = f"{dt.year}.{dt.month}.{dt.day}.{dt.hour}.{dt.minute}.{dt.second}.{dt.microsecond}.bpc"
+        
+        with open(f"{self.chart_dir}/baks/{fn}", "wb") as f:
+            f.write(dmp)
+            
+        globalMsgShower.submit(Message(f"已创建备份文件: {fn}", Message.INFO_COLOR))
 
 class EditBaseCmd:
     ...
@@ -1087,16 +1090,32 @@ def editorRender(chart_config: dict):
         chart_time_show_labels[2].text = f"{now_t:.2f}/{raw_audio_length:.2f}s"
     
     def popupMenu():
+        def _close_menu():
+            globalUIManager.remove_ui(modal)
+            
+        def _back_tomain(*, isnosave: bool = False):
+            nonlocal nextUI
+            
+            if isnosave:
+                if not web_confirm(f"确定不保存并返回主界面？\n如果有未保存的更改，它们将会丢失！！！"):
+                    return
+            
+                globalMsgShower.submit(Message("你说得对, 但是还是我们还是准备给你创建一个备份...", Message.WARNING_COLOR))
+                editor.new_bak(editor.chart.dump())
+            
+            nextUI = mainRender
+            _close_menu()
+            
         butlst = ButtonList(
             0, 0, w / 6, h,
             [
-                {"text": "关闭菜单", "command": lambda *_: globalUIManager.remove_ui(modal)},
+                {"text": "关闭菜单", "command": lambda *_: _close_menu()},
                 None,
                 {"text": "保存", "command": lambda *_: editor.new_save()},
                 {"text": "另存为", "command": None},
                 None,
-                {"text": "保存并返回主界面", "command": None},
-                {"text": "不保存并返回主界面", "command": None},
+                {"text": "保存并返回主界面", "command": lambda *_: (editor.new_save(), _back_tomain(), _close_menu())},
+                {"text": "不保存并返回主界面", "command": lambda *_: _back_tomain(isnosave=True)},
             ], (w + h) / 150
         )
         
@@ -1161,6 +1180,7 @@ def editorRender(chart_config: dict):
         if nextUI is not None:
             globalUIManager.remove_ui_bytag("editorRender")
             respacker.unload(respacker.getnames())
+            mixer.music.fadeout(250)
             Thread(target=nextUI, daemon=True).start()
             return
 
