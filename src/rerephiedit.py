@@ -732,7 +732,7 @@ class ModalUI(BaseUI):
         self.master.event_proxy(self.uis, name, *args)
         
 class ButtonList(BaseUI):
-    def __init__(self, x: float, y: float, width: float, height: float, buts: list[dict], fontsize: float):
+    def __init__(self, x: float, y: float, width: float, height: float, buts: list[typing.Optional[dict]], fontsize: float):
         self.x = x
         self.y = y
         self.width = width
@@ -745,13 +745,14 @@ class ButtonList(BaseUI):
         
         self.buts = [
             Button(
-                x + self.padx, y + self.pady + i * (self.butheight + self.pady),
+                x + self.padx, y + self.pady + sum([(self.butheight + self.pady) * (1.0 if j is not None else 0.4) for j in buts[:i]]),
                 butcfg["text"], "skyblue",
                 butcfg["command"],
                 size = apos1k(width - self.padx * 2, self.butheight),
                 fontscale = 0.5
             )
             for i, butcfg in enumerate(buts)
+            if butcfg is not None
         ]
         
         self.set_scroll(0.0)
@@ -790,7 +791,8 @@ class ButtonList(BaseUI):
     
     def set_scroll(self, scroll: float):
         for i in self.buts:
-            i.dy = -scroll + self.pady
+            if i is not None:
+                i.dy = -scroll + self.pady
 
 class ChartEditor:
     def __init__(self, chart: phichart.CommonChart):
@@ -1066,9 +1068,12 @@ def editorRender(chart_config: dict):
             0, 0, w / 6, h,
             [
                 {"text": "关闭菜单", "command": lambda *_: globalUIManager.remove_ui(modal)},
-                {"text": "保存并返回主界面", "command": None},
+                None,
                 {"text": "保存", "command": None},
                 {"text": "另存为", "command": None},
+                None,
+                {"text": "保存并返回主界面", "command": None},
+                {"text": "不保存并返回主界面", "command": None},
             ], (w + h) / 150
         )
         
