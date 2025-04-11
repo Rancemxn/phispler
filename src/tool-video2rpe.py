@@ -28,10 +28,10 @@ def getLine(x: float, y: float, o: int):
     l = tool_example_rpechart.line.copy()
     l["zOrder"] = o
     
-    l["eventLayers"][0]["moveXEvents"]["start"] = x
-    l["eventLayers"][0]["moveXEvents"]["end"] = x
-    l["eventLayers"][0]["moveYEvents"]["end"] = y
-    l["eventLayers"][0]["moveYEvents"]["end"] = y
+    l["eventLayers"][0]["moveXEvents"][0]["start"] = x
+    l["eventLayers"][0]["moveXEvents"][0]["end"] = x
+    l["eventLayers"][0]["moveYEvents"][0]["end"] = y
+    l["eventLayers"][0]["moveYEvents"][0]["end"] = y
     
     l["extended"]["colorEvents"] = []
     l["extended"]["textEvents"] = [tool_example_rpechart.ne("■", "■", [0, 0, 1], [1, 0, 1])]
