@@ -1298,6 +1298,10 @@ def mainRender():
             except Exception: logging.error(f"chart mkdir failed: {e}")
             
             chart_obj = phichart.CommonChart(lines=[phichart.JudgeLine(bpms=[phichart.BPMEvent(0, chart_config["stdBpm"])]) for _ in range(int(createChartData["chartLines"]))])
+            
+            for i, line in enumerate(chart_obj.lines):
+                line.index = i
+            
             chart_obj.type = phichart.ChartFormat.rpe
             chart_obj.options.globalBpmList = [phichart.BPMEvent(0, chart_config["stdBpm"])]
             chart_obj.init()
