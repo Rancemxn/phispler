@@ -72,4 +72,4 @@ while True:
 
 video.release()
 with open(argv[2], "w", encoding="utf-8") as f:
-    json.dump(rpeChart, f, ensure_ascii=False)
+    json.dump(rpeChart, f, ensure_ascii=False, separators=(",", ":"))

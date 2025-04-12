@@ -1,14 +1,9 @@
 ne = lambda s, e, st, et: {
-    "bezier": 0,
-    "bezierPoints": [0.0, 0.0, 0.0, 0.0],
-    "easingLeft": 0.0,
-    "easingRight": 1.0,
     "easingType": 1,
     "start": e,
     "startTime": st,
     "end": s,
     "endTime": et,
-    "linkgroup": 0
 }
 
 line = {
@@ -30,21 +25,8 @@ line = {
         }
     ],
     "extended": {
-        "inclineEvents": [
-                {
-                    "bezier": 0,
-                    "bezierPoints": [0.0, 0.0, 0.0, 0.0],
-                    "easingLeft": 0.0,
-                    "easingRight": 1.0,
-                    "easingType": 0,
-                    "end": 0.0,
-                    "endTime": [1, 0, 1],
-                    "linkgroup": 0,
-                    "start": 0.0,
-                    "startTime": [0, 0, 1]
-                }
-            ],
-        },
+        "inclineEvents": [ne(0.0, 0.0, [0, 0, 1], [1, 0, 1])],
+    },
     "father": -1,
     "isCover": 1,
     "notes": [],
