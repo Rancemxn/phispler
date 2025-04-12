@@ -374,6 +374,9 @@ def loadResource():
             root.reg_res(video.h264data, f"{video.unqique_id}.mp4")
             root.wait_jspromise(f"loadvideo(\"{root.get_resource_path(f"{video.unqique_id}.mp4")}\", '{video.unqique_id}_img');")
         
+        for k, v in chart_res.items():
+            chart_res[k] = (None, v[1])
+        
     root.reg_res(open("./resources/font.ttf", "rb").read(), "pgrFont.ttf")
     root.reg_res(open("./resources/font-thin.ttf", "rb").read(), "pgrFontThin.ttf")
     respacker.load(*respacker.pack())

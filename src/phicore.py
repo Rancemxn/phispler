@@ -76,7 +76,7 @@ class PhiCoreConfig:
     note_max_size_half: float
     raw_audio_length: float
     
-    chart_res: dict[str, tuple[Image.Image, tuple[int, int]]]
+    chart_res: dict[str, tuple[typing.Optional[Image.Image], tuple[int, int]]]
     cksmanager: ClickSoundManager
     clickeffect_randomblock_roundn: float = 0.0
     enable_clicksound: bool = True
