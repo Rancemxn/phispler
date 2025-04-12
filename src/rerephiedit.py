@@ -1297,8 +1297,9 @@ def mainRender():
             try: mkdir(f"{CHARTS_PATH}/{chart_id}")
             except Exception: logging.error(f"chart mkdir failed: {e}")
             
-            chart_obj = phichart.CommonChart(lines=[phichart.JudgeLine() for _ in range(int(createChartData["chartLines"]))])
+            chart_obj = phichart.CommonChart(lines=[phichart.JudgeLine(bpms=[phichart.BPMEvent(0, chart_config["stdBpm"])]) for _ in range(int(createChartData["chartLines"]))])
             chart_obj.type = phichart.ChartFormat.rpe
+            chart_obj.options.globalBpmList = [phichart.BPMEvent(0, chart_config["stdBpm"])]
             chart_obj.init()
             
             with open(f"{CHARTS_PATH}/{chart_id}/chart.bpc", "wb") as f:

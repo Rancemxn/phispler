@@ -771,7 +771,7 @@ class JudgeLine(MemEq):
             else:
                 return e.bpm
         
-        assert False, "Unreachable"
+        return -1.0
 
 class BinaryFlagsGeneric:
     def __init__(self):
