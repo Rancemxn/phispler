@@ -718,6 +718,7 @@ class ModalUI(BaseUI):
     def __init__(self, uis: list[BaseUI], mark_color: str = "black"):
         self.uis = uis
         self.mark_color = mark_color
+        self.bec = True
         
     def render(self):
         ctxSave(wait_execute=True)
@@ -731,7 +732,7 @@ class ModalUI(BaseUI):
         self.master = master
         
     def break_event_chain(self):
-        return True
+        return self.bec
     
     def event_proxy(self, name: str, *args):
         self.master.event_proxy(self.uis, name, *args)
@@ -764,12 +765,16 @@ class ButtonList(BaseUI):
         self.w_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[9])
         self.h_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[9])
         self.a_tr = phigame_obj.valueTranformer(rpe_easing.ease_funcs[15])
-        self.w_tr.target = 0.0
-        self.h_tr.target = 0.0
-        self.a_tr.target = 0.0
-        self.w_tr.target = 1.0
-        self.h_tr.target = 1.0
-        self.a_tr.target = 1.0
+        self._set_trs()
+        self._set_trs(1.0, 1.0, 1.0)
+    
+    def _set_trs(self, w: float = 0.0, h: float = 0.0, a: float = 0.0, at: float = 0.5):
+        self.w_tr.animation_time = at
+        self.h_tr.animation_time = at
+        self.a_tr.animation_time = at
+        self.w_tr.target = w
+        self.h_tr.target = h
+        self.a_tr.target = a
     
     def render(self):
         ctxSave(wait_execute=True)
@@ -798,6 +803,10 @@ class ButtonList(BaseUI):
         for i in self.buts:
             if i is not None:
                 i.dy = -scroll + self.pady
+    
+    def delete_ui(self, callback: typing.Callable[[], typing.Any]):
+        self._set_trs(at=0.4)
+        Timer(self.w_tr.animation_time, callback).start()
 
 class ChartEditor:
     def __init__(self, chart: phichart.CommonChart, chart_config: dict):
@@ -1094,7 +1103,8 @@ def editorRender(chart_config: dict):
     
     def popupMenu():
         def _close_menu():
-            globalUIManager.remove_ui(modal)
+            butlst.delete_ui(lambda: globalUIManager.remove_ui(modal))
+            Timer(0.1, lambda: setattr(modal, "bec", False)).start()
             
         def _back_tomain(*, isnosave: bool = False):
             nonlocal nextUI
@@ -1108,6 +1118,17 @@ def editorRender(chart_config: dict):
             
             nextUI = mainRender
             _close_menu()
+        
+        def _save_as():
+            fp = dialog.savefile(Filter="Binary Phigros Chart 文件 (*.bpc)|*.bpc|所有文件 (*.*)|*.*", fn="save_as.bpc")
+            
+            if fp is not None:
+                with open(fp, "wb") as f:
+                    f.write(editor.chart.dump())
+                
+                globalMsgShower.submit(Message(f"已另存到: {fp}", Message.INFO_COLOR))
+            else:
+                globalMsgShower.submit(Message("取消另存", Message.WARNING_COLOR))
             
         butlst = ButtonList(
             0, 0, w / 6, h,
@@ -1115,7 +1136,7 @@ def editorRender(chart_config: dict):
                 {"text": "关闭菜单", "command": lambda *_: _close_menu()},
                 None,
                 {"text": "保存", "command": lambda *_: editor.new_save()},
-                {"text": "另存为", "command": None},
+                {"text": "另存为", "command": lambda *_: _save_as()},
                 None,
                 {"text": "保存并返回主界面", "command": lambda *_: (editor.new_save(), _back_tomain(), _close_menu())},
                 {"text": "不保存并返回主界面", "command": lambda *_: _back_tomain(isnosave=True)},
