@@ -1,3 +1,4 @@
+import UnityPy.math
 import fix_workpath as _
 import check_bin as _
 
@@ -19,27 +20,6 @@ import tempdir
 if len(argv) < 6:
     print("Usage: tool-modpack <mod-list> <info> <extended-info> <apk-unpack-dir> <output-dir>")
     raise SystemExit
-
-# https://github.com/K0lb3/UnityPy/issues/230
-def save_via_tree(self: UnityPy.classes.Texture2D):
-    tree = self.read_typetree()
-
-    if "m_MipMap" in tree:
-        tree["m_MipMap"] = self.m_MipMap
-    else:
-        tree["m_MipCount"] = self.m_MipCount
-
-    tree["m_TextureFormat"] = self.m_TextureFormat
-    tree["m_CompleteImageSize"] = len(self.image_data)
-    tree["image data"] = self.image_data
-
-    tree["m_StreamData"] = {
-        "offset": 0,
-        "size": 0,
-        "path": ""
-    }
-    
-    self.reader.save_typetree(tree)
     
 def loadbundle(fn: str) -> UnityPy.files.BundleFile:
     fp = f"{argv[4]}/assets/aa/Android/{fn}"
@@ -63,27 +43,46 @@ def findexinfo_byinfo(iitem: dict, key: str):
             return i
     return None if not key.endswith(".png") else findexinfo_byinfo(iitem, key[:-4] + ".jpg")
 
+def putinto_t2d(t2d: UnityPy.classes.Texture2D, im: Image.Image):
+    t2d.set_image(im)
+    
+    # https://github.com/K0lb3/UnityPy/issues/230
+    tree = t2d.read_typetree()
+    
+    if "m_MipMap" in tree:
+        tree["m_MipMap"] = t2d.m_MipMap
+    else:
+        tree["m_MipCount"] = t2d.m_MipCount
+
+    tree["m_TextureFormat"] = t2d.m_TextureFormat
+    tree["m_CompleteImageSize"] = len(t2d.image_data)
+    tree["image data"] = t2d.image_data
+
+    tree["m_StreamData"] = {
+        "offset": 0,
+        "size": 0,
+        "path": ""
+    }
+    
+    t2d.reader.save_typetree(tree)
+
 def putimto_bundle(bundle: typing.Optional[UnityPy.files.BundleFile], im: Image.Image, pid: int):
     if bundle is None: return
-    for name, f in bundle.files.items():
+    for name, f in bundle.files.copy().items():
         if isinstance(f, UnityPy.files.SerializedFile):
-            other = []
-            for pid2, asset in f.files.items():
+            for pid2, asset in f.files.copy().items():
                 asset: UnityPy.files.ObjectReader
                 realasset = asset.read()
                 if isinstance(realasset, UnityPy.classes.Texture2D):
-                    realasset.set_image(im)
-                    save_via_tree(realasset)
+                    putinto_t2d(realasset, im)
                 elif isinstance(realasset, UnityPy.classes.Sprite):
                     reader: UnityPy.files.ObjectReader = realasset.m_RD.texture.get_obj()
                     t2d: UnityPy.classes.Texture2D = reader.read()
-                    t2d.set_image(im)
-                    save_via_tree(t2d)
+                    putinto_t2d(t2d, im)
                 else:
-                    other.append(pid2)
-            
-            for pid2 in other:
-                f.files.pop(pid2)
+                    f.files.pop(pid2)
+        else:
+            bundle.files.pop(name)
 
 def fail(mod: dict):
     print(f"Failed to process mod: {mod["name"]}")
@@ -175,7 +174,6 @@ for mod in modlist:
             
             im = Image.open(mod["content_path"])
             if im.size != (2048, 1080):
-                print(f"Warning: Image size is not 2048x1080 for mod: {mod["name"]}.")
                 im = im.resize((2048, 1080))
             
             i1, i2, i3 = (
