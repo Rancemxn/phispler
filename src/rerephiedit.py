@@ -1091,15 +1091,18 @@ def editorRender(chart_config: dict):
         return posm(42 * 1.1 + 63 * c * 1.3, 38 / 2 * 1.1 + 63 * r * 1.3)
     
     def seek_time(t: float):
-        update_time_show_labels()
+        update_info_labels()
         editor.seek_to(t)
     
-    def update_time_show_labels():
+    def update_info_labels():
         editing_line = editor.chart.lines[editor.editing_line]
         now_t = chart_time_slider.value
+        
         chart_time_show_labels[0].text = f"beat: {editing_line.sec2beat(now_t):.2f}"
         chart_time_show_labels[1].text = f"bpm: {editing_line.getBpm(now_t):.2f}"
         chart_time_show_labels[2].text = f"{now_t:.2f}/{raw_audio_length:.2f}s"
+        
+        chart_type_label.text = f"chart type: {editor.chart.type} ({phichart.ChartFormat.get_type_string(editor.chart.type)})"
     
     def popupMenu():
         def _close_menu():
@@ -1161,11 +1164,13 @@ def editorRender(chart_config: dict):
         Label(chart_time_slider.x + chart_time_slider.width / 2, chart_time_slider.y + chart_time_show_labels_pady, "", "white", f"{(w + h) / 150}px pgrFont", "center"),
         Label(chart_time_slider.x + chart_time_slider.width, chart_time_slider.y + chart_time_show_labels_pady, "", "white", f"{(w + h) / 150}px pgrFont", "right")
     ]
-    update_time_show_labels()
+    chart_type_label = Label(chart_time_show_labels[0].x, chart_time_show_labels[0].y + h / 50, "", "#a4c7ff", f"{(w + h) / 150}px pgrFont")
+    update_info_labels()
     
     globalUIManager.extend_uiitems([
         chart_time_slider,
         *chart_time_show_labels,
+        chart_type_label,
         IconButton(*getButtonPos(0, 0), "menu", popupMenu),
         IconButton(*getButtonPos(1, 0), "unpause", editor.unpause_play),
         IconButton(*getButtonPos(2, 0), "pause", editor.pause_play)
@@ -1178,7 +1183,7 @@ def editorRender(chart_config: dict):
         editor.update()
         editor_now_t = editor.chart_now_t
         chart_time_slider.value = editor_now_t
-        update_time_show_labels()
+        update_info_labels()
         
         fillRectEx(*preview_rect, "rgb(64, 64, 64)", wait_execute=True)
         
@@ -1191,7 +1196,7 @@ def editorRender(chart_config: dict):
         ctxBeginPath(wait_execute=True)
         ctxRect(0, 0, *chart_rect[2:], wait_execute=True)
         ctxClip(wait_execute=True)
-        extasks = phicore.renderChart_Common(editor_now_t, clear=False, rjc=False, need_deepbg=False)
+        extasks = phicore.renderChart_Common(editor_now_t, clear=False, rjc=False, need_deepbg=False, editing_line=editor.editing_line)
         ctxRestore(wait_execute=True)
         
         phicore.processExTask(extasks)

@@ -527,7 +527,7 @@ def processExTask(extasks: list[tuple[str, typing.Any]]):
 def renderChart_Common(
     now_t: float, clear: bool = True, rjc: bool = True,
     pplm: typing.Optional[utils.PhigrosPlayLogicManager] = None,
-    need_deepbg: bool = True
+    need_deepbg: bool = True, editing_line: typing.Optional[int] = None
 ):
     extasks = []
     
@@ -611,6 +611,9 @@ def renderChart_Common(
             lineColor
         ) = line.getState(now_t, nowLineColor)
         
+        if line.index == editing_line:
+            lineColor = (147, 255, 145)
+        
         linePos = (linePos[0] * w, linePos[1] * h)
         lineDrawPos = (
             *utils.rotate_point(*linePos, lineRotate, nowLineWidth / 2 * lineScaleX),
@@ -682,7 +685,7 @@ def renderChart_Common(
                 )
         
         if debug:
-            drawDebugText(f"{line.index}", *linePos, lineRotate - 90, "rgba(255, 255, 170, 0.5)")
+            drawDebugText(f"{line.index}{"" if not line.index == editing_line else " (editing)"}", *linePos, lineRotate - 90, "rgba(255, 255, 170, 0.5)")
                             
             root.run_js_code(
                 f"ctx.fillRectEx(\
