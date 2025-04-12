@@ -201,7 +201,7 @@ void main() {
     );
 </script>
 
-<script src="./canvas2d_ext.js"></script>
+<script src="./js/canvas2d_ext.js"></script>
 
 <script>
     canvas_ele = document.createElement("canvas");
@@ -392,7 +392,6 @@ void main() {
         }
 
         pm = (async () => {
-            console.log(frames);
             frames = frames.map(temp_ctx => rgba2bgr(temp_ctx.getImageData(0, 0, canvas_ele.width, canvas_ele.height).data));
             return await fetch(upload_frame_url, {
                 method: "POST",
