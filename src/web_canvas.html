@@ -365,20 +365,11 @@ void main() {
         document.fonts.add(await font.load());
     }
 
-    function rgba2bgr(rgba_arr) {
-        const result = new Uint8Array(rgba_arr.length / 4 * 3);
-        for (let i = 0; i < rgba_arr.length; i += 4) {
-            result[i / 4 * 3] = rgba_arr[i + 2];
-            result[i / 4 * 3 + 1] = rgba_arr[i + 1];
-            result[i / 4 * 3 + 2] = rgba_arr[i];
-        }
-        return result;
-    }
-
     function initUploadFrame(cache_limit, url) {
         upload_frames = [];
         upload_frame_cache_limit = cache_limit;
         upload_frame_url = url;
+        upload_frame_worker = new Worker("./js/upload_frame_worker.js");
     }
 
     upload_all_frames_promise = null;
@@ -392,17 +383,17 @@ void main() {
         }
 
         pm = (async () => {
-            frames = frames.map(temp_ctx => rgba2bgr(temp_ctx.getImageData(0, 0, canvas_ele.width, canvas_ele.height).data));
-            return await fetch(upload_frame_url, {
-                method: "POST",
-                body: new Blob([
-                    new Uint32Array([
-                        frames.length,
-                        frames[0].length
-                    ]),
-                    ...frames
-                ])
+            const worker_pm = (new Promise((resolve, reject) => {
+                upload_frame_worker.onmessage = resolve;
+                upload_frame_worker.onerror = reject;
+            }))
+
+            upload_frame_worker.postMessage({
+                frames: frames.map(temp_ctx => temp_ctx.getImageData(0, 0, canvas_ele.width, canvas_ele.height).data),
+                url: upload_frame_url
             })
+
+            await worker_pm;
         })();
 
         if (!last_call) upload_all_frames_promise = pm;
@@ -424,7 +415,7 @@ void main() {
         }
         catch (e) {
             console.error(e);
-            return await uploadFrame(url);
+            await uploadFrame();
         }
     }
 
