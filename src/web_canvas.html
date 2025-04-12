@@ -414,7 +414,7 @@ void main() {
             const temp_cv = document.createElement("canvas");
             temp_cv.width = canvas_ele.width;
             temp_cv.height = canvas_ele.height;
-            const temp_ctx = temp_cv.getContext("2d");
+            const temp_ctx = temp_cv.getContext("2d", {alpha: false});
             temp_ctx.drawImage(ctx.canvas, 0, 0);
             upload_frames.push(temp_ctx);
 
