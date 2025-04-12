@@ -772,7 +772,7 @@ def drawChapterItem(item: phigame_obj.Chapter, dx: float, rectmap: dict):
         allsongs_show_level_dpower = utils.getDPower(*allsongs_show_level_size, 75)
         root.run_js_code(
             f"ctx.drawLeftBottomSkewText(\
-                {root.string2sctring_hqm(allsongs_show_level)},\
+                {repr(allsongs_show_level)},\
                 {chapterRect[0] + w * 0.03125}, {chapterRect[1] + h * (745 / 1080)},\
                 '{allsongs_show_level_font}px pgrFont', 'rgba{(255, 255, 255, allsongs_bar_alpha * 0.5)}', {allsongs_show_level_dpower}\
             );",
@@ -1246,7 +1246,7 @@ def mainRender():
     inMainUI = True
     allsongs_show_level = const.DIFF_STRING_MAP[getUserData("internal-lastDiffIndex")]
     allsongs_show_level_font = (w + h) / 23
-    allsongs_show_level_size = root.run_js_code(f"ctx.getTextSize({root.string2sctring_hqm(allsongs_show_level)}, '{allsongs_show_level_font}px pgrFont')")
+    allsongs_show_level_size = root.run_js_code(f"ctx.getTextSize({repr(allsongs_show_level)}, '{allsongs_show_level_font}px pgrFont')")
     
     countPlayData.cache_clear()
     faManager.faculas.clear()
@@ -1813,7 +1813,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
     settingUIOpenSourceLicenseSlideControler.maxValueY = root.run_js_code(
         f"ctx.drawRectMultilineText(\
             -{w}, -{h}, 0, 0,\
-            {root.string2sctring_hqm(const.PHI_OPENSOURCELICENSE)},\
+            {repr(const.PHI_OPENSOURCELICENSE)},\
             'rgb(255, 255, 255)', '{(w + h) / 145}px pgrFont', {(w + h) / 145}, 1.25\
         );"
     ) + h * (143 / 1080) * 2 - h
@@ -1927,7 +1927,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         
         # 编辑用户名字
         if settingState.atis_a and utils.inrect(x, y, editUserNameRect) and editingUserData and not (showAvatars or showBackgrounds):
-            newName = root.run_js_code(f"prompt('请输入新名字', {root.string2sctring_hqm(getUserData("userdata-userName"))});")
+            newName = root.run_js_code(f"prompt('请输入新名字', {repr(getUserData("userdata-userName"))});")
             if newName is not None:
                 setUserData("userdata-userName", newName)
                 updateFontSizes()
@@ -1935,7 +1935,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         
         # 编辑用户介绍
         if settingState.atis_a and utils.inrect(x, y, editIntroductionRect) and editingUserData and not (showAvatars or showBackgrounds):
-            newName = root.run_js_code(f"prompt('请输入新介绍 (输入\"\\\\n\"可换行)', {root.string2sctring_hqm(getUserData("userdata-selfIntroduction").replace("\n", "\\n"))});")
+            newName = root.run_js_code(f"prompt('请输入新介绍 (输入\"\\\\n\"可换行)', {repr(getUserData("userdata-selfIntroduction").replace("\n", "\\n"))});")
             if newName is not None:
                 setUserData("userdata-selfIntroduction", newName.replace("\\n", "\n"))
                 updateFontSizes()
@@ -1971,7 +1971,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         
         # 登录
         if settingState.atis_a and utils.inrect(x, y, loginButtonRect) and not (showAvatars or showBackgrounds):
-            root.run_js_code(f"alert({root.string2sctring_hqm("你在想 peach")});")
+            root.run_js_code(f"alert({repr("你在想 peach")});")
         
         # 音频问题疑难解答
         if settingState.atis_o and utils.inrect(x, y, otherSettingButtonRects[0]) and inSettingUI:
@@ -2382,7 +2382,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             f"ctx.drawRectMultilineText(\
                 {w * 0.1484375}, {h * (447 / 1080)},\
                 {w * 0.4546875}, {h * (660 / 1080)},\
-                {root.string2sctring_hqm(getUserData("userdata-selfIntroduction"))},\
+                {repr(getUserData("userdata-selfIntroduction"))},\
                 'rgb(255, 255, 255)', '{selfIntroduction_fontSize}px pgrFont',\
                 {selfIntroduction_fontSize}, 1.15\
             );",
@@ -3154,7 +3154,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
                 root.run_js_code(
                     f"ctx.drawRectMultilineText(\
                         {w * 0.2}, {settingUIOpenSourceLicenseSlideControler.getDy() + h * (143 / 1080)}, {w * 0.8}, {h},\
-                        {root.string2sctring_hqm(const.PHI_OPENSOURCELICENSE)},\
+                        {repr(const.PHI_OPENSOURCELICENSE)},\
                         'rgb(255, 255, 255)', '{(w + h) / 145}px pgrFont', {(w + h) / 145}, 1.25\
                     );",
                     wait_execute = True
@@ -3295,7 +3295,7 @@ def audioQARender():
         root.run_js_code(
             f"ctx.drawRectMultilineTextDiagonal(\
                 {w * 0.28125}, {h * (241 / 1080)},\
-                {w * 0.7984375}, {h}, {root.string2sctring_hqm(const.DSP_SETTING_TIP)},\
+                {w * 0.7984375}, {h}, {repr(const.DSP_SETTING_TIP)},\
                 'rgb(255, 255, 255)',\
                 '{(w + h) / 120}px pgrFont', {(w + h) / 120}, {- w * 0.0046875}, 1.25\
             );",
@@ -3397,7 +3397,7 @@ def aboutUsRender():
             root.run_js_code(
                 f"aboutus_textheight = ctx.drawRectMultilineTextCenter(\
                     {w * 0.05}, {dy}, {w * 0.95}, {h},\
-                    {root.string2sctring_hqm(const.PHI_ABOUTUSTEXT)},\
+                    {repr(const.PHI_ABOUTUSTEXT)},\
                     'rgb(255, 255, 255)', '{fontsize}px pgrFont', {fontsize}, 1.4\
                 );",
                 wait_execute = True
@@ -3915,7 +3915,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
     ud_popuper = UserDataPopuper()
     userNameConstFontSize = (w + h) / const.USERNAME_CONST_FONT
     userNamePadding = w * 0.01
-    userNameWidth = root.run_js_code(f"ctx.getTextSize({root.string2sctring_hqm(getUserData("userdata-userName"))}, '{userNameConstFontSize}px pgrFont')[0];") + userNamePadding * 2
+    userNameWidth = root.run_js_code(f"ctx.getTextSize({repr(getUserData("userdata-userName"))}, '{userNameConstFontSize}px pgrFont')[0];") + userNamePadding * 2
     
     def unregEvents():
         eventManager.unregEvent(clickBackButtonEvent)
@@ -5235,7 +5235,7 @@ def challengeModeSettlementRender(
     ud_popuper = UserDataPopuper()
     userNameConstFontSize = (w + h) / const.USERNAME_CONST_FONT
     userNamePadding = w * 0.01
-    userNameWidth = root.run_js_code(f"ctx.getTextSize({root.string2sctring_hqm(getUserData("userdata-userName"))}, '{userNameConstFontSize}px pgrFont')[0];") + userNamePadding * 2
+    userNameWidth = root.run_js_code(f"ctx.getTextSize({repr(getUserData("userdata-userName"))}, '{userNameConstFontSize}px pgrFont')[0];") + userNamePadding * 2
     
     avatar_rect = const.EMPTY_RECT
     cross_rect = const.EMPTY_RECT
@@ -5451,7 +5451,7 @@ def challengeModeSettlementRender(
     respacker.unload(respacker.getnames())
     
 def importArchiveFromPhigros():
-    sessionToken: typing.Optional[str] = root.run_js_code(f"prompt({root.string2sctring_hqm("请输入 Phigros 账号的 sessionToken: ")});")
+    sessionToken: typing.Optional[str] = root.run_js_code(f"prompt({repr("请输入 Phigros 账号的 sessionToken: ")});")
     if sessionToken is None:
         return
     
@@ -5520,7 +5520,7 @@ def importArchiveFromPhigros():
             setPlayDataItem("hasChallengeMode", True)
         
         if not assetConfig.get("isfromunpack", False):
-            root.run_js_code(f"alert({root.string2sctring_hqm(f"基本信息已导入\n当前资源包非来源于官方文件, 无法导入存档")});")
+            root.run_js_code(f"alert({repr(f"基本信息已导入\n当前资源包非来源于官方文件, 无法导入存档")});")
             raise type("_exitfunc", (Exception, ), {})()
         
         if archive["user"]["background"] not in assetConfig["background-file-map"].keys():
@@ -5554,13 +5554,13 @@ def importArchiveFromPhigros():
                         i += 1
         
         savePlayData(playData)
-        root.run_js_code(f"alert({root.string2sctring_hqm(f"导入成功!\n用户名: {username}\nrankingScore: {rankingScore}")});")
+        root.run_js_code(f"alert({repr(f"导入成功!\n用户名: {username}\nrankingScore: {rankingScore}")});")
         raise type("_exitfunc", (Exception, ), {})()
     except Exception as e:
         if e.__class__.__name__ != "_exitfunc":
-            root.run_js_code(f"alert({root.string2sctring_hqm(f"导入失败\n: {repr(e)}")});")
+            root.run_js_code(f"alert({repr(f"导入失败\n: {repr(e)}")});")
         else:
-            root.run_js_code(f"alert({root.string2sctring_hqm(f"请重启程序以应用设置, 按下确定键后程序将退出")});")
+            root.run_js_code(f"alert({repr(f"请重启程序以应用设置, 按下确定键后程序将退出")});")
             needexit = True
     
     free_handle(handle)
@@ -5576,7 +5576,7 @@ def importArchiveFromPhigros():
 def updateFontSizes():
     global userName_FontSize
     
-    userName_Width1px = root.run_js_code(f"ctx.font='50px pgrFont'; ctx.measureText({root.string2sctring_hqm(getUserData("userdata-userName"))}).width;") / 50
+    userName_Width1px = root.run_js_code(f"ctx.font='50px pgrFont'; ctx.measureText({repr(getUserData("userdata-userName"))}).width;") / 50
     userName_FontSize = w * 0.209375 / (userName_Width1px if userName_Width1px != 0.0 else 1.0)
     if userName_FontSize > w * 0.0234375:
         userName_FontSize = w * 0.0234375

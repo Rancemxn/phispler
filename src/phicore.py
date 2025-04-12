@@ -59,7 +59,7 @@ class settlementAnimationUserData:
         
         self.userNameConstFontSize = (w + h) / const.USERNAME_CONST_FONT
         self.userNamePadding = w * 0.01
-        self.userNameWidth = root.run_js_code(f"ctx.getTextSize({root.string2sctring_hqm(self.userName)}, '{self.userNameConstFontSize}px pgrFont')[0];") + self.userNamePadding * 2
+        self.userNameWidth = root.run_js_code(f"ctx.getTextSize({repr(self.userName)}, '{self.userNameConstFontSize}px pgrFont')[0];") + self.userNamePadding * 2
 
 @dataclass
 class PhiCoreConfig:
@@ -491,7 +491,7 @@ def delDrawuiDefaultVals(kwargs: dict) -> dict:
 def drawDebugText(text: str, x: float, y: float, rotate: float, color: str):
     root.run_js_code(
         f"ctx.drawRotateText(\
-            {root.string2sctring_hqm(text)},\
+            {repr(text)},\
             {",".join(map(str, utils.rotate_point(x, y, rotate, (w + h) / 75)))},\
             {90 + rotate}, {(w + h) / 85 / 0.75}, '{color}', 1.0, 1.0\
         );",
@@ -663,7 +663,7 @@ def renderChart_Common(
             elif lineText is not None:
                 root.run_js_code(
                     f"ctx.drawRPEMultipleRotateText(\
-                        {root.string2sctring_hqm(lineText)},\
+                        {repr(lineText)},\
                         {linePos[0]},\
                         {linePos[1]},\
                         {lineRotate},\
@@ -1036,7 +1036,7 @@ def getLevelText() -> str:
     return chart_information["Level"].split(" ")[0]
 
 def getFontSize(text: str, maxwidth: float, maxsize: float, font: str = "pgrFont"):
-    w1px = root.run_js_code(f"ctx.font='50px {font}'; ctx.measureText({root.string2sctring_hqm(text)}).width;") / 50
+    w1px = root.run_js_code(f"ctx.font='50px {font}'; ctx.measureText({repr(text)}).width;") / 50
     if w1px == 0: w1px = 1.0
     return min(maxsize, maxwidth / w1px)
 
@@ -1448,9 +1448,9 @@ def initSettlementAnimation(
     MaxCombo = chart_obj.note_num if not noautoplay else pplm.ppps.getMaxCombo()
     AccString = f"{(Acc * 100):.2f}%"
     ChartNameString = chart_information["Name"]
-    ChartNameStringFontSize = w * im_size * 0.65 / (root.run_js_code(f"ctx.font='50px pgrFont'; ctx.measureText({root.string2sctring_hqm(ChartNameString)}).width;") / 50)
+    ChartNameStringFontSize = w * im_size * 0.65 / (root.run_js_code(f"ctx.font='50px pgrFont'; ctx.measureText({repr(ChartNameString)}).width;") / 50)
     ChartLevelString = chart_information["Level"]
-    ChartLevelStringFontSize = w * im_size * 0.275 / (root.run_js_code(f"ctx.font='50px pgrFont'; ctx.measureText({root.string2sctring_hqm(ChartLevelString)}).width;") / 50)
+    ChartLevelStringFontSize = w * im_size * 0.275 / (root.run_js_code(f"ctx.font='50px pgrFont'; ctx.measureText({repr(ChartLevelString)}).width;") / 50)
     if ChartNameStringFontSize > w * 0.0275:
         ChartNameStringFontSize = w * 0.0275
     if ChartLevelStringFontSize > w * 0.0275 * 0.55:

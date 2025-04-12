@@ -112,7 +112,7 @@ def drawText(
     maxwidth: typing.Optional[number] = None,
     wait_execute: bool = False
 ):
-    text = root.string2sctring_hqm(text)
+    text = repr(text)
     code = []
     code.append(f"{ctx}.save();")
     code.append(f"{ctx}.font = '{font}';") if font is not None else None

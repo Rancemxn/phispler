@@ -475,7 +475,7 @@ class Input(BaseUI):
         root.run_js_code(f"removeCanvasInput({self.id})")
     
     def set_text(self, value: str):
-        root.run_js_code(f"setCanvasInputText({self.id}, {root.string2sctring_hqm(value)})")
+        root.run_js_code(f"setCanvasInputText({self.id}, {repr(value)})")
 
 class MessageShower(BaseUI):
     def __init__(self):
@@ -559,7 +559,7 @@ class Message:
         self.st = time.time()
         self.timeout = False
         
-        textsize = root.run_js_code(f"ctx.getTextSize({root.string2sctring_hqm(text)}, \"{self.font}\");")
+        textsize = root.run_js_code(f"ctx.getTextSize({repr(text)}, \"{self.font}\");")
         self.padding_x = w / 75
         self.padding_y = h / 65
         self.width = textsize[0] + self.padding_x * 2
@@ -1005,13 +1005,13 @@ def hashChartId(chart_id: str):
     return "hash_" + hashlib.md5(chart_id.encode("utf-8")).hexdigest()
 
 def web_alert(msg: str):
-    root.run_js_code(f"alert({root.string2sctring_hqm(msg)});")
+    root.run_js_code(f"alert({repr(msg)});")
 
 def web_prompt(msg: str) -> typing.Optional[str]:
-    return root.run_js_code(f"prompt({root.string2sctring_hqm(msg)});")
+    return root.run_js_code(f"prompt({repr(msg)});")
 
 def web_confirm(msg: str) -> bool:
-    return root.run_js_code(f"confirm({root.string2sctring_hqm(msg)});")
+    return root.run_js_code(f"confirm({repr(msg)});")
 
 def renderGlobalItems():
     globalUIManager.render_bytag("modal")

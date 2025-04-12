@@ -473,7 +473,6 @@ class WebCanvas:
             self._raevent.clear()
             threading.Thread(target=self._rjwc, args=(codes, ), daemon=True).start()
     
-    string2sctring_hqm = repr
     def get_framerate(self) -> int|float: return self._framerate
     
     def get_img_jsvarname(self, imname: str):
@@ -534,7 +533,7 @@ class WebCanvas:
             ete.set()
             
         self.jsapi.set_attr(ecbname, _callback)
-        self.run_js_code(f"eval({self.string2sctring_hqm(code)}).then((result) => pywebview.api.call_attr('{ecbname}', result));")
+        self.run_js_code(f"eval({repr(code)}).then((result) => pywebview.api.call_attr('{ecbname}', result));")
         ete.wait()
         delattr(self.jsapi, ecbname)
         return result
