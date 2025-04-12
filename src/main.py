@@ -452,30 +452,32 @@ def WaitLoading_FadeIn():
 def showStart():
     WaitLoading.fadeout(450)
     
-    def dle_warn(a: float):
-        drawAlphaImage("le_warn", 0, 0, w, h, a, wait_execute=True)
-    
-    animationst = time.time()
-    while time.time() - animationst < 1.0:
-        clearCanvas(wait_execute=True)
-        p = (time.time() - animationst) / 1.0
-        dle_warn(1.0 - (1.0 - utils.fixorp(p)) ** 4)
-        root.run_js_wait_code()
-    
-    time.sleep(0.35)
-    
-    animationst = time.time()
-    while time.time() - animationst < 1.0:
+    if not phicore.noanimation:
+        def dle_warn(a: float):
+            drawAlphaImage("le_warn", 0, 0, w, h, a, wait_execute=True)
+        
+        animationst = time.time()
+        while time.time() - animationst < 1.0:
+            clearCanvas(wait_execute=True)
+            p = (time.time() - animationst) / 1.0
+            dle_warn(1.0 - (1.0 - utils.fixorp(p)) ** 4)
+            root.run_js_wait_code()
+        
+        time.sleep(0.35)
+        
+        animationst = time.time()
+        while time.time() - animationst < 1.0:
+            clearCanvas(wait_execute=True)
+            phicore.drawBg()
+            p = (time.time() - animationst) / 1.0
+            dle_warn((utils.fixorp(p) - 1.0) ** 4)
+            root.run_js_wait_code()
+        
+        time.sleep(0.25)
         clearCanvas(wait_execute=True)
         phicore.drawBg()
-        p = (time.time() - animationst) / 1.0
-        dle_warn((utils.fixorp(p) - 1.0) ** 4)
         root.run_js_wait_code()
-    
-    time.sleep(0.25)
-    clearCanvas(wait_execute=True)
-    phicore.drawBg()
-    root.run_js_wait_code()
+        
     Thread(target=playerStart, daemon=True).start()
 
 def checkOffset(now_t: float):

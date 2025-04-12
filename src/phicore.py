@@ -4,6 +4,7 @@ import time
 import typing
 import logging
 import threading
+import sys
 from dataclasses import dataclass
 from queue import Queue
 
@@ -29,11 +30,12 @@ mainFramerateCalculator = utils.FramerateCalculator()
 
 def initGlobalSettings():
     global enableMirror, enableWatermark
-    global FCAPIndicator
+    global FCAPIndicator, noanimation
     
     enableMirror = False
     enableWatermark = True
     FCAPIndicator = True
+    noanimation = "--noanimation" in sys.argv
 
 initGlobalSettings()
 
@@ -1334,6 +1336,9 @@ def loadingAnimation(
     start_p: float = 0.0,
     blackIn: bool = False
 ):
+    if noanimation:
+        return
+    
     prepareLoadingAnimation(font_options)
     
     animation_time = 4.5
@@ -1357,6 +1362,9 @@ def loadingAnimation(
         root.run_js_wait_code()
         
 def lineOpenAnimation(fcb: typing.Callable[[], typing.Any] = lambda: None):
+    if noanimation:
+        return
+    
     csat = 1.25
     st = time.time()
         
