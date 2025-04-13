@@ -209,10 +209,6 @@ def generate_info():
                 item["songIdBak"] = item["songId"]
                 if item["songId"][-2:] == ".0": item["songId"] = item["songId"][:-2]
                 item["difficulty"] = list(map(lambda x: round(x, 1), item["difficulty"]))
-                del item["songTitle"]
-                del item["unlockList"]
-                del item["levelMods"]
-                del item["magic"]
                 
                 chartItems.append(item)
         except struct.error:
