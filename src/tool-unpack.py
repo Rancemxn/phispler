@@ -17,6 +17,8 @@ import UnityPy.files
 import UnityPy.classes
 from UnityPy.enums import ClassIDType
 from fsb5 import FSB5
+
+import pgr_catalog
     
 iothread_num = 32
 packthread_num = 1
@@ -66,15 +68,6 @@ class ByteReaderA:
         except Exception as e:
             self.position = pbak
             raise e
-
-class ByteReaderB:
-    def __init__(self, data):
-        self.data = data
-        self.position = 0
-
-    def readInt(self):
-        self.position += 4
-        return int.from_bytes(self.data[self.position - 4 : self.position], "little")
     
 def setApk(path: str):
     global pgrapk
@@ -247,41 +240,7 @@ def generate_resources(need_otherillu: bool = False, need_other_res: bool = Fals
         try: mkdir(f"./unpack-result/{i}")
         except FileExistsError: pass
     
-    key = base64.b64decode(catalog["m_KeyDataString"])
-    bucket = base64.b64decode(catalog["m_BucketDataString"])
-    entry = base64.b64decode(catalog["m_EntryDataString"])
-    
-    table = []
-    reader = ByteReaderB(bucket)
-    
-    for _ in range(reader.readInt()):
-        key_position = reader.readInt()
-        key_type = key[key_position]
-        key_position += 1
-        
-        match key_type:
-            case 0:
-                length = key[key_position]
-                key_position += 4
-                key_value = key[key_position:key_position + length].decode()
-                
-            case 1:
-                length = key[key_position]
-                key_position += 4
-                key_value = key[key_position:key_position + length].decode("utf16")
-                
-            case 4:
-                key_value = key[key_position]
-        
-        for _ in range(reader.readInt()):
-            entry_position = reader.readInt()
-            entry_value = int.from_bytes(entry[4 + 28 * entry_position : 4 + 28 * entry_position + 28][8:10], "little")
-            
-        table.append([key_value, entry_value])
-        
-    for i in range(len(table)):
-        if table[i][1] != 65535:
-            table[i][1] = table[table[i][1]][0]
+    table = pgr_catalog.decrypt(catalog)
     
     type res_table_item = tuple[str, str]
     player_res_table: list[res_table_item] = []
