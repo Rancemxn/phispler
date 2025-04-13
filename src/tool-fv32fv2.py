@@ -27,7 +27,7 @@ def convertLine(fv3line: dict, lindex: int):
     
     fv3line["notesAbove"] = list(map(lambda n: {
         **n,
-        "headSpeed": 1.0 if n["type"] == 3 else n["speed"],
+        "headSpeed": n["speed"] if n["type"] == 3 else 1.0,
         "judgeLineIndex": lindex,
         "isNotesAbove": True,
         "needDelet": False
@@ -35,7 +35,7 @@ def convertLine(fv3line: dict, lindex: int):
     
     fv3line["notesBelow"] = list(map(lambda n: {
         **n,
-        "headSpeed": 1.0 if n["type"] == 3 else n["speed"],
+        "headSpeed": n["speed"] if n["type"] == 3 else 1.0,
         "judgeLineIndex": lindex,
         "isNotesAbove": False,
         "needDelet": False

@@ -106,6 +106,30 @@ def run(rpe: bool, need_otherillu: bool, need_other_res: bool):
 def merge_list(lsts: list):
     return [item for lst in lsts for item in lst]
 
+def load_level(env: UnityPy.Environment, i: int):
+    try:
+        env.load_file(getZipItem(f"/assets/bin/Data/level{i}"))
+    except KeyError:
+        split_i = 0
+        while True:
+            try:
+                env.load_file(getZipItem(f"/assets/bin/Data/level{i}.split{split_i}"))
+            except KeyError:
+                if split_i == 0:
+                    raise ValueError("level not found")
+                break
+            
+            split_i += 1
+
+def load_all_level(env: UnityPy.Environment):
+    i = 0
+    while True:
+        try:
+            load_level(env, i)
+        except ValueError:
+            break
+        i += 1
+
 def generate_info():
     try: rmtree("unpack-result")
     except Exception: pass
@@ -117,7 +141,8 @@ def generate_info():
         getZipItem("/assets/bin/Data/globalgamemanagers.assets"),
         name = "assets/bin/Data/globalgamemanagers.assets"
     )
-    env.load_file(getZipItem("/assets/bin/Data/level0"))
+    
+    load_level(env, 0)
     
     with open("./resources/pgr_unpack_treetype.json", "r", encoding="utf-8") as f:
         treetype = json.load(f)

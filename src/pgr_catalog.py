@@ -72,9 +72,11 @@ def encrypt(ori: dict, table: list):
             key_writer.write(bytes([0]))
             key_writer.writeInt(length)
             key_writer.write(encoded)
+            
         elif isinstance(key_value, int) and 0 <= key_value <= 255:
             key_writer.write(bytes([4]))
             key_writer.write(bytes([key_value]))
+            
         else:
             raise ValueError(f"Unsupported key value type: {type(key_value)}")
     

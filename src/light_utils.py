@@ -719,15 +719,15 @@ def fv22fv3(chart: dict) -> dict:
     compatibilityChart = {
         "formatVersion": 3,
         "offset": chart["offset"],
-        "numOfNotes": chart["numOfNotes"],
+        "numOfNotes": chart.get("numOfNotes", sum((len(line["notesAbove"] + line["notesBelow"])) for line in chart["judgeLineList"])),
         "judgeLineList": []
     }
     
     for line in chart["judgeLineList"][:24]:
         cyline = {
-            "numOfNotes": line["numOfNotes"],
-            "numOfNotesAbove": line["numOfNotesAbove"],
-            "numOfNotesBelow": line["numOfNotesBelow"],
+            "numOfNotes": line.get("numOfNotes", len(line["notesAbove"] + line["notesBelow"])),
+            "numOfNotesAbove": line.get("numOfNotesAbove", len(line["notesAbove"])),
+            "numOfNotesBelow": line.get("numOfNotesBelow", len(line["notesBelow"])),
             "bpm": line["bpm"],
             "speedEvents": [],
             "notesAbove": [{

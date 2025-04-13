@@ -241,20 +241,20 @@ def getSpeedValue(es: list[dict], t: float):
     return 0.0
 
 def getFloorPosition(es: list[dict], t: float):
-    if not es: return 0.0
-    
     result = 0.0
+    
     for e in es:
-        if e["endTime"] <= t:
-            result += e["value"] * (e["endTime"] - e["startTime"])
-        elif e["startTime"] <= t <= e["endTime"]:
-            result += e["value"] * (t - e["startTime"])
-            
-    if t >= offsetT and es[0]["startTime"] <= offsetT:
-        et = min(t, es[0]["endTime"])
-        result -= es[0]["value"] * (et - es[0]["startTime"])
+        if e["startTime"] <= t < e["endTime"]:
+            result += (t - e["startTime"]) * e["value"]
+        elif t >= e["endTime"]:
+            result += (e["endTime"] - e["startTime"]) * e["value"]
+        elif t < e["startTime"]:
+            break
     
     return result * globalT
+
+def getFloorPositionRange(es: list[dict], t: float):
+    return getFloorPosition(es, t) - getFloorPosition(es, offsetT)
 
 def convertNotes(line: dict, notes: typing.Iterable[dict]):
     nns = []
@@ -269,13 +269,16 @@ def convertNotes(line: dict, notes: typing.Iterable[dict]):
         pn = nns[-1]
         
         pn["holdTime"] = rt2pt(n["endTime"]) - pn["time"] if n["endTime"] != n["startTime"] else 0.0
-        pn["floorPosition"] = getFloorPosition(line["speedEvents"], pn["time"])
+        pn["floorPosition"] = getFloorPositionRange(line["speedEvents"], pn["time"])
         
         if pn["type"] == 3:
             pn["speed"] = getSpeedValue(line["speedEvents"], pn["time"])
     return nns
 
 for i, line in enumerate(copy.deepcopy(rpec["judgeLineList"])):
+    if "--remove-nonote-line" in argv and not [None for note in line.get("notes", []) if note.get("isFake", 0) == 0]:
+        continue
+    
     line: dict
     print(f"\rconverting line {i + 1}/{len(rpec["judgeLineList"])} ...", end="")
     
@@ -341,6 +344,12 @@ for i, line in enumerate(copy.deepcopy(rpec["judgeLineList"])):
     }]
     
     if phil["speedEvents"]: phil["speedEvents"][0]["startTime"] = 0.0
+    
+    phil["speedEvents"].sort(key=lambda x: x["startTime"])
+    phil["judgeLineMoveEvents"].sort(key=lambda x: x["startTime"])
+    phil["judgeLineRotateEvents"].sort(key=lambda x: x["startTime"])
+    phil["judgeLineDisappearEvents"].sort(key=lambda x: x["startTime"])
+    
     phil["notesAbove"] = convertNotes(phil, filter(lambda x: x["above"] == 1, line.get("notes", [])))
     phil["notesBelow"] = convertNotes(phil, filter(lambda x: x["above"] != 1, line.get("notes", [])))
     

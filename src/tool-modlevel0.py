@@ -4,13 +4,12 @@ import json
 from sys import argv
 
 import UnityPy
-import UnityPy.classes
-import UnityPy.files
-import UnityPy.streams
 
 if len(argv) < 5:
-    print("Usage: tool-modlevel0 <level0> <globalgamemanagers.assets> <info-ftt> <output-dir>")
+    print("Usage: tool-modlevel0 <level> <globalgamemanagers.assets> <info-ftt> <output-dir> [name=GameInformation]")
     raise SystemExit
+
+mb_name = argv[5] if len(argv) >= 6 else "GameInformation"
 
 with open("./resources/pgr_unpack_treetype.json", "r", encoding="utf-8") as f:
     treetype = json.load(f)
@@ -27,8 +26,8 @@ for obj in env.objects:
     data = obj.read()
     name = data.m_Script.get_obj().read().name
     
-    if name == "GameInformation":
-        obj.save_typetree(info_ftt, treetype["GameInformation"])
+    if name == mb_name:
+        obj.save_typetree(info_ftt, treetype[mb_name])
     
 env.save(out_path=argv[4])
 print("modified.")
