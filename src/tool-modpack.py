@@ -197,12 +197,12 @@ for mod in modlist:
             b1, b2, b3 = loadbundle(i1["fn"]), loadbundle(i2["fn"]), loadbundle(i3["fn"])
             
             putimto_bundle(b1, im.filter(ImageFilter.GaussianBlur(10)).resize((256, 135)), i1["path_id"])
-            # putimto_bundle(b2, im, i2["path_id"])
-            # putimto_bundle(b3, im.resize((512, 270)), i3["path_id"])
+            putimto_bundle(b2, im, i2["path_id"])
+            putimto_bundle(b3, im.resize((512, 270)), i3["path_id"])
             
             savebundle(b1, i1["fn"])
-            # savebundle(b2, i2["fn"])
-            # savebundle(b3, i3["fn"])
+            savebundle(b2, i2["fn"])
+            savebundle(b3, i3["fn"])
             
         case _:
             print(f"Unknown mod type: {mod["type"]}")
