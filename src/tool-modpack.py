@@ -1,4 +1,3 @@
-import UnityPy.math
 import fix_workpath as _
 import check_bin as _
 
@@ -12,6 +11,7 @@ import UnityPy
 import UnityPy.classes
 import UnityPy.files
 import UnityPy.streams
+from UnityPy.export import Texture2DConverter
 from pydub import AudioSegment
 from PIL import Image, ImageFilter
 
@@ -58,6 +58,7 @@ def putinto_t2d(t2d: UnityPy.classes.Texture2D, im: Image.Image):
     tree["m_CompleteImageSize"] = len(t2d.image_data)
     tree["image data"] = t2d.image_data
 
+    print(tree["m_StreamData"])
     tree["m_StreamData"] = {
         "offset": 0,
         "size": 0,
@@ -68,21 +69,31 @@ def putinto_t2d(t2d: UnityPy.classes.Texture2D, im: Image.Image):
 
 def putimto_bundle(bundle: typing.Optional[UnityPy.files.BundleFile], im: Image.Image, pid: int):
     if bundle is None: return
+    t2d: typing.Optional[UnityPy.classes.Texture2D] = None
+    ress: typing.Optional[UnityPy.streams.EndianBinaryReader] = None
+    
     for name, f in bundle.files.copy().items():
         if isinstance(f, UnityPy.files.SerializedFile):
             for pid2, asset in f.files.copy().items():
                 asset: UnityPy.files.ObjectReader
                 realasset = asset.read()
                 if isinstance(realasset, UnityPy.classes.Texture2D):
-                    putinto_t2d(realasset, im)
-                elif isinstance(realasset, UnityPy.classes.Sprite):
-                    reader: UnityPy.files.ObjectReader = realasset.m_RD.texture.get_obj()
-                    t2d: UnityPy.classes.Texture2D = reader.read()
-                    putinto_t2d(t2d, im)
-                else:
-                    f.files.pop(pid2)
-        else:
-            bundle.files.pop(name)
+                    t2d = realasset
+                    
+        elif isinstance(f, UnityPy.streams.EndianBinaryReader):
+            ress = f
+    
+    if t2d is None or ress is None:
+        print("Failed to find texture2d or resources")
+        return
+    
+    temp_t2d: bytes = Texture2DConverter.image_to_texture2d(im, t2d.m_TextureFormat)[0]
+    t2d.m_StreamData.size = len(temp_t2d)
+    t2d.m_Width = im.width
+    t2d.m_Height = im.height
+    t2d.m_CompleteImageSize = len(temp_t2d)
+    t2d.save()
+    ress.view = memoryview(temp_t2d)
 
 def fail(mod: dict):
     print(f"Failed to process mod: {mod["name"]}")
@@ -186,12 +197,12 @@ for mod in modlist:
             b1, b2, b3 = loadbundle(i1["fn"]), loadbundle(i2["fn"]), loadbundle(i3["fn"])
             
             putimto_bundle(b1, im.filter(ImageFilter.GaussianBlur(10)).resize((256, 135)), i1["path_id"])
-            putimto_bundle(b2, im, i2["path_id"])
-            putimto_bundle(b3, im.resize((512, 270)), i3["path_id"])
+            # putimto_bundle(b2, im, i2["path_id"])
+            # putimto_bundle(b3, im.resize((512, 270)), i3["path_id"])
             
             savebundle(b1, i1["fn"])
-            savebundle(b2, i2["fn"])
-            savebundle(b3, i3["fn"])
+            # savebundle(b2, i2["fn"])
+            # savebundle(b3, i3["fn"])
             
         case _:
             print(f"Unknown mod type: {mod["type"]}")

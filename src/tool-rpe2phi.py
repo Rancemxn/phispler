@@ -258,7 +258,11 @@ def getFloorPositionRange(es: list[dict], t: float):
 
 def convertNotes(line: dict, notes: typing.Iterable[dict]):
     nns = []
+    
     for n in notes:
+        if "--remove-fake-note" in argv and n.get("isFake", 0) != 0:
+            continue
+        
         nns.append({
             "type": {1:1, 2:3, 3:4, 4:2}[n["type"]],
             "time": rt2pt(n["startTime"]),
@@ -273,6 +277,7 @@ def convertNotes(line: dict, notes: typing.Iterable[dict]):
         
         if pn["type"] == 3:
             pn["speed"] = getSpeedValue(line["speedEvents"], pn["time"])
+            
     return nns
 
 for i, line in enumerate(copy.deepcopy(rpec["judgeLineList"])):
