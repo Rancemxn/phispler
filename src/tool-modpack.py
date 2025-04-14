@@ -120,12 +120,14 @@ for mod in modlist:
                     asset: UnityPy.files.ObjectReader
                     if pid == exiitem["path_id"]:
                         textasset: UnityPy.classes.TextAsset = asset.read()
-                        rawchart = textasset.script.tobytes()
-                        rawdata: bytes = asset.get_raw_data().tobytes()
-                        moded = rawdata.replace(rawchart, content)
-                        size = len(rawchart).to_bytes(4, "little")
-                        newsize = len(content).to_bytes(4, "little")
-                        asset.set_raw_data(memoryview(moded.replace(size, newsize, 1)))
+                        textasset.m_Script = content
+                        textasset.save()
+                        # rawchart = textasset.script.tobytes()
+                        # rawdata: bytes = asset.get_raw_data().tobytes()
+                        # moded = rawdata.replace(rawchart, content)
+                        # size = len(rawchart).to_bytes(4, "little")
+                        # newsize = len(content).to_bytes(4, "little")
+                        # asset.set_raw_data(memoryview(moded.replace(size, newsize, 1)))
                         
             savebundle(bundle, exiitem["fn"])
         
