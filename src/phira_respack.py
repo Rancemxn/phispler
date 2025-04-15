@@ -1,12 +1,15 @@
 import fix_workpath as _
 import init_logging as _
+import check_bin as _
 
 import typing
 import logging
 from os.path import exists, isfile, isdir
+from functools import cache
 
 import yaml
 from PIL import Image, ImageChops
+from pydub import AudioSegment
 
 import const
 import dxsound
@@ -29,14 +32,12 @@ def loadImage(fp: str) -> Image.Image:
     except Exception as e:
         raise LoadResourcePackError(f"Load image \"{fp}\" fail: {repr(e)}")
 
-def loadAudio(dir: str, fn: str) -> bytes:
+def findAudio(dir: str, fn: str) -> bytes:
     fp = f"{dir}/{fn}"
     if not validFile(fp): fp = f"{DEFAULT_PATH}/{fn}"
+    if not validFile(fp): raise LoadResourcePackError(f"Audio \"{fn}\" not found.")
     
-    try:
-        return open(fp, "rb").read()
-    except Exception as e:
-        raise LoadResourcePackError(f"Load audio \"{fp}\" fail: {repr(e)}")
+    return fp
 
 def cuthold(img: Image.Image, a: int, b: int):
     b = img.height - b
@@ -105,7 +106,7 @@ class PhiraResourcePack:
         }
 
         self.resource["audio"] = {
-            k: loadAudio(directory, k)
+            k: findAudio(directory, k)
             for k in ("click.ogg", "drag.ogg", "flick.ogg")
         }
         
@@ -154,11 +155,15 @@ class PhiraResourcePack:
         
         self.dub_fixscale = self.resource["img"]["click_mh.png"].width / self.resource["img"]["click.png"].width
         
+        self.createResourceDict.cache_clear()
+    
+    @cache
     def createResourceDict(self) -> dict:
         result = {
             "Notes": {},
             "Note_Click_Effect": {},
-            "Note_Click_Audio": {}
+            "Note_Click_Audio": {},
+            "Note_Click_Audio_Pydub": {}
         }
         
         holdimg = self.resource["img"]["hold.png"]
@@ -194,6 +199,13 @@ class PhiraResourcePack:
                 "Perfect": hiteffects.copy(),
                 "Good": hiteffects.copy()
             })
+        
+        result["Note_Click_Audio_Pydub"].update({
+            const.NOTE_TYPE.TAP: AudioSegment.from_file(self.resource["audio"]["click.ogg"]),
+            const.NOTE_TYPE.DRAG: AudioSegment.from_file(self.resource["audio"]["drag.ogg"]),
+            const.NOTE_TYPE.HOLD: AudioSegment.from_file(self.resource["audio"]["click.ogg"]),
+            const.NOTE_TYPE.FLICK: AudioSegment.from_file(self.resource["audio"]["flick.ogg"])
+        })
         
         result["Note_Click_Audio"].update({
             const.NOTE_TYPE.TAP: dxsound.directSound(self.resource["audio"]["click.ogg"]),

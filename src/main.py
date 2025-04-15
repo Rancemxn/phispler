@@ -233,6 +233,30 @@ if speed != 1.0:
     }).set_frame_rate(seg.frame_rate)
     audio_fp = f"{temp_dir}/ppr_temp_audio_{time.time()}.wav"
     seg.export(audio_fp, format="wav")
+    
+phi_rpack = phira_respack.PhiraResourcePack(respath)
+phi_rpack.setToGlobal()
+phi_rpack.printInfo()
+    
+if "--prespwan-clicksound" in sys.argv:
+    logging.warning("prespwan click sound cannot spwan costom click sound.")
+    
+    import audio_utils
+    
+    seg: AudioSegment = AudioSegment.from_file(audio_fp)
+    cs_mixer = audio_utils.AudioMixer(seg)
+    cs_segs = phi_rpack.createResourceDict()["Note_Click_Audio_Pydub"]
+    
+    for line in chart_obj.lines:
+        for note in line.notes:
+            if not note.isFake:
+                t = (note.time + chart_obj.offset) / speed
+                cs_mixer.mix(cs_segs[note.type], t)
+    
+    audio_fp = f"{temp_dir}/ppr_temp_audio_{time.time()}.wav"
+    cs_mixer.get().export(audio_fp, format="wav")
+    
+    enable_clicksound = False
 
 mixer.music.load(audio_fp)
 raw_audio_length = mixer.music.get_length()
@@ -274,10 +298,6 @@ def loadResource():
     WaitLoading.play(-1)
     noteWidth_raw = w * const.NOTE_DEFAULTSIZE
     globalNoteWidth = noteWidth_raw * (eval(sys.argv[sys.argv.index("--scale-note") + 1]) if "--scale-note" in sys.argv else 1.0)
-    
-    phi_rpack = phira_respack.PhiraResourcePack(respath)
-    phi_rpack.setToGlobal()
-    phi_rpack.printInfo()
     
     Resource = {
         "levels":{
