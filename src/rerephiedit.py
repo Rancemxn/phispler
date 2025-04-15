@@ -302,8 +302,8 @@ class BaseUI:
     def mouse_wheel(self, x: int, y: int, d: int): ...
     def key_down(self, k: str): ...
     def key_up(self, k: int): ...
-    def when_remove(self): ...
     
+    def when_remove(self): ...
     def set_master(self, master: UIManager): ...
     def break_event_chain(self) -> bool: return False
     def event_proxy(self, name: str, *args): ...
@@ -820,6 +820,12 @@ class ChartEditor:
         self.last_chart_now_t = 0
         self.paused = True
         self.editing_line = 0
+        
+        self.edit_note_fp_split = 7
+        self.edit_unit_beat = 3
+        self.edit_unit_beat_lines = 4
+        
+        self.preview_area: typing.Optional[EditorPreviewArea] = None
     
     def emit_command(self, command: EditBaseCmd):
         self.new_dump()
@@ -897,6 +903,10 @@ class ChartEditor:
         
         self.new_bak(dmp)
     
+    @property
+    def is_playing(self):
+        return mixer.music.get_busy()
+    
     def new_bak(self, dmp: bytes):
         try: mkdir(f"{self.chart_dir}/baks")
         except Exception as e: logging.error(f"baks mkdir failed: {e}")
@@ -908,6 +918,12 @@ class ChartEditor:
             f.write(dmp)
             
         globalMsgShower.submit(Message(f"已创建备份文件: {fn}", Message.INFO_COLOR))
+    
+    def render_edit_note(self):
+        if self.is_playing: return
+    
+    def render_edit_event(self):
+        if self.is_playing: return
 
 class EditBaseCmd:
     ...
@@ -1084,6 +1100,8 @@ def editorRender(chart_config: dict):
     top_more = preview_rect[1]
     right_more = w - preview_rect[2]
     
+    editor.preview_area = preview_area
+    
     def posm(x: float, y: float):
         return w * (x / 1920), top_more * (y / 145)
     
@@ -1167,13 +1185,24 @@ def editorRender(chart_config: dict):
     chart_type_label = Label(chart_time_show_labels[0].x, chart_time_show_labels[0].y + h / 50, "", "#a4c7ff", f"{(w + h) / 150}px pgrFont")
     update_info_labels()
     
+    music_seek_eventui = BaseUI()
+    
+    def music_seek(x: int, y: int, d: int):
+        editor.seek_by(0.1 * (-1 if d > 0 else 1))
+        
+        if d > 0:
+            editor.pause_play()
+    
+    music_seek_eventui.mouse_wheel = music_seek
+    
     globalUIManager.extend_uiitems([
         chart_time_slider,
         *chart_time_show_labels,
         chart_type_label,
         IconButton(*getButtonPos(0, 0), "menu", popupMenu),
         IconButton(*getButtonPos(1, 0), "unpause", editor.unpause_play),
-        IconButton(*getButtonPos(2, 0), "pause", editor.pause_play)
+        IconButton(*getButtonPos(2, 0), "pause", editor.pause_play),
+        music_seek_eventui
     ], "editorRender")
     editor.unpause_play()
     
@@ -1202,6 +1231,13 @@ def editorRender(chart_config: dict):
         phicore.processExTask(extasks)
         
         globalUIManager.render_bytag("editorRender")
+        
+        if not editor.is_playing:
+            fillRectEx(*preview_rect, "rgba(0, 0, 0, 0.6)", wait_execute=True)
+            
+        editor.render_edit_note()
+        editor.render_edit_event()
+        
         renderGlobalItems()
         
         root.run_js_wait_code()
