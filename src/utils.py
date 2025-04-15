@@ -7,14 +7,13 @@ import time
 import re
 import socket
 from sys import argv
-from os import environ, popen
+from os import popen
 from os.path import isfile
 from dataclasses import dataclass
 
 from PIL import Image
 
 import const
-import rpe_easing
 import phira_respack
 import tempdir
 import webcv
