@@ -979,3 +979,58 @@ def thread_lock_func(func: typing.Optional[typing.Callable] = None, lock: typing
             return thread_lock_func(func, lock)
 
         return decorator
+
+IterRemovableListT = typing.TypeVar("IterRemovableListT")
+
+class Node(typing.Generic[IterRemovableListT]):
+    __slots__ = ("value", "prev", "next")
+    def __init__(self, value: IterRemovableListT):
+        self.value = value
+        self.prev: typing.Optional[Node[IterRemovableListT]] = None
+        self.next: typing.Optional[Node[IterRemovableListT]] = None
+
+class IterRemovableList(typing.Generic[IterRemovableListT]):
+    def __init__(self, lst: list[IterRemovableListT]):
+        self.head: typing.Optional[Node[IterRemovableListT]] = None
+        self.tail: typing.Optional[Node[IterRemovableListT]] = None
+        self._build_linked_list(lst)
+        self.current: typing.Optional[Node[IterRemovableListT]] = None
+
+    def _build_linked_list(self, lst: list[IterRemovableListT]) -> None:
+        prev_node = None
+        for item in lst:
+            new_node = Node(item)
+            if not self.head:
+                self.head = new_node
+            if prev_node:
+                prev_node.next = new_node
+                new_node.prev = prev_node
+            prev_node = new_node
+        self.tail = prev_node
+
+    def __iter__(self) -> typing.Iterator[tuple[IterRemovableListT, typing.Callable[[], None]]]:
+        self.current = self.head
+        return self
+
+    def __next__(self) -> tuple[IterRemovableListT, typing.Callable[[], None]]:
+        if self.current is None:
+            raise StopIteration
+        
+        current_node = self.current
+        self.current = current_node.next
+        
+        def remove_callback() -> None:
+            prev_node = current_node.prev
+            next_node = current_node.next
+            
+            if prev_node:
+                prev_node.next = next_node
+            else:
+                self.head = next_node
+            
+            if next_node:
+                next_node.prev = prev_node
+            else:
+                self.tail = prev_node
+        
+        return current_node.value, remove_callback

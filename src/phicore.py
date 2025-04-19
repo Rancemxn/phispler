@@ -704,7 +704,7 @@ def renderChart_Common(
         line.playingFloorPosition = line.getFloorPosition(now_t)
         
         for notesChildren in line.renderNotes.copy():
-            for note in notesChildren.copy():
+            for note, remove_this in notesChildren:
                 note_isontime = note.time < now_t
                 
                 if note_isontime and not note.isontime:
@@ -713,18 +713,18 @@ def renderChart_Common(
                         extasks.append(("psound", note.hitsound_reskey))
                 
                 if not note.ishold and note.isontime:
-                    notesChildren.remove(note)
+                    remove_this()
                     continue
                 elif note.ishold and note.holdEndTime < now_t:
-                    notesChildren.remove(note)
+                    remove_this()
                     continue
                 elif chart_obj.options.has_feature(phichart.CommonChartOptionFeatureFlags.ZERO_SPPED_HOLD_HIDDEN) and note.ishold and note.speed == 0.0:
                     continue
                 elif noautoplay and note.state == const.NOTE_STATE.BAD:
-                    notesChildren.remove(note)
+                    remove_this()
                     continue
                 elif noautoplay and not note.ishold and note.player_clicked:
-                    notesChildren.remove(note)
+                    remove_this()
                     continue
                 
                 noteFloorPosition = (
@@ -949,7 +949,7 @@ def renderChart_Common(
                 pplm.badeffects.remove(pplmbdfi)
     
     for line in chart_obj.lines:
-        for note in line.effectNotes.copy():
+        for note, remove_this in line.effectNotes:
             if not noautoplay and not note.isontime:
                 break
             
@@ -967,7 +967,7 @@ def renderChart_Common(
                 miss_effect_time,
                 bad_effect_time
             ) + 0.2 < now_t:
-                line.effectNotes.remove(note)
+                remove_this()
     
     if chart_obj.extra is not None:
         extra_values = chart_obj.extra.getShaderEffect(now_t, False)

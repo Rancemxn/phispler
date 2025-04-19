@@ -93,7 +93,7 @@ def findevent(es: list[LineEvent], t: float) -> typing.Optional[LineEvent]:
     
     return es[-1] if t >= es[-1].endTime else None
 
-def split_notes(notes: list[Note]) -> list[list[Note]]:
+def split_notes(notes: list[Note]) -> list[utils.IterRemovableList[Note]]:
     tempmap: dict[int, list[Note]] = {}
     
     for n in notes:
@@ -101,7 +101,7 @@ def split_notes(notes: list[Note]) -> list[list[Note]]:
         if h not in tempmap: tempmap[h] = []
         tempmap[h].append(n)
     
-    return list(tempmap.values())
+    return list(map(utils.IterRemovableList, tempmap.values()))
 
 def _beat2num(beat: list[int]):
     return beat[0] + beat[1] / beat[2]
@@ -620,13 +620,16 @@ class JudgeLine(MemEq):
             el.init()
         
         self.extendEvents.init()
-            
+    
+    def init_notegroups(self):
+        self.renderNotes = split_notes(self.notes)
+        self.effectNotes = utils.IterRemovableList([i for i in self.notes if not i.isFake])
+    
     def init(self):
         for note in self.notes:
             note.init(self)
-        
-        self.renderNotes = split_notes(self.notes)
-        self.effectNotes = [i for i in self.notes if not i.isFake]
+            
+        self.init_notegroups()
     
     def fast_init(self):
         self.preinit(self.master)
@@ -634,8 +637,7 @@ class JudgeLine(MemEq):
         for note in self.notes:
             note.fast_init()
 
-        self.renderNotes = split_notes(self.notes)
-        self.effectNotes = [i for i in self.notes if not i.isFake]
+        self.init_notegroups()
         
     def getFloorPosition(self, t: float):
         fp = 0.0
