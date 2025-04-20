@@ -21,6 +21,8 @@ RING_BUFFER = True
 _WAV_HEADER = "<4sl4s4slhhllhh4sl"
 _WAV_HEADER_LENGTH = struct.calcsize(_WAV_HEADER)
 
+speed = 1.0
+
 dxs = ds.DirectSoundCreate(None, None)
 dxs.SetCooperativeLevel(None, ds.DSSCL_NORMAL)
 
@@ -47,8 +49,8 @@ def _seg2wfx(seg: AudioSegment):
     wfx = WAVEFORMATEX()
     wfx.wFormatTag = 1
     wfx.nChannels = seg.channels
-    wfx.nSamplesPerSec = seg.frame_rate
-    wfx.nAvgBytesPerSec = seg.frame_rate * seg.channels * seg.sample_width
+    wfx.nSamplesPerSec = int(seg.frame_rate * speed)
+    wfx.nAvgBytesPerSec = int(seg.frame_rate * seg.channels * seg.sample_width * speed)
     wfx.nBlockAlign = seg.channels * seg.sample_width
     wfx.wBitsPerSample = seg.sample_width * 8
     return wfx
