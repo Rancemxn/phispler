@@ -16,12 +16,12 @@ speed = float(sys.argv[3]) if len(sys.argv) >= 4 else 1.0
 dxsound.speed = speed
 
 mixer.music.load(sys.argv[1])
-mixer.music.set_volume(0.6)
+mixer.music.set_volume(0.4)
 chart = phichart.load(json.load(open(sys.argv[2], "r", encoding="utf-8")))
 dxsound.speed = 1.0
 metronome = dxsound.directSound("./resources/metronome.wav")
 metronome_lowv = dxsound.directSound("./resources/metronome.wav")
-metronome_lowv.set_volume(0.2)
+metronome_lowv.set_volume(0.15)
 
 def close():
     exitfunc(0)
