@@ -117,13 +117,14 @@
     const resources = [];
 
     const render_datas = {
-        note_deg: 90 - 28,
+        note_deg: 62,
         get_dpower: (w, h, deg) => {
             if (w == 0.0) return 1.0;
             const sw = h / Math.tan(deg * Math.PI / 180);
             return sw / w;
         },
-        note_draw_render_scale: 2
+        note_draw_render_scale: 2,
+        note_render_flick_deg: 30
     };
 
     function resizeCanvas(w, h) {
