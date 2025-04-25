@@ -8,8 +8,8 @@ function render() {
 
     const get_dpower = (w, h) => this.get_dpower(w, h, note_deg);
 
-    const [w, h] = [989, 100];
-    const [mh_w, mh_h] = [1089, 200];
+    const [w, h] = [989, 60];
+    const [mh_w, mh_h] = [1089, 160];
     resizeCanvas(mh_w * scale, mh_h * scale);
     ctx.scale(scale, scale);
 
@@ -62,8 +62,8 @@ function render() {
     ctx.fill();
     ctx.restore();
 
-    const inner_padx = 36;
-    const inner_pady = 25;
+    const inner_padx = 40;
+    const inner_pady = 10;
     const inner_dpower_x = (h - inner_pady * 2) / h;
 
     ctx.save();
@@ -75,7 +75,7 @@ function render() {
     ctx.lineTo(w - lr_bar_width - main_padx - inner_padx, h / 2);
     ctx.lineTo(w - (lr_bar_dpower_width * inner_dpower_x) - lr_bar_width - main_padx - inner_padx, inner_pady);
     ctx.lineTo((lr_bar_dpower_width * inner_dpower_x) + lr_bar_width + main_padx + inner_padx, inner_pady);
-    ctx.fillStyle = `rgb(${0x0a}, ${0xc3}, ${0xff})`;
+    ctx.fillStyle = `rgb(${0xf0}, ${0xed}, ${0x69})`;
     ctx.fill();
     ctx.restore();
 
