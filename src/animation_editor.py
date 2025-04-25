@@ -7,7 +7,6 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
 from os.path import abspath, isfile, join as joinpath
 
 import webview
-import webcv
 
 loaded_resources: typing.Optional[dict] = None
 
@@ -69,10 +68,14 @@ def getCanvasImage():
     dataurl: str = window.evaluate_js("getCanvasImage();")
     return base64.b64decode(dataurl.replace("data:image/png;base64,", "", 1))
 
+def started_callback():
+    if "--script" in sys.argv:
+        window.evaluate_js(f"$(\"#render_script\").value = {repr(sys.argv[sys.argv.index("--script") + 1])}")
+
 window = webview.create_window(
     title = "Animation Editor",
     url = abspath("./animation_editor.html"),
     js_api = Jsapi()
 )
 
-webview.start(debug="--debug" in sys.argv)
+webview.start(started_callback, debug="--debug" in sys.argv)

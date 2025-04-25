@@ -116,6 +116,15 @@
     ctx = cv.getContext("2d");
     const resources = [];
 
+    const render_datas = {
+        note_deg: 90 - 28,
+        get_dpower: (w, h, deg) => {
+            if (w == 0.0) return 1.0;
+            const sw = h / Math.tan(deg * Math.PI / 180);
+            return sw / w;
+        }
+    };
+
     function resizeCanvas(w, h) {
         cv.width = w;
         cv.height = h;
@@ -167,7 +176,7 @@
     function render_noce(render_p) {
         if (!window.render) return;
         const cfg = get_render_cfg();
-        if (render_method == "one_frame") render();
+        if (render_method == "one_frame") render.call(Object.assign(window, render_datas));
         else render((render_p === undefined) ? ($("#multi_frame_nowtime").value / cfg.multi_frame_fps) : render_p);
     }
 
