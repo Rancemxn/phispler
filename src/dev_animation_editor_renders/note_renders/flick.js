@@ -4,7 +4,7 @@ function render() {
         note_deg
     } = this;
     
-    const scale = this.note_draw_render_scale / 2;
+    const scale = this.note_draw_render_scale;
     const flick_deg = this.note_render_flick_deg;
     const flick_rad = flick_deg * Math.PI / 180;
     const flick_color = `rgb(${0xfe}, ${0x43}, ${0x65})`;

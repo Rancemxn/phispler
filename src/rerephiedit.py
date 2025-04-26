@@ -110,7 +110,7 @@ for chart in getConfigData("charts"):
 saveRRPEConfig()
 
 def get_note_max_size_half(globalNoteWidth: float):
-    note_max_width = globalNoteWidth * phira_respack.globalPack.dub_fixscale
+    note_max_width = max(globalNoteWidth * i for i in phira_respack.globalPack.dub_fixscale.values())
     note_max_height = max((
         note_max_width / Resource["Notes"]["Tap"].width * Resource["Notes"]["Tap"].height,
         note_max_width / Resource["Notes"]["Tap_dub"].width * Resource["Notes"]["Tap_dub"].height,

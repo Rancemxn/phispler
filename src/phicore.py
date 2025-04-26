@@ -260,7 +260,7 @@ def getHoldDrawPosition(
 ):
     height_h = width / img_h.width * img_h.height
     height_e = width / img_e.width * img_e.height
-    # height_b = max(0.0, height_b - height_e)
+    height_b = max(0.0, height_b - height_e)
     
     headpos = (x, y)
     bodypos = utils.rotate_point(*headpos, rotate, height_h / 2) if hadhead and not phira_respack.globalPack.holdCompact else headpos
@@ -774,7 +774,7 @@ def renderChart_Common(
                 note.nowrotate = lineToNoteRotate + 90
                 
                 noteImg = Resource["Notes"][note.img_keyname]
-                noteWidth = globalNoteWidth * (phira_respack.globalPack.dub_fixscale if note.morebets else 1.0)
+                noteWidth = globalNoteWidth * (phira_respack.globalPack.dub_fixscale[note.type] if note.morebets else 1.0)
                 noteHadHead = not (note.ishold and note.isontime) or phira_respack.globalPack.holdKeepHead
                 
                 if note.alwaysHasHoldHead is not None:
@@ -919,7 +919,7 @@ def renderChart_Common(
             
             note.nowpos = (x / w, y / h)
             noteImg = Resource["Notes"][note.img_keyname]
-            noteWidth = globalNoteWidth * (phira_respack.globalPack.dub_fixscale if note.ishold else 1.0) * note.width
+            noteWidth = globalNoteWidth * phira_respack.globalPack.dub_fixscale[note.type] * note.width
             noteHeight = noteWidth / noteImg.width * noteImg.height
             
             drawRotateImage(

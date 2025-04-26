@@ -4,7 +4,7 @@ function render() {
         note_deg
     } = this;
     
-    const scale = this.note_draw_render_scale / 10;
+    const scale = this.note_draw_render_scale;
 
     const get_dpower = (w, h) => this.get_dpower(w, h, note_deg);
 

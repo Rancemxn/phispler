@@ -3535,7 +3535,7 @@ def chartPlayerRender(
     
     root.run_js_code("delete background; delete chart_image; delete chart_image_gradientblack;")
     globalNoteWidth = w * const.NOTE_DEFAULTSIZE * getUserData("setting-noteScale")
-    note_max_width = globalNoteWidth * phira_respack.globalPack.dub_fixscale
+    note_max_width = max(globalNoteWidth * i for i in phira_respack.globalPack.dub_fixscale.values())
     note_max_height = max(
         [
             note_max_width / Resource["Notes"]["Tap"].width * Resource["Notes"]["Tap"].height,

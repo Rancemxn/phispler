@@ -407,7 +407,7 @@ def loadResource():
     root.unreg_res("pgrFontThin.ttf")
     
     # root.file_server.shutdown()
-    note_max_width = globalNoteWidth * phira_respack.globalPack.dub_fixscale
+    note_max_width = max(globalNoteWidth * i for i in phira_respack.globalPack.dub_fixscale.values())
     note_max_height = max((
         note_max_width / Resource["Notes"]["Tap"].width * Resource["Notes"]["Tap"].height,
         note_max_width / Resource["Notes"]["Tap_dub"].width * Resource["Notes"]["Tap_dub"].height,

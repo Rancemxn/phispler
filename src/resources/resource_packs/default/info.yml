@@ -1,6 +1,6 @@
-name: "phispler Default Pack"
-author: "Pigeon Games"
-description: "Default resource pack for phispler"
+name: "phispler default resource pack"
+author: "Pigeon Games (hit_fx.png) & phispler"
+description: "default resource pack for phispler"
 hitFx: [6, 5]
 holdAtlas: [50, 50]
-holdAtlasMH: [98, 98]
+holdAtlasMH: [100, 100]

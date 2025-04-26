@@ -25,7 +25,11 @@ def validFile(fp: str) -> bool:
 def validDir(fp: str) -> bool:
     return exists(fp) and isdir(fp)
 
-def loadImage(fp: str) -> Image.Image:
+def loadImage(dir: str, fn: str) -> Image.Image:
+    fp = f"{dir}/{fn}"
+    if not validFile(fp): fp = f"{DEFAULT_PATH}/{fn}"
+    if not validFile(fp): raise LoadResourcePackError(f"Image \"{fn}\" not found.")
+    
     try:
         result = Image.open(fp)
         return result if result.mode == "RGBA" else result.convert("RGBA")
@@ -101,7 +105,7 @@ class PhiraResourcePack:
         self.resource = {}
         
         self.resource["img"] = {
-            k: loadImage(f"{directory}/{k}")
+            k: loadImage(directory, k)
             for k in image_names
         }
 
@@ -153,7 +157,12 @@ class PhiraResourcePack:
         self.isdefault_perfect: bool = self.resource["colorPerfect"] == DEFAULT_PERFECT
         self.isdefault_good: bool = self.resource["colorGood"] == DEFAULT_GOOD
         
-        self.dub_fixscale = self.resource["img"]["click_mh.png"].width / self.resource["img"]["click.png"].width
+        self.dub_fixscale = {
+            const.NOTE_TYPE.TAP: self.resource["img"]["click_mh.png"].width / self.resource["img"]["click.png"].width,
+            const.NOTE_TYPE.DRAG: self.resource["img"]["drag_mh.png"].width / self.resource["img"]["drag.png"].width,
+            const.NOTE_TYPE.FLICK: self.resource["img"]["flick_mh.png"].width / self.resource["img"]["flick.png"].width,
+            const.NOTE_TYPE.HOLD: self.resource["img"]["hold_mh.png"].width / self.resource["img"]["hold.png"].width
+        }
         
         self.createResourceDict.cache_clear()
     

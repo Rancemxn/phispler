@@ -4,12 +4,12 @@ function render() {
         note_deg
     } = this;
     
-    const scale = this.note_draw_render_scale / 10;
+    const scale = this.note_draw_render_scale;
 
     const get_dpower = (w, h) => this.get_dpower(w, h, note_deg);
 
     const [w, h] = [989, 2000];
-    const [mh_w, mh_h] = [1062, 2125];
+    const [mh_w, mh_h] = [1250, 2100];
     resizeCanvas(mh_w * scale, mh_h * scale);
     ctx.scale(scale, scale);
 
@@ -125,7 +125,7 @@ function render() {
     rect_shadow();
     ctx.fillStyle = shadow_radient;
     ctx.shadowColor = `rgba(${shadow_rgb}, 0.776)`;
-    ctx.shadowBlur = (w + h) / 24 * scale;
+    ctx.shadowBlur = (w + h) / 79 * scale;
     ctx.fill();
     ctx.restore();
 
