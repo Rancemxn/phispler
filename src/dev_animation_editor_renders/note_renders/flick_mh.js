@@ -1,3 +1,28 @@
+class SmoothLineDrawer {
+    constructor(sx, sy) {
+        this.sx = sx;
+        this.sy = sy;
+    }
+
+    draw(ctx, ex, ey, mode) {
+        ctx.lineTo(this.sx, this.sy);
+
+        let p = 0.0;
+        const tween = p => p ** 1.8;
+        
+        while (p < 1.0) {
+            const x = this.sx + (ex - this.sx) * (mode == 0 ? tween(p) : p);
+            const y = this.sy + (ey - this.sy) * (mode == 0 ? p : tween(p));
+            ctx.lineTo(x, y);
+            p += 1 / 100;
+        }
+
+        ctx.lineTo(ex, ey);
+        this.sx = ex;
+        this.sy = ey;
+    }
+}
+
 function render() {
     const {
         ctx,
@@ -14,8 +39,12 @@ function render() {
 
     const [w, h] = [989, 200];
     const fh = h / 2;
-    resizeCanvas(w * scale, h * scale);
+    const [mh_w, mh_h] = [1089, 300];
+    resizeCanvas(mh_w * scale, mh_h * scale);
     ctx.scale(scale, scale);
+
+    ctx.save();
+    ctx.translate((mh_w - w) / 2, (mh_h - h) / 2);
 
     ctx.save();
     ctx.translate(0, h / 4);
@@ -188,4 +217,63 @@ function render() {
 
     draw_circlr(mn_left, mn_height, inner_color_fill_clip_circ_size, "white", 0, 90 + flick_deg * 2);
     draw_circlr(mn_right, h - mn_height, inner_color_fill_clip_circ_size, "white", -180, -90 + flick_deg * 2);
+    
+    const temp_cv = document.createElement("canvas");
+    temp_cv.width = ctx.canvas.width;
+    temp_cv.height = ctx.canvas.height;
+    temp_cv.getContext("2d").drawImage(ctx.canvas, 0, 0);
+
+    ctx.clear();
+
+    const rect_shadow = () => {
+        ctx.beginPath();
+
+        ctx.save();
+        ctx.translate(0, h / 4);
+        ctx.moveTo(lr_bar_dpower_width, 0);
+        ctx.lineTo(0, fh / 2);
+        ctx.lineTo(lr_bar_dpower_width, fh);
+        ctx.lineTo(w - lr_bar_dpower_width, fh);
+        ctx.lineTo(w, fh / 2);
+        ctx.lineTo(w - lr_bar_dpower_width, 0);
+        ctx.lineTo(lr_bar_dpower_width, 0);
+        ctx.restore();
+    };
+
+    const shadow_rgb = "255, 255, 102";
+    const shadow_loop_count = 2;
+
+    ctx.save();
+    rect_shadow();
+    ctx.fillStyle = ctx.strokeStyle = `rgb(${shadow_rgb})`;
+    ctx.shadowColor = `rgba(${shadow_rgb}, 0.728)`;
+    ctx.shadowBlur = (w + h) / 24 * scale;
+    ctx.fill();
+    rect_mn_plot(mn_plot);
+    ctx.shadowColor = `rgba(${shadow_rgb}, 0.1)`;
+    ctx.fill();
+    ctx.restore();
+
+    for (let i = 0; i < shadow_loop_count; i++) {
+        ctx.save();
+        ctx.resetTransform();
+        ctx.drawImage(ctx.canvas, 0, 0);
+        ctx.restore();
+    }
+
+    ctx.save();
+    rect_shadow();
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    rect_shadow();
+    ctx.fillStyle = ctx.strokeStyle = `rgba(${shadow_rgb}, 0.85)`;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.resetTransform();
+    ctx.drawImage(temp_cv, 0, 0);
+    ctx.restore();
 }
