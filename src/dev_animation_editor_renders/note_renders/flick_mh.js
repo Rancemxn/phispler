@@ -1,28 +1,3 @@
-class SmoothLineDrawer {
-    constructor(sx, sy) {
-        this.sx = sx;
-        this.sy = sy;
-    }
-
-    draw(ctx, ex, ey, mode) {
-        ctx.lineTo(this.sx, this.sy);
-
-        let p = 0.0;
-        const tween = p => p ** 1.8;
-        
-        while (p < 1.0) {
-            const x = this.sx + (ex - this.sx) * (mode == 0 ? tween(p) : p);
-            const y = this.sy + (ey - this.sy) * (mode == 0 ? p : tween(p));
-            ctx.lineTo(x, y);
-            p += 1 / 100;
-        }
-
-        ctx.lineTo(ex, ey);
-        this.sx = ex;
-        this.sy = ey;
-    }
-}
-
 function render() {
     const {
         ctx,

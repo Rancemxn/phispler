@@ -54,29 +54,6 @@ function render() {
     ctx.fillStyle = "white";
     ctx.fill();
     ctx.restore();
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.translate(0, h - end_head_height);
-    ctx.moveTo(lr_bar_width + main_padx, 0);
-    ctx.moveTo(w - lr_bar_width - main_padx, 0);
-    ctx.lineTo(w - lr_bar_width - main_padx - lr_bar_dpower_width, end_head_height);
-    ctx.lineTo(lr_bar_width + main_padx + lr_bar_dpower_width, end_head_height);
-    ctx.lineTo(lr_bar_width + main_padx, 0);
-    ctx.fillStyle = `rgba(${head_color.join(",")})`;
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(lr_bar_width + main_padx + lr_bar_dpower_width, 0);
-    ctx.lineTo(w - lr_bar_width - main_padx - lr_bar_dpower_width, 0);
-    ctx.lineTo(w - lr_bar_width - main_padx, end_head_height);
-    ctx.lineTo(lr_bar_width + main_padx, end_head_height);
-    ctx.lineTo(lr_bar_width + main_padx + lr_bar_dpower_width, 0);
-    ctx.fillStyle = `rgba(${end_color.join(",")})`;
-    ctx.fill();
-    ctx.restore();
     
     const hold_gradient = ctx.createLinearGradient(0, end_head_height, 0, h - end_head_height);
     hold_gradient.addColorStop(1, `rgba(${head_color.join(",")})`);
@@ -84,12 +61,15 @@ function render() {
 
     ctx.save();
     ctx.beginPath();
-    ctx.translate(0, end_head_height);
-    ctx.moveTo(lr_bar_width + main_padx, 0);
-    ctx.lineTo(w - lr_bar_width - main_padx, 0);
-    ctx.lineTo(w - lr_bar_width - main_padx, body_height);
-    ctx.lineTo(lr_bar_width + main_padx, body_height);
-    ctx.lineTo(lr_bar_width + main_padx, 0);
+    ctx.moveTo(lr_bar_dpower_width + lr_bar_width + main_padx, 0);
+    ctx.lineTo(w - lr_bar_dpower_width - lr_bar_width - main_padx, 0);
+    ctx.lineTo(w - lr_bar_width - main_padx, end_head_height);
+    ctx.lineTo(w - lr_bar_width - main_padx, h - end_head_height);
+    ctx.lineTo(w - lr_bar_dpower_width - lr_bar_width - main_padx, h);
+    ctx.lineTo(lr_bar_dpower_width + lr_bar_width + main_padx, h);
+    ctx.lineTo(lr_bar_width + main_padx, h - end_head_height);
+    ctx.lineTo(lr_bar_width + main_padx, end_head_height);
+    ctx.lineTo(lr_bar_dpower_width + lr_bar_width + main_padx, 0);
     ctx.fillStyle = hold_gradient;
     ctx.fill();
     ctx.restore();
