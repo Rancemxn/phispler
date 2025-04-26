@@ -24,8 +24,6 @@ while windll.gdi32.RemoveFontResourceA(font_path):
 
 windll.gdi32.AddFontResourceA(font_path)
 
-speed = float(sys.argv[3]) if len(sys.argv) >= 4 else 1.0
-
 mixer.music.load(sys.argv[1])
 chart = phichart.load(json.load(open(sys.argv[2], "r", encoding="utf-8")))
 
