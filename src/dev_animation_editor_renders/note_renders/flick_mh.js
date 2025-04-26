@@ -29,13 +29,12 @@ function render() {
         note_deg
     } = this;
     
-    const scale = this.note_draw_render_scale / 2;
+    const scale = this.note_draw_render_scale;
     const flick_deg = this.note_render_flick_deg;
     const flick_rad = flick_deg * Math.PI / 180;
     const flick_color = `rgb(${0xfe}, ${0x43}, ${0x65})`;
 
     const get_dpower = (w, h) => this.get_dpower(w, h, note_deg);
-    const get_dpower_flick = (w, h) => this.get_dpower(w, h, flick_deg);
 
     const [w, h] = [989, 200];
     const fh = h / 2;
