@@ -53,6 +53,8 @@ class Jsapi:
             directory = askdirectory()
             if not directory: return
             name_eval = window.evaluate_js("prompt('input name of file eval (frame num i: int):\\nlike this: f\"{i}.png\"');")
+            if not name_eval:
+                name_eval = "f\"{i}.png\""
             i = 0
             while True:
                 t = i / cfg["multi_frame_fps"]
