@@ -418,4 +418,45 @@ EXTRA_DEFAULTS: dict[str, dict[str, float|list[float]]] = {
     }
 }
 
+PGR_PARTICLE_DATA = {
+    "spwanTime": 0.015,
+    "speedCurves": [
+        {
+            "time": 0,
+            "value": 0,
+            "inSlope": 2.1999998,
+            "outSlope": 2.1999998,
+            "inWeight": 0.33333334,
+            "outWeight": 0.1764706
+        },
+        {
+            "time": 1,
+            "value": 1,
+            "inSlope": 0,
+            "outSlope": 0,
+            "inWeight": 0.33333334,
+            "outWeight": 0.33333334
+        }
+    ],
+    "sizeCurves": [
+        {
+            "time": 0,
+            "value": 0.49884492,
+            "inSlope": 1.6398785,
+            "outSlope": 1.6398785,
+            "inWeight": 0.33333334,
+            "outWeight": 0.1764706
+        },
+        {
+            "time": 1,
+            "value": 0.6941143,
+            "inSlope": -1.0415096,
+            "outSlope": -1.0415096,
+            "inWeight": 0.25980395,
+            "outWeight": 0.33333334
+        }
+    ],
+    "startSize": 0.3
+}
+
 del typing, platform

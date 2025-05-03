@@ -1034,3 +1034,41 @@ class IterRemovableList(typing.Generic[IterRemovableListT]):
                 self.tail = prev_node
         
         return current_node.value, remove_callback
+
+def UnityCurve(curves: list[dict], t: float):
+    if not curves: return 0
+    
+    curves = sorted(curves, key=lambda x: x["time"])
+    
+    if t <= curves[0]["time"]: return curves[0]["value"]
+    if t >= curves[-1]["time"]: return curves[-1]["value"]
+    
+    for i in range(len(curves) - 1):
+        c = curves[i]
+        if c["time"] <= t <= curves[i + 1]["time"]:
+            left = i
+            break
+    
+    k0 = curves[left]
+    k1 = curves[left + 1]
+    dt = k1["time"] - k0["time"]
+    tNorm = 0 if dt == 0 else (t - k0["time"]) / dt # 归一化时间参数
+    
+    # 三次埃尔米特基函数
+    t2 = tNorm ** 2
+    t3 = t2 * tNorm
+    h00 = 2 * t3 - 3 * t2 + 1
+    h10 = t3 - 2 * t2 + tNorm
+    h01 = -2 * t3 + 3 * t2
+    h11 = t3 - t2
+    
+    # 实际影响的斜率
+    m0 = 3 * k0["outSlope"] * k0["outWeight"] # 出方向加权斜率
+    m1 = 3 * k1["inSlope"] * k1["inWeight"]   # 入方向加权斜率
+    
+    return (
+        h00 * k0["value"] +
+        h10 * m0 +        # 不再需要乘以dt
+        h01 * k1["value"] +
+        h11 * m1
+    )

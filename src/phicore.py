@@ -189,10 +189,13 @@ def processClickEffectBase(
     effectSize = noteWidth * 1.375 * 1.12
     
     if not phira_respack.globalPack.hideParticles:
+        real_sec = p * phira_respack.globalPack.effectDuration
         s = w * (noteWidth / (w * const.NOTE_DEFAULTSIZE)) / 4040 * 3
-        nowBlockSize = s * 30 * (((0.2078 * p - 1.6524) * p + 1.6399) * p + 0.4988)
+        nowBlockSize = s * 33 * utils.UnityCurve(const.PGR_PARTICLE_DATA["sizeCurves"], p)
         
-        for deg, randdr in rblocks:
+        for i, (deg, randdr) in enumerate(rblocks):
+            block_st = i * const.PGR_PARTICLE_DATA["spwanTime"]
+            if real_sec < block_st: continue
             pointr = s * randdr * (9 * p / (8 * p + 1))
             
             if pointr < 0.0: continue
