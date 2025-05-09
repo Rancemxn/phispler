@@ -3,7 +3,6 @@ import check_bin as _
 
 import json
 import struct
-import base64
 from os import mkdir, popen, listdir
 from os.path import exists, isfile, basename, dirname
 from shutil import rmtree
@@ -19,6 +18,7 @@ from UnityPy.enums import ClassIDType
 from fsb5 import FSB5
 
 import pgr_catalog
+import light_utils
     
 iothread_num = 32
 packthread_num = 1
@@ -82,23 +82,29 @@ def createZip(files: str, to: str):
         for file in files:
             f.write(file, arcname=basename(file))
 
-def run(rpe: bool, need_otherillu: bool, need_other_res: bool):
+def run(
+    rpe: bool = False,
+    need_otherillu: bool = False,
+    need_otherres: bool = False,
+    need_pack: bool = True
+):
     try: rmtree("unpack-temp")
     except Exception: pass
     try: mkdir("unpack-temp")
     except FileExistsError: pass
     
-    print("generate info.json...")
+    print("generate info...")
     infoResult = generate_info()
-    print("generated info.json")
+    print("generated info")
     
     print("unpack...")
-    generate_resources(need_otherillu, need_other_res)
+    generate_resources(need_otherillu, need_otherres)
     print("unpacked")
     
-    print("pack charts...")
-    pack_charts(infoResult, rpe)
-    print("packed charts")
+    if need_pack:
+        print("pack charts...")
+        pack_charts(infoResult, rpe)
+        print("packed charts")
     
     try: rmtree("unpack-temp")
     except Exception: pass
@@ -135,6 +141,12 @@ def generate_info():
     except Exception: pass
     try: mkdir("unpack-result")
     except FileExistsError: pass
+    
+    game_dat = getZipItem("/assets/bin/Data/Managed/Metadata/game.dat")
+    metadata = light_utils.raw_metadata_to_dec(game_dat)
+    
+    with open("./unpack-result/global-metadata.dat", "wb") as f:
+        f.write(metadata)
     
     env = UnityPy.Environment()
     env.load_file(
@@ -252,13 +264,13 @@ def generate_info():
     
     return chartItems
 
-def generate_resources(need_otherillu: bool = False, need_other_res: bool = False):
+def generate_resources(need_otherillu: bool = False, need_otherres: bool = False):
     catalog = json.loads(getZipItem("/assets/aa/catalog.json").decode("utf-8"))
     
     for i in [
         "Chart_EZ", "Chart_HD", "Chart_IN", "Chart_AT", "Chart_Legacy", "Chart_Error",
         *(("IllustrationBlur", "IllustrationLowRes") if need_otherillu else ()), "Illustration", "music",
-        "avatars", *(("other_res", ) if need_other_res else ())
+        "avatars", *(("other_res", ) if need_otherres else ())
     ]:
         try: rmtree(f"./unpack-result/{i}")
         except Exception: pass
@@ -434,7 +446,7 @@ def generate_resources(need_otherillu: bool = False, need_other_res: bool = Fals
     
     iocommands.extend(("ke-unpack-player-res", *i) for i in player_res_table)
     iocommands.extend(("ke-unpack-avatar-res", *i) for i in avatar_res_table)
-    iocommands.extend(("ke-unpack-other-res", *i) for i in other_res_table) if need_other_res else None
+    iocommands.extend(("ke-unpack-other-res", *i) for i in other_res_table) if need_otherres else None
 
     iots = [Thread(target=io, daemon=True) for _ in range(iothread_num)]
     (*map(lambda x: x.start(), iots), )
@@ -609,4 +621,9 @@ if __name__ == "__main__":
         p2rthread_num = int(argv[argv.index("--p2rthread") + 1])
     
     setApk(argv[1])
-    run("--rpe" in argv, "--need-other-illu" in argv, "--need-other-res" in argv)
+    run(
+        rpe = "--rpe" in argv,
+        need_otherillu = "--need-other-illu" in argv,
+        need_otherres = "--need-other-res" in argv,
+        need_pack = "--no-pack" not in argv,
+    )

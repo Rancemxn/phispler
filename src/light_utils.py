@@ -1099,23 +1099,6 @@ class RC4:
 			result.append(byte_val ^ keystream_byte)
 		return bytes(result)
 
-def dec_xor_metadata(metadata: typing.ByteString, string: int, stringSize: int):
-    if not isinstance(metadata, bytearray):
-        metadata = bytearray(metadata)
-    
-    offset = 0
-    while offset < stringSize:
-        xor = offset % 0xFF
-        
-        i = 0
-        while i == 0 or xor != 0:
-            xor ^= metadata[string + offset]
-            metadata[string + offset] = xor
-            offset += 1
-            i = 1
-    
-    return metadata
-
 class BasePositionByteReaderType(typing.Protocol):
     @abstractmethod
     def read_at(self, offset: int, size: int) -> bytes: ...
@@ -1135,7 +1118,47 @@ class MetadataXorDecryptor:
         stringSize = self._read_int_at(28)
         string = self._read_int_at(24)
 
-        dec_xor_metadata(metadata, string, stringSize)
+        offset = 0
+        while offset < stringSize:
+            xor = offset % 0xFF
+            
+            i = 0
+            while i == 0 or xor != 0:
+                xor ^= metadata[string + offset]
+                metadata[string + offset] = xor
+                offset += 1
+                i = 1
         
-        return bytes(metadata)
+        return metadata
+
+def raw_metadata_to_dec(raw: bytes): # game.dat -> global-metadata.dat
+    class ByteReader:
+        def __init__(self, data: bytes):
+            self.data = data
+            self.index = 0
+        
+        def read(self, length: int) -> bytes:
+            value = self.data[self.index:self.index + length]
+            self.index += length
+            return value
+        
+        def read_at(self, offset: int, length: int) -> bytes:
+            return self.data[offset:offset + length]
+        
+        def read_int(self) -> int:
+            return struct.unpack("<i", self.read(4))[0]
     
+    def read_from_magic(magic: int):
+        reader = ByteReader(raw)
+        while True:
+            try: v = reader.read_int()
+            except struct.error: break
+
+            if v == magic:
+                start, length = reader.index - 4 + 16, reader.read_int()
+                return raw[start:start + length]
+        
+    rc4_decryptor = RC4(read_from_magic(1451223060))
+    metadata = MetadataXorDecryptor(ByteReader(rc4_decryptor.crypt(read_from_magic(-1124405112)))).get()
+
+    return metadata
