@@ -29,4 +29,4 @@ metadata = light_utils.MetadataXorDecryptor(MemReader(ggmresult_addr)).get()
 with open("./global-metadata.dat", "wb") as f:
     f.write(metadata)
 
-print("dumped global-metadata.dat.")
+print("done.")
