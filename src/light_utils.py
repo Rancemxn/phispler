@@ -5,6 +5,7 @@ import typing
 import threading
 import random
 import struct
+from abc import abstractmethod
 from os import listdir
 from os.path import isfile, abspath
 
@@ -1072,3 +1073,69 @@ def UnityCurve(curves: list[dict], t: float):
         h01 * k1["value"] +
         h11 * m1
     )
+
+class RC4:
+	def __init__(self, key_bytes):
+		self.S = list(range(256))
+		key_len = len(key_bytes)
+		j = 0
+		for i in range(256):
+			j = (j + self.S[i] + key_bytes[i % key_len]) % 256
+			self.S[i], self.S[j] = self.S[j], self.S[i]
+		self.i_prga = 0
+		self.j_prga = 0
+
+	def _get_keystream_byte(self):
+		self.i_prga = (self.i_prga + 1) % 256
+		self.j_prga = (self.j_prga + self.S[self.i_prga]) % 256
+		self.S[self.i_prga], self.S[self.j_prga] = self.S[self.j_prga], self.S[self.i_prga]
+		k = self.S[(self.S[self.i_prga] + self.S[self.j_prga]) % 256]
+		return k
+
+	def crypt(self, data_bytes):
+		result = bytearray()
+		for byte_val in data_bytes:
+			keystream_byte = self._get_keystream_byte()
+			result.append(byte_val ^ keystream_byte)
+		return bytes(result)
+
+def dec_xor_metadata(metadata: typing.ByteString, string: int, stringSize: int):
+    if not isinstance(metadata, bytearray):
+        metadata = bytearray(metadata)
+    
+    offset = 0
+    while offset < stringSize:
+        xor = offset % 0xFF
+        
+        i = 0
+        while i == 0 or xor != 0:
+            xor ^= metadata[string + offset]
+            metadata[string + offset] = xor
+            offset += 1
+            i = 1
+    
+    return metadata
+
+class BasePositionByteReaderType(typing.Protocol):
+    @abstractmethod
+    def read_at(self, offset: int, size: int) -> bytes: ...
+
+class MetadataXorDecryptor:
+    def __init__(self, reader: BasePositionByteReaderType):
+        self.reader = reader
+    
+    def _read_int_at(self, offset: int) -> int:
+        return struct.unpack_from("<I", self.reader.read_at(offset, 4))[0]
+    
+    def get(self):
+        offset = self._read_int_at(8)
+        size = self._read_int_at(offset - 8) + self._read_int_at(offset - 4)
+
+        metadata = bytearray(self.reader.read_at(0, size))
+        stringSize = self._read_int_at(28)
+        string = self._read_int_at(24)
+
+        dec_xor_metadata(metadata, string, stringSize)
+        
+        return bytes(metadata)
+    
