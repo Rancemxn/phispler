@@ -1,5 +1,6 @@
 import typing
 import platform
+import datetime
 
 class NOTE_TYPE:
     TAP = 1
@@ -34,12 +35,14 @@ class OTHER_SETTING_LB_STRINGS:
     TWITTER = "@Phigros PGS"
     BILIBILI = "@Phigros官方"
     QQ = "鸽游网络@Phigros"
+    GITHUB = "github@qaqFei"
 
 class PHIGROS_LINKS:
     TWITTER = "https://twitter.com/Phigros_PGS"
     BILIBILI = "https://space.bilibili.com/414149787"
     QQ = "https://pd.qq.com/s/433r43ehu"
     PRIVACYPOLIC = "https://www.pigeongames.cn/news/2"
+    GITHUB = "https://github.com/qaqFei/phispler"
 
 class PHI_SORTMETHOD:
     DEFAULT = 1
@@ -181,7 +184,7 @@ JUDGELINE_PERFECT_COLOR = "#feffa9"
 RENDER_RANGE_MORE_FRAME_LINE_COLOR = "rgba(0, 94, 255, 0.65)"
 PHIGROS_VERSION = "NULL"
 DEVICE = platform.platform()
-OTHERSERTTING_RIGHTDOWN_TEXT = "@2019-2024 Pigeon Games. All right Reserverd."
+OTHERSERTTING_RIGHTDOWN_TEXT = "@2024-2025 qaqFei. All right Reserverd."
 FINISH_UI_BUTTON_SIZE = 0.10625
 JOINQQGUILDPROMO_DIAGONALRECTANGLEPOWER = 127 / 975
 CHAPTER_DIAGONALRECTANGLEDEG = -75

@@ -289,7 +289,8 @@ def loadResource():
     global JoinQQGuildBannerWidth, JoinQQGuildBannerHeight
     global JoinQQGuildPromoWidth, JoinQQGuildPromoHeight
     global SettingUIOtherDownIconWidth
-    global SettingUIOtherDownIconHeight_Twitter, SettingUIOtherDownIconHeight_QQ, SettingUIOtherDownIconHeight_Bilibili
+    global SettingUIOtherDownIconHeight_Twitter, SettingUIOtherDownIconHeight_QQ
+    global SettingUIOtherDownIconHeight_Bilibili, SettingUIOtherDownIconHeight_Github
     global TapTapIconWidth, TapTapIconHeight
     global CheckedIconWidth, CheckedIconHeight
     global SortIconWidth, SortIconHeight
@@ -363,6 +364,7 @@ def loadResource():
         "challengeModeChecked": Image.open("./resources/challengeModeChecked.png"),
         "Undo": Image.open("./resources/Undo.png"),
         "cross": Image.open("./resources/cross.png"),
+        "github": Image.open("./resources/github.png"),
     }
     
     Resource.update(phi_rpack.createResourceDict())
@@ -415,6 +417,7 @@ def loadResource():
     respacker.reg_img(Resource["challengeModeChecked"], "challengeModeChecked")
     respacker.reg_img(Resource["Undo"], "Undo")
     respacker.reg_img(Resource["cross"], "cross")
+    respacker.reg_img(Resource["github"], "github")
 
     ButtonWidth = w * 0.10875
     ButtonHeight = ButtonWidth / Resource["ButtonLeftBlack"].width * Resource["ButtonLeftBlack"].height # bleft and bright size is the same.
@@ -431,6 +434,7 @@ def loadResource():
     SettingUIOtherDownIconHeight_Twitter = SettingUIOtherDownIconWidth / Resource["twitter"].width * Resource["twitter"].height
     SettingUIOtherDownIconHeight_QQ = SettingUIOtherDownIconWidth / Resource["qq"].width * Resource["qq"].height
     SettingUIOtherDownIconHeight_Bilibili = SettingUIOtherDownIconWidth / Resource["bilibili"].width * Resource["bilibili"].height
+    SettingUIOtherDownIconHeight_Github = SettingUIOtherDownIconWidth / Resource["github"].width * Resource["github"].height
     TapTapIconWidth = w * 0.05
     TapTapIconHeight = TapTapIconWidth / Resource["taptap"].width * Resource["taptap"].height
     CheckedIconWidth = w * 0.0140625
@@ -2035,6 +2039,13 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         )) and inSettingUI:
             webbrowser.open(const.PHIGROS_LINKS.QQ)
         
+        # Github链接
+        if settingState.atis_o and utils.inrect(x, y, (
+            w * 881 / 1920, h * 1015 / 1080,
+            w * 1079 / 1920, h * 1042 / 1080
+        )) and inSettingUI:
+            webbrowser.open(const.PHIGROS_LINKS.GITHUB)
+        
         # 开源许可证的关闭按钮
         if utils.inrect(x, y, (0, 0, ButtonWidth, ButtonHeight)) and ShowOpenSource and time.time() - ShowOpenSourceSt > 0.15:
             ShowOpenSource, ShowOpenSourceSt = False, float("nan")
@@ -2822,11 +2833,11 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             drawOtherSettingButton(*i, settingOtherButtonDPower)
         
         drawText(
-            w * 0.5453125,
+            w * 0.803125,
             h * (1031 / 1080),
             const.OTHERSERTTING_RIGHTDOWN_TEXT,
             font = f"{(w + h) / 135}px pgrFont",
-            textAlign = "left",
+            textAlign = "right",
             textBaseline = "middle",
             fillStyle = "rgba(255, 255, 255, 0.5)",
             wait_execute = True
@@ -2882,6 +2893,25 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
         drawText(
             w * 0.346875, h * (1031 / 1080),
             const.OTHER_SETTING_LB_STRINGS.QQ,
+            font = f"{(w + h) / 135}px pgrFont",
+            textAlign = "left",
+            textBaseline = "middle",
+            fillStyle = "rgba(255, 255, 255, 0.5)",
+            wait_execute = True
+        )
+        
+        drawImage(
+            "github",
+            w * 0.4654375 - SettingUIOtherIconWidth / 2,
+            h * (1031 / 1080) - SettingUIOtherDownIconHeight_Github / 2,
+            SettingUIOtherDownIconWidth,
+            SettingUIOtherDownIconHeight_Github,
+            wait_execute = True
+        )
+        
+        drawText(
+            w * 0.4795, h * (1031 / 1080),
+            const.OTHER_SETTING_LB_STRINGS.GITHUB,
             font = f"{(w + h) / 135}px pgrFont",
             textAlign = "left",
             textBaseline = "middle",
