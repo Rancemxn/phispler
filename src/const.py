@@ -1,6 +1,7 @@
 import typing
 import platform
-import datetime
+
+REPO_URL = "https://github.com/qaqFei/phispler"
 
 class NOTE_TYPE:
     TAP = 1
@@ -41,8 +42,8 @@ class PHIGROS_LINKS:
     TWITTER = "https://twitter.com/Phigros_PGS"
     BILIBILI = "https://space.bilibili.com/414149787"
     QQ = "https://pd.qq.com/s/433r43ehu"
+    GITHUB = REPO_URL
     PRIVACYPOLIC = "https://www.pigeongames.cn/news/2"
-    GITHUB = "https://github.com/qaqFei/phispler"
 
 class PHI_SORTMETHOD:
     DEFAULT = 1
@@ -197,7 +198,6 @@ FLOAT_LESSZERO_MAGIC = -1 / 1024
 CSOUND_MANAGER_THREADNUM = 1
 INFBEAT = 1e9
 ALL_LETTER = "qwertyuiopasdfghjklzxcvbnm"
-REPO_URL = "https://github.com/qaqFei/phispler"
 BASE_PORT = 16384
 MAX_PORT = 65535
 PGR_INF = 999999.0
@@ -342,14 +342,14 @@ Ctymax
 “主要负责了版权商务相关大大小小的事宜，尽可能为玩家们搜罗来优质的音乐与美术作品。希望大家喜欢！”
 
 --------------------------------
-关于 phispler 项目 (https://github.com/qaqFei/phispler),
+关于 phispler 项目 ({%REPO_URL%}),
 
 phispler 使用MIT协议进行开源喵！！
-( MIT 万岁 ！！！
 
 鸣谢
 星空孤雁 (Introduction 谱面谱师)
-"""
+""" \
+.replace("{%REPO_URL%}", REPO_URL)
 
 PHIGROS_SETTING_BAR_WIDTH_MAP = {
     PHIGROS_SETTING_STATE.PLAY: 0.465625,
