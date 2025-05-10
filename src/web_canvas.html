@@ -72,6 +72,30 @@
         height: 100%;
         z-index: 100;
     }
+
+    ::highlight(highlight-shadow) {
+        text-shadow: 0 0 10px #000000;
+    }
+
+    ::highlight(highlight-1) {
+        color: #a8a8a8;
+    }
+
+    ::highlight(highlight-2) {
+        color: #54fcfc;
+    }
+
+    ::highlight(highlight-3) {
+        color: #fc5454;
+    }
+
+    ::highlight(highlight-4) {
+        color: #fcfc00;
+    }
+
+    ::highlight(highlight-5) {
+        color: #7e7e7e;
+    }
 </style>
 
 <script>
@@ -779,6 +803,32 @@ void main() {
     function setCanvasInputFocus(id) {
         if (!canvasInputEles.has(id)) return;
         canvasInputEles.get(id).focus();
+    }
+
+    function setCanvasInputHighlight(id, lights) {
+        if (!canvasInputEles.has(id)) return;
+        const ele = canvasInputEles.get(id);
+
+        // lights: list[tuple[int (start), int (end), color]]
+        const need_deletes = [];
+        CSS.highlights.forEach(hl => {
+            if (hl.input_id === id) need_deletes.push(hl);
+        });
+        need_deletes.forEach(CSS.highlights.delete);
+
+        const highlight_objs = new Map();
+
+        for (const hl of lights) {
+            if (!highlight_objs.has(hl[2])) highlight_objs.set(hl[2], []);
+            const r = new Range(ele);
+            r.setStart(ele, hl[0]);
+            r.setEnd(ele, hl[1]);
+            highlight_objs.get(hl[2]).push(r);
+        }
+
+        highlight_objs.forEach((ranges, color) => {
+            CSS.highlights.set(color, new Highlight(...ranges));
+        })
     }
 
     Image.prototype.enable_lazy_load = function (real_srcs) {

@@ -451,7 +451,7 @@ class Input(BaseUI):
     ):
         self.x = x
         self.y = y
-        self.text = default_text
+        self.text = ""
         self.font = font
         self.width = width
         self.height = height
@@ -463,10 +463,21 @@ class Input(BaseUI):
         self.font_color = "black"
         
         self.removed = False
+        self.do_highlight = lambda _: []
         self._update_text()
     
     def _update_text(self):
-        self.text = root.run_js_code(f"updateCanvasInput({self.id}, {self.x}, {self.y}, {self.width}, {self.height}, \"{self.font}\", {repr(self.default_text) if self.default_text is not None else "null"}, {repr(self.font_color)})")
+        oldtext = self.text
+        self.text = root.run_js_code(f"updateCanvasInput({self.id}, {self.x}, {self.y}, {self.width}, {self.height}, \"{self.font}\", {repr(self.default_text) if self.default_text is not None else "null"}, {repr(self.font_color)});")
+        
+        if oldtext != self.text:
+            lights = self.do_highlight(self.text)
+            lights = [
+                [0, 1, "highlight-2"],
+                [1, len(self.text), "highlight-2"]
+            ]
+            if lights:
+                root.run_js_code(f"setCanvasInputHighlight({self.id}, {repr(lights)});")
     
     def render(self):
         if self.removed:
