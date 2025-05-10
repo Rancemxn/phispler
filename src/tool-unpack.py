@@ -1,3 +1,5 @@
+import UnityPy.helpers.ResourceReader
+import UnityPy.helpers.TypeTreeGenerator
 import fix_workpath as _
 import check_bin as _
 
@@ -14,6 +16,7 @@ from zipfile import ZipFile
 import UnityPy
 import UnityPy.files
 import UnityPy.classes
+import UnityPy.helpers
 from UnityPy.enums import ClassIDType
 from fsb5 import FSB5
 
@@ -68,7 +71,21 @@ class ByteReaderA:
         except Exception as e:
             self.position = pbak
             raise e
+
+def get_data_from_AudioClip(audio: UnityPy.classes.AudioClip):
+    if audio.m_AudioData:
+        audio_data = audio.m_AudioData
+    else:
+        resource = audio.m_Resource
+        audio_data = UnityPy.helpers.ResourceReader.get_resource_data(
+            resource.m_Source,
+            audio.object_reader.assets_file,
+            resource.m_Offset,
+            resource.m_Size,
+        )
     
+    return audio_data
+        
 def setApk(path: str):
     global pgrapk
     pgrapk = path
@@ -136,6 +153,15 @@ def load_all_level(env: UnityPy.Environment):
             break
         i += 1
 
+pgr_unpack_typetree = json.load(open("./resources/pgr_unpack_typetree.json", "r", encoding="utf-8"))
+def read_typetree(
+    obj: UnityPy.files.ObjectReader,
+    gen: UnityPy.helpers.TypeTreeGenerator.TypeTreeGenerator,
+    name: str
+):
+    # typetree = gen.get_nodes_up("Assembly-CSharp", name)
+    return obj.read_typetree(pgr_unpack_typetree[name], check_read=False)
+
 def generate_info():
     try: rmtree("unpack-result")
     except Exception: pass
@@ -154,32 +180,34 @@ def generate_info():
         name = "assets/bin/Data/globalgamemanagers.assets"
     )
     
+    tt_gen = UnityPy.helpers.TypeTreeGenerator.TypeTreeGenerator("2019.4.31f1c1")
+    tt_gen.load_il2cpp(getZipItem("/lib/arm64-v8a/libil2cpp.so"), metadata)
+    
     load_level(env, 0)
     
-    with open("./resources/pgr_unpack_treetype.json", "r", encoding="utf-8") as f:
-        treetype = json.load(f)
-            
     for obj in env.objects:
         if obj.type.name != "MonoBehaviour": continue
         
         try:
-            data = obj.read()
-            name = data.m_Script.get_obj().read().name
+            data: UnityPy.classes.MonoBehaviour = obj.read(check_read=False)
+            pptr: UnityPy.classes.PPtr = data.m_Script
+            name = pptr.read().m_ClassName
+            
             match name:
                 case "GameInformation":
-                    information: bytes = data.raw_data.tobytes()
-                    information_ftt = obj.read_typetree(treetype["GameInformation"])
+                    information: bytes = data.object_reader.get_raw_data().tobytes()
+                    information_ftt = read_typetree(obj, tt_gen, "GameInformation")
                     
                 case "GetCollectionControl":
-                    collection = obj.read_typetree(treetype["GetCollectionControl"])
+                    collection = read_typetree(obj, tt_gen, "GetCollectionControl")
                     with open("./unpack-result/collectionItems.json", "w", encoding="utf-8") as f:
-                        json.dump(collection["collectionItems"], f, indent=4, ensure_ascii=False)
+                        json.dump(collection, f, indent=4, ensure_ascii=False)
                     
                     with open("./unpack-result/avatars.json", "w", encoding="utf-8") as f:
                         json.dump(collection["avatars"], f, indent=4, ensure_ascii=False)
                         
                 case "TipsProvider":
-                    tips = obj.read_typetree(treetype["TipsProvider"])
+                    tips = read_typetree(obj, tt_gen, "TipsProvider")
                     with open("./unpack-result/tips.json", "w", encoding="utf-8") as f:
                         json.dump(tips["tips"], f, indent=4, ensure_ascii=False)
         except Exception as e:
@@ -303,17 +331,20 @@ def generate_resources(need_otherillu: bool = False, need_otherres: bool = False
             "avatar_res": avatar_res_table
         }, f, ensure_ascii=False, indent=4)
     
-    def save_player_res(key: str, entry: UnityPy.files.BundleFile, fn: str):
-        obj: UnityPy.classes.TextAsset | UnityPy.classes.Sprite | UnityPy.classes.AudioClip
-        obj = next(entry.get_filtered_objects((ClassIDType.TextAsset, ClassIDType.Sprite, ClassIDType.AudioClip))).read()
+    def append_extinfo(key: str, fn: str, obj: UnityPy.classes.TextAsset | UnityPy.classes.Sprite | UnityPy.classes.AudioClip):
         extended_info.append({
             "key": key,
             "fn": fn,
-            "type": obj.type.value,
-            "type_string": obj.type.name,
-            "path_id": obj.path_id,
-            "name": obj.name
+            "type": obj.object_reader.type.value,
+            "type_string": obj.object_reader.type.name,
+            "path_id": obj.object_reader.path_id,
+            "name": obj.m_Name
         })
+    
+    def save_player_res(key: str, entry: UnityPy.files.BundleFile, fn: str):
+        obj: UnityPy.classes.TextAsset | UnityPy.classes.Sprite | UnityPy.classes.AudioClip
+        obj = next(entry.get_filtered_objects((ClassIDType.TextAsset, ClassIDType.Sprite, ClassIDType.AudioClip))).read()
+        append_extinfo(key, fn, obj)
         
         key = key.replace("\\", "/")
         keyfoldername = dirname(key)
@@ -323,10 +354,10 @@ def generate_resources(need_otherillu: bool = False, need_otherres: bool = False
         
         if keymainname.startswith("Chart_") and keyextname == "json":
             if not keymainname.endswith("_Error"):
-                iocommands.append(("save-string", f"{keymainname}/{keyfoldername}.json", obj.script))
+                iocommands.append(("save-string", f"{keymainname}/{keyfoldername}.json", obj.m_Script))
             else:
                 level = keymainname.replace("Chart_", "").replace("_Error", "")
-                iocommands.append(("save-string", f"Chart_Error/{keyfoldername}_{level}.json", obj.script))
+                iocommands.append(("save-string", f"Chart_Error/{keyfoldername}_{level}.json", obj.m_Script))
         
         elif keymainname in ("IllustrationBlur", "IllustrationLowRes") and keyextname in ("png", "jpg", "jpeg"):
             if not need_otherillu: return
@@ -336,7 +367,9 @@ def generate_resources(need_otherillu: bool = False, need_otherres: bool = False
             iocommands.append(("save-pilimg", f"Illustration/{keyfoldername}.png", obj.image))
             
         elif keymainname == "music" and keyextname in ("wav", "ogg", "mp3"):
-            fsb = FSB5(obj.m_AudioData.tobytes() if isinstance(obj.m_AudioData, memoryview) else obj.m_AudioData)
+            obj: UnityPy.classes.AudioClip
+            audio_data = get_data_from_AudioClip(obj)
+            fsb = FSB5(audio_data.tobytes() if isinstance(audio_data, memoryview) else audio_data)
             iocommands.append(("save-music", f"music/{keyfoldername}.ogg", fsb.rebuild_sample(fsb.samples[0])))
         
         else:
@@ -345,14 +378,7 @@ def generate_resources(need_otherillu: bool = False, need_otherres: bool = False
     def save_avatar_res(key: str, entry: UnityPy.files.BundleFile, fn: str):
         obj: UnityPy.classes.Sprite
         obj = next(entry.get_filtered_objects((ClassIDType.Sprite, ))).read()
-        extended_info.append({
-            "key": key,
-            "fn": fn,
-            "type": obj.type.value,
-            "type_string": obj.type.name,
-            "path_id": obj.path_id,
-            "name": obj.name
-        })
+        append_extinfo(key, fn, obj)
         iocommands.append(("save-pilimg", f"avatars/{key}.png", obj.image))
     
     def save_other_res(key: str, entry: UnityPy.files.BundleFile, fn: str):
@@ -411,8 +437,8 @@ def generate_resources(need_otherillu: bool = False, need_otherres: bool = False
                         keunpack_count += 1
 
                     case "save-string":
-                        with open(f"./unpack-result/{item[1]}", "wb") as f:
-                            f.write(item[2].tobytes())
+                        with open(f"./unpack-result/{item[1]}", "w", encoding="utf-8") as f:
+                            f.write(item[2])
                         save_string_count += 1
                         
                     case "save-pilimg":
@@ -430,7 +456,7 @@ def generate_resources(need_otherillu: bool = False, need_otherres: bool = False
                         with open(f"./unpack-result/{item[1]}", "wb") as f:
                             f.write(item[2])
                         save_music_count += 1
-            except Exception as e:
+            except StopAsyncIteration as e:
                 print(f"has err in io: {repr(e)}")
         
         stopthread_count += 1

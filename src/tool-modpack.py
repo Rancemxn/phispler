@@ -43,7 +43,7 @@ def findexinfo_byinfo(iitem: dict, key: str):
             return i
     return None if not key.endswith(".png") else findexinfo_byinfo(iitem, key[:-4] + ".jpg")
 
-def t2d_reset_treetype(t2d: UnityPy.classes.Texture2D):
+def t2d_reset_typetree(t2d: UnityPy.classes.Texture2D):
     # https://github.com/K0lb3/UnityPy/issues/230
     tree = t2d.read_typetree()
     
@@ -83,7 +83,7 @@ def putimto_bundle(bundle: typing.Optional[UnityPy.files.BundleFile], im: Image.
     t2d.m_CompleteImageSize = len(temp_t2d)
     t2d.save()
     ress.view = memoryview(temp_t2d)
-    t2d_reset_treetype(t2d)
+    t2d_reset_typetree(t2d)
 
 def fail(mod: dict):
     print(f"Failed to process mod: {mod["name"]}")

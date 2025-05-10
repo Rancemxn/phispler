@@ -1129,7 +1129,7 @@ class MetadataXorDecryptor:
                 offset += 1
                 i = 1
         
-        return metadata
+        return bytes(metadata)
 
 def raw_metadata_to_dec(raw: bytes): # game.dat -> global-metadata.dat
     class ByteReader:

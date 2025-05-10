@@ -11,8 +11,8 @@ if len(argv) < 5:
 
 mb_name = argv[5] if len(argv) >= 6 else "GameInformation"
 
-with open("./resources/pgr_unpack_treetype.json", "r", encoding="utf-8") as f:
-    treetype = json.load(f)
+with open("./resources/pgr_unpack_typetree.json", "r", encoding="utf-8") as f:
+    typetree = json.load(f)
     
 info_ftt = json.load(open(argv[3], "r", encoding="utf-8"))
         
@@ -27,7 +27,7 @@ for obj in env.objects:
     name = data.m_Script.get_obj().read().name
     
     if name == mb_name:
-        obj.save_typetree(info_ftt, treetype[mb_name])
+        obj.save_typetree(info_ftt, typetree[mb_name])
     
 env.save(out_path=argv[4])
 print("modified.")
