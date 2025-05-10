@@ -73,28 +73,29 @@
         z-index: 100;
     }
 
-    ::highlight(highlight-shadow) {
-        text-shadow: 0 0 10px #000000;
-    }
-
     ::highlight(highlight-1) {
         color: #a8a8a8;
+        text-shadow: 0 0 10px #000000;
     }
 
     ::highlight(highlight-2) {
         color: #54fcfc;
+        text-shadow: 0 0 10px #000000;
     }
 
     ::highlight(highlight-3) {
         color: #fc5454;
+        text-shadow: 0 0 10px #000000;
     }
 
     ::highlight(highlight-4) {
         color: #fcfc00;
+        text-shadow: 0 0 10px #000000;
     }
 
     ::highlight(highlight-5) {
         color: #7e7e7e;
+        text-shadow: 0 0 10px #000000;
     }
 </style>
 
@@ -764,16 +765,68 @@ void main() {
         await new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    function moveCursorToEnd(element) {
+        const textNode = element.childNodes[0];
+        if (!textNode) return;
+        
+        const range = document.createRange();
+        const selection = window.getSelection();
+        range.setStart(textNode, textNode.length);
+        range.setEnd(textNode, textNode.length);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+
     const canvasInputEles = new Map();
     function updateCanvasInput(id, x, y, width, height, font, default_text, font_color) {
         if (!canvasInputEles.has(id)) {
-            const ele = document.createElement("input");
+            const ele = document.createElement("div");
+
+            ele.contentEditable = true;
+            ele.spellcheck = false;
+            ele.tabindex = 0;
+
             ele.style.position = "absolute";
             ele.style.outline = "none";
             ele.style.border = "none";
             ele.style.background = "transparent";
-            ele.setAttribute("spellcheck", "false");
-            if (default_text) ele.value = default_text;
+            ele.style.overflowX = "auto";
+            ele.style.whiteSpace = "nowrap";
+            ele.style.scrollbarWidth = "none";
+            ele.style.msOverflowStyle = "none";
+
+            ele.style.display = "flex";
+            ele.style.alignItems = "center";
+
+            if (default_text) {
+                ele.textContent = default_text;
+                ele.needMoveCursorToEnd = true;
+
+                ele.addEventListener("focus", () => {
+                    if (ele.needMoveCursorToEnd) {
+                        moveCursorToEnd(ele);
+                        ele.needMoveCursorToEnd = false;
+                    }
+                });
+
+                ele.addEventListener("input", () => {
+                    ele.needMoveCursorToEnd = false;
+                })
+            }
+
+            ele.addEventListener("paste", e => {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData("text/plain").replaceAll("\n", " ");
+                document.execCommand("insertText", false, text);
+            });
+
+            ele.addEventListener("keydown", e => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.blur();
+                }
+            });
+
             document.querySelector(".canvas-input-widgets").appendChild(ele);
             canvasInputEles.set(id, ele);
         }
@@ -786,7 +839,7 @@ void main() {
         ele.style.font = font;
         ele.style.color = font_color;
 
-        return ele.value;
+        return ele.textContent;
     }
 
     function removeCanvasInput(id) {
@@ -797,7 +850,7 @@ void main() {
 
     function setCanvasInputText(id, value) {
         if (!canvasInputEles.has(id)) return;
-        canvasInputEles.get(id).value = value;
+        canvasInputEles.get(id).textContent = value;
     }
 
     function setCanvasInputFocus(id) {
@@ -809,26 +862,39 @@ void main() {
         if (!canvasInputEles.has(id)) return;
         const ele = canvasInputEles.get(id);
 
-        // lights: list[tuple[int (start), int (end), color]]
-        const need_deletes = [];
-        CSS.highlights.forEach(hl => {
-            if (hl.input_id === id) need_deletes.push(hl);
+        CSS.highlights.entries().forEach((value, index) => {
+            const [key, hl] = value;
+            const need_delete_ranges = [];
+            hl.forEach(range => {
+                if (range.input_id === id) need_delete_ranges.push(range);
+            });
+            need_delete_ranges.forEach(range => hl.delete(range));
         });
-        need_deletes.forEach(CSS.highlights.delete);
 
-        const highlight_objs = new Map();
+        try {
+            const highlight_objs = new Map();
 
-        for (const hl of lights) {
-            if (!highlight_objs.has(hl[2])) highlight_objs.set(hl[2], []);
-            const r = new Range(ele);
-            r.setStart(ele, hl[0]);
-            r.setEnd(ele, hl[1]);
-            highlight_objs.get(hl[2]).push(r);
+            for (const hl of lights) {
+                if (!highlight_objs.has(hl[2])) highlight_objs.set(hl[2], []);
+                const textNode = ele.childNodes[0];
+                
+                const r = new Range();
+                r.setStart(textNode, hl[0]);
+                r.setEnd(textNode, hl[1]);
+                r.input_id = id;
+                highlight_objs.get(hl[2]).push(r);
+            }
+
+            highlight_objs.forEach((ranges, color) => {
+                if (!CSS.highlights.has(color)) {
+                    CSS.highlights.set(color, new Highlight());
+                }
+                const hl = CSS.highlights.get(color);
+                ranges.forEach(range => hl.add(range));
+            });
+        } catch (e) {
+            console.error(e);
         }
-
-        highlight_objs.forEach((ranges, color) => {
-            CSS.highlights.set(color, new Highlight(...ranges));
-        })
     }
 
     Image.prototype.enable_lazy_load = function (real_srcs) {

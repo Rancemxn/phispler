@@ -16,6 +16,7 @@ import typing
 import random
 import math
 import hashlib
+import shlex
 from threading import Thread, Timer
 from os import popen, mkdir
 from os.path import exists, isfile
@@ -463,21 +464,15 @@ class Input(BaseUI):
         self.font_color = "black"
         
         self.removed = False
-        self.do_highlight = lambda _: []
-        self._update_text()
+        self.do_highlight: typing.Optional[typing.Callable[[str], list[list[int, int, str]]]] = None
+        self.update_text()
     
-    def _update_text(self):
-        oldtext = self.text
+    def update_text(self):
         self.text = root.run_js_code(f"updateCanvasInput({self.id}, {self.x}, {self.y}, {self.width}, {self.height}, \"{self.font}\", {repr(self.default_text) if self.default_text is not None else "null"}, {repr(self.font_color)});")
         
-        if oldtext != self.text:
+        if self.do_highlight is not None:
             lights = self.do_highlight(self.text)
-            lights = [
-                [0, 1, "highlight-2"],
-                [1, len(self.text), "highlight-2"]
-            ]
-            if lights:
-                root.run_js_code(f"setCanvasInputHighlight({self.id}, {repr(lights)});")
+            root.run_js_code(f"setCanvasInputHighlight({self.id}, {repr(lights)});")
     
     def render(self):
         if self.removed:
@@ -486,7 +481,7 @@ class Input(BaseUI):
         fillRectEx(self.x, self.y, self.width, self.height, self.bg_fill, wait_execute=True)
         strokeRectEx(self.x, self.y, self.width, self.height, self.bg_stroke, (w + h) / 650, wait_execute=True)
         
-        self._update_text()
+        self.update_text()
     
     def when_remove(self):
         self.removed = True
@@ -1223,6 +1218,40 @@ def editorRender(chart_config: dict):
     music_seek_eventui = BaseUI()
     command_up_eventui = BaseUI()
     
+    def command_highlight(text: str):
+        if not text: return []
+        
+        if not text.startswith("/"):
+            return [[0, len(text), "highlight-3"]]
+        
+        result = []
+        result.append([0, 1, "highlight-2"])
+        text = text[1:].replace("\xa0", " ").replace("\t", " ")
+        
+        try:
+            tokens = list(map(lambda x: x[1:-1] if x.startswith("\"") and x.endswith("\"") else x, shlex.split(text, posix=False)))
+        except Exception:
+            result.append([result[-1][1], result[-1][1] + len(text), "highlight-3"])
+            return result
+        
+        print(repr(text), tokens)
+        
+        if not tokens:
+            return result
+        
+        def highlight_token(color: str):
+            result.append([result[-1][1], result[-1][1] + len(tokens[0]), color])
+            tokens.pop(0)
+        
+        match tokens[0]:
+            case "exit-editor":
+                highlight_token("highlight-2")
+            
+            case _:
+                highlight_token("highlight-3")
+        
+        return result
+        
     def music_seek(x: int, y: int, d: int):
         editor.seek_by(0.1 * (-1 if d > 0 else 1))
         
@@ -1279,7 +1308,10 @@ def editorRender(chart_config: dict):
         cmd_input.height -= layer2_padding * 2
         
         cmd_input.break_event_chain = lambda: True
+        cmd_input.do_highlight = command_highlight
+        cmd_input.update_text()
         is_cmd_inputing = True
+        
     
     music_seek_eventui.mouse_wheel = music_seek
     command_up_eventui.key_down = command_up
