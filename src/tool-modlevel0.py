@@ -4,6 +4,7 @@ import json
 from sys import argv
 
 import UnityPy
+import UnityPy.classes
 
 if len(argv) < 5:
     print("Usage: tool-modlevel0 <level> <globalgamemanagers.assets> <info-ftt> <output-dir> [name=GameInformation]")
@@ -23,8 +24,9 @@ env.load_file(argv[1])
 for obj in env.objects:
     if obj.type.name != "MonoBehaviour": continue
     
-    data = obj.read()
-    name = data.m_Script.get_obj().read().name
+    data: UnityPy.classes.MonoBehaviour = obj.read(check_read=False)
+    pptr: UnityPy.classes.PPtr = data.m_Script
+    name = pptr.read().m_ClassName
     
     if name == mb_name:
         obj.save_typetree(info_ftt, typetree[mb_name])

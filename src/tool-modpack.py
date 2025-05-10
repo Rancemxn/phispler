@@ -45,7 +45,7 @@ def findexinfo_byinfo(iitem: dict, key: str):
 
 def t2d_reset_typetree(t2d: UnityPy.classes.Texture2D):
     # https://github.com/K0lb3/UnityPy/issues/230
-    tree = t2d.read_typetree()
+    tree = t2d.object_reader.read_typetree()
     
     if "m_MipMap" in tree:
         tree["m_MipMap"] = t2d.m_MipMap
@@ -54,7 +54,7 @@ def t2d_reset_typetree(t2d: UnityPy.classes.Texture2D):
 
     tree["m_TextureFormat"] = t2d.m_TextureFormat
     
-    t2d.reader.save_typetree(tree)
+    t2d.object_reader.save_typetree(tree)
 
 def putimto_bundle(bundle: typing.Optional[UnityPy.files.BundleFile], im: Image.Image, pid: int):
     if bundle is None: return
@@ -112,7 +112,7 @@ for mod in modlist:
                 tdir = tempdir.createTempDir()
                 popen(f"{rpe2phi} \"{mod["content_path"]}\" \"{tdir}\\chart.json\"").read()
                 chart = json.load(open(f"{tdir}\\chart.json", "r", encoding="utf-8"))
-            content = json.dumps(chart, ensure_ascii=False).encode("utf-8")
+            content = json.dumps(chart, ensure_ascii=False)
             
             bundle = loadbundle(exiitem["fn"])
             for name, f in bundle.files.items():
@@ -123,12 +123,6 @@ for mod in modlist:
                         textasset: UnityPy.classes.TextAsset = asset.read()
                         textasset.m_Script = content
                         textasset.save()
-                        # rawchart = textasset.script.tobytes()
-                        # rawdata: bytes = asset.get_raw_data().tobytes()
-                        # moded = rawdata.replace(rawchart, content)
-                        # size = len(rawchart).to_bytes(4, "little")
-                        # newsize = len(content).to_bytes(4, "little")
-                        # asset.set_raw_data(memoryview(moded.replace(size, newsize, 1)))
                         
             savebundle(bundle, exiitem["fn"])
         
@@ -160,11 +154,13 @@ for mod in modlist:
                         asset: UnityPy.files.ObjectReader
                         realasset = asset.read()
                         if isinstance(realasset, UnityPy.classes.AudioClip):
-                            asset.data = memoryview(
-                                asset.get_raw_data().tobytes()
-                                .replace(realasset.m_Size.to_bytes(4, "little"), len(fsb).to_bytes(4, "little"), 1)
-                                .replace(struct.pack("f", realasset.m_Length), struct.pack("f", seg.duration_seconds), 1)
-                            )
+                            realasset.m_Resource.m_Size = len(fsb)
+                            realasset.m_Length = seg.duration_seconds
+                            # asset.data = memoryview(
+                                # asset.get_raw_data().tobytes()
+                                # .replace(realasset.m_Size.to_bytes(4, "little"), len(fsb).to_bytes(4, "little"), 1)
+                                # .replace(struct.pack("f", realasset.m_Length), struct.pack("f", seg.duration_seconds), 1)
+                            # )
             
             savebundle(bundle, exiitem["fn"])
             
