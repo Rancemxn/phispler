@@ -156,11 +156,7 @@ for mod in modlist:
                         if isinstance(realasset, UnityPy.classes.AudioClip):
                             realasset.m_Resource.m_Size = len(fsb)
                             realasset.m_Length = seg.duration_seconds
-                            # asset.data = memoryview(
-                                # asset.get_raw_data().tobytes()
-                                # .replace(realasset.m_Size.to_bytes(4, "little"), len(fsb).to_bytes(4, "little"), 1)
-                                # .replace(struct.pack("f", realasset.m_Length), struct.pack("f", seg.duration_seconds), 1)
-                            # )
+                            realasset.save()
             
             savebundle(bundle, exiitem["fn"])
             
