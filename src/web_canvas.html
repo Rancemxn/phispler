@@ -741,25 +741,27 @@ void main() {
     }
 
     const canvasInputEles = new Map();
-    function updateCanvasInput(id, x, y, width, height, font, default_text) {
+    function updateCanvasInput(id, x, y, width, height, font, default_text, font_color) {
         if (!canvasInputEles.has(id)) {
             const ele = document.createElement("input");
             ele.style.position = "absolute";
-            ele.style.left = x + "px";
-            ele.style.top = y + "px";
-            ele.style.width = width + "px";
-            ele.style.height = height + "px";
-            ele.style.font = font;
             ele.style.outline = "none";
             ele.style.border = "none";
             ele.style.background = "transparent";
-            console.log(default_text);
+            ele.setAttribute("spellcheck", "false");
             if (default_text) ele.value = default_text;
             document.querySelector(".canvas-input-widgets").appendChild(ele);
             canvasInputEles.set(id, ele);
         }
 
         const ele = canvasInputEles.get(id);
+        ele.style.left = x + "px";
+        ele.style.top = y + "px";
+        ele.style.width = width + "px";
+        ele.style.height = height + "px";
+        ele.style.font = font;
+        ele.style.color = font_color;
+
         return ele.value;
     }
 
@@ -772,6 +774,11 @@ void main() {
     function setCanvasInputText(id, value) {
         if (!canvasInputEles.has(id)) return;
         canvasInputEles.get(id).value = value;
+    }
+
+    function setCanvasInputFocus(id) {
+        if (!canvasInputEles.has(id)) return;
+        canvasInputEles.get(id).focus();
     }
 
     Image.prototype.enable_lazy_load = function (real_srcs) {

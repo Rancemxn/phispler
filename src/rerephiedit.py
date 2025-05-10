@@ -444,31 +444,38 @@ class Input(BaseUI):
     def __init__(
         self,
         x: float, y: float,
-        text: str, font: str,
+        font: str,
         width: float, height: float,
         default_text: typing.Optional[str] = None,
         value_tag: typing.Optional[str] = None
     ):
         self.x = x
         self.y = y
-        self.text = text
+        self.text = default_text
         self.font = font
         self.width = width
         self.height = height
         self.default_text = default_text
         self.value_tag = value_tag
         self.id = random.randint(0, 2 << 31)
+        self.bg_fill = "rgba(255, 255, 255, 0.5)"
+        self.bg_stroke = "white"
+        self.font_color = "black"
         
         self.removed = False
+        self._update_text()
+    
+    def _update_text(self):
+        self.text = root.run_js_code(f"updateCanvasInput({self.id}, {self.x}, {self.y}, {self.width}, {self.height}, \"{self.font}\", {repr(self.default_text) if self.default_text is not None else "null"}, {repr(self.font_color)})")
     
     def render(self):
         if self.removed:
             return
         
-        fillRectEx(self.x, self.y, self.width, self.height, "rgba(255, 255, 255, 0.5)", wait_execute=True)
-        strokeRectEx(self.x, self.y, self.width, self.height, "white", (w + h) / 650, wait_execute=True)
+        fillRectEx(self.x, self.y, self.width, self.height, self.bg_fill, wait_execute=True)
+        strokeRectEx(self.x, self.y, self.width, self.height, self.bg_stroke, (w + h) / 650, wait_execute=True)
         
-        self.text = root.run_js_code(f"updateCanvasInput({self.id}, {self.x}, {self.y}, {self.width}, {self.height}, \"{self.font}\", {repr(self.default_text) if self.default_text is not None else "null"})")
+        self._update_text()
     
     def when_remove(self):
         self.removed = True
@@ -476,6 +483,9 @@ class Input(BaseUI):
     
     def set_text(self, value: str):
         root.run_js_code(f"setCanvasInputText({self.id}, {repr(value)})")
+    
+    def set_foucs(self):
+        root.run_js_code(f"setCanvasInputFocus({self.id})")
 
 class MessageShower(BaseUI):
     def __init__(self):
@@ -808,6 +818,17 @@ class ButtonList(BaseUI):
         self._set_trs(at=0.4)
         Timer(self.w_tr.animation_time, callback).start()
 
+class ColorRect(BaseUI):
+    def __init__(self, x: float, y: float, width: float, height: float, color: str):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.color = color
+
+    def render(self):
+        fillRectEx(self.x, self.y, self.width, self.height, self.color, wait_execute=True)
+
 class ChartEditor:
     def __init__(self, chart: phichart.CommonChart, chart_config: dict):
         self.chart = chart
@@ -882,7 +903,7 @@ class ChartEditor:
         else:
             for line in self.chart.lines:
                 for nc in line.renderNotes:
-                    for note in nc:
+                    for note, _ in nc:
                         note.isontime = note.isontime or new_t - note.time > 0.5
     
     @property
@@ -1121,6 +1142,7 @@ def editorRender(chart_config: dict):
         chart_time_show_labels[2].text = f"{now_t:.2f}/{raw_audio_length:.2f}s"
         
         chart_type_label.text = f"chart type: {editor.chart.type} ({phichart.ChartFormat.get_type_string(editor.chart.type)})"
+        editing_line_label.text = f"editing line: {editor.editing_line}"
     
     def popupMenu():
         def _close_menu():
@@ -1183,9 +1205,12 @@ def editorRender(chart_config: dict):
         Label(chart_time_slider.x + chart_time_slider.width, chart_time_slider.y + chart_time_show_labels_pady, "", "white", f"{(w + h) / 150}px pgrFont", "right")
     ]
     chart_type_label = Label(chart_time_show_labels[0].x, chart_time_show_labels[0].y + h / 50, "", "#a4c7ff", f"{(w + h) / 150}px pgrFont")
+    editing_line_label = Label(chart_type_label.x, chart_type_label.y + h / 50, "", "#a4c7ff", f"{(w + h) / 150}px pgrFont")
+    
     update_info_labels()
     
     music_seek_eventui = BaseUI()
+    command_up_eventui = BaseUI()
     
     def music_seek(x: int, y: int, d: int):
         editor.seek_by(0.1 * (-1 if d > 0 else 1))
@@ -1193,16 +1218,71 @@ def editorRender(chart_config: dict):
         if d > 0:
             editor.pause_play()
     
+    def command_up(k: str):
+        nonlocal is_cmd_inputing
+        
+        if k == "Escape" and is_cmd_inputing:
+            is_cmd_inputing = False
+            globalUIManager.remove_ui_bytag("cmd_input")
+            return
+        
+        if k == "Enter" and is_cmd_inputing:
+            command = globalUIManager.get_input_value_bytag("cmd_input")
+            print(f"submit command: {command}")
+            
+            is_cmd_inputing = False
+            globalUIManager.remove_ui_bytag("cmd_input")
+            return
+        
+        if k != "/" or is_cmd_inputing:
+            return
+        
+        cmd_input_padding = (w + h) / 300
+        cmd_input_height = h / 25
+        layer2_padding = (w + h) / 500
+        
+        cmd_input = Input(
+            cmd_input_padding,
+            h - cmd_input_padding - cmd_input_height,
+            f"{(w + h) / 120}px pgrFont",
+            w - cmd_input_padding * 2, cmd_input_height,
+            "/",
+            value_tag = "cmd_input"
+        )
+        
+        cmd_input.bg_fill = cmd_input.bg_stroke = "transparent"
+        cmd_input.font_color = "white"
+        cmd_input.set_foucs()
+        
+        esc_close_eventui = BaseUI()
+        esc_close_eventui.key_down = command_up
+        
+        globalUIManager.extend_uiitems([
+            ColorRect(cmd_input.x, cmd_input.y, cmd_input.width, cmd_input.height, "rgba(0, 0, 0, 0.6)"),
+            cmd_input, esc_close_eventui
+        ], "cmd_input")
+        
+        cmd_input.x += layer2_padding
+        cmd_input.y += layer2_padding
+        cmd_input.width -= layer2_padding * 2
+        cmd_input.height -= layer2_padding * 2
+        
+        cmd_input.break_event_chain = lambda: True
+        is_cmd_inputing = True
+    
     music_seek_eventui.mouse_wheel = music_seek
+    command_up_eventui.key_down = command_up
+    
+    is_cmd_inputing = False
     
     globalUIManager.extend_uiitems([
         chart_time_slider,
         *chart_time_show_labels,
-        chart_type_label,
+        chart_type_label, editing_line_label,
         IconButton(*getButtonPos(0, 0), "menu", popupMenu),
         IconButton(*getButtonPos(1, 0), "unpause", editor.unpause_play),
         IconButton(*getButtonPos(2, 0), "pause", editor.pause_play),
-        music_seek_eventui
+        music_seek_eventui, command_up_eventui
     ], "editorRender")
     editor.unpause_play()
     
@@ -1231,6 +1311,7 @@ def editorRender(chart_config: dict):
         phicore.processExTask(extasks)
         
         globalUIManager.render_bytag("editorRender")
+        globalUIManager.render_bytag("cmd_input")
         
         if not editor.is_playing:
             fillRectEx(*preview_rect, "rgba(0, 0, 0, 0.6)", wait_execute=True)
@@ -1374,7 +1455,7 @@ def mainRender():
         globalUIManager.extend_uiitems(utils.unfold_list([
             [
                 Label(*pos1k(586, 283 + 133 * i), name, "white", f"{(w + h) / 75}px pgrFont", textBaseline="middle"),
-                Input(*pos1k(885, 253 + 133 * i), "", f"{(w + h) / 95}px pgrFont", *pos1k(500, 60), default_text[0] if default_text else None, key)
+                Input(*pos1k(885, 253 + 133 * i), f"{(w + h) / 95}px pgrFont", *pos1k(500, 60), default_text[0] if default_text else None, key)
             ]
             for i, (name, key, *default_text) in enumerate([
                 ("谱面名称", "chartName"),
