@@ -1871,6 +1871,7 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             bgimname = f"background_{assetConfig["backgrounds"].index(getUserData("userdata-userBackground"))}"
         except ValueError:
             setUserData("userdata-userBackground", assetConfig["backgrounds"][0])
+            saveUserData(userData)
             return updatebg()
         
         root.run_js_code(f"{ubgjsname} = blurImg({root.get_img_jsvarname(bgimname)}, {(w + h) / 125});")
@@ -3978,7 +3979,7 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
     eventManager.regReleaseEvent(phigame_obj.ReleaseEvent(chooseControler.scter_mouseup))
     eventManager.regMoveEvent(phigame_obj.MoveEvent(chooseControler.scter_mousemove))
     
-    chooseState.change_diff_callback = lambda: (chooseControler.set_level_callback(), resort(), setUserData("internal-lastDiffIndex", chooseState.diff_index))
+    chooseState.change_diff_callback = lambda: (chooseControler.set_level_callback(), resort(), setUserData("internal-lastDiffIndex", chooseState.diff_index), saveUserData(userData))
     startButtonAlpha = phigame_obj.valueTranformer(rpe_easing.ease_funcs[0])
     startButtonAlpha.target = 1.0 if not isChallengeMode else 0.5
     
