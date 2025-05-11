@@ -70,6 +70,7 @@ userData_default = {
     "setting-enableMorebetsAuxiliary": True,
     "setting-enableFCAPIndicator": True,
     "setting-enableLowQuality": False,
+    "setting-enableSceneTransitionAnimation": True,
     "internal-lowQualityScale": 1.0,
     "internal-dspBufferExponential": 8,
     "internal-lowQualityScale-JSLayer": 2.5,
@@ -1001,10 +1002,46 @@ def showStartAnimation():
             
         clearCanvas(wait_execute = True)
         
+        alpha = utils.easeAlpha(p)
         drawAlphaImage(
             "logoipt",
             0, 0, w, h,
-            utils.easeAlpha(p),
+            alpha,
+            wait_execute = True
+        )
+        
+        ep = 1.0 - (1.0 - utils.fixorp(p * 4)) ** 4
+        
+        drawText(
+            w * 0.5,
+            h * 1.2 - h * 0.55 * ep,
+            "声明",
+            f"{(w + h) / 85}px pgrFont",
+            textAlign = "center",
+            textBaseline = "top",
+            fillStyle = f"rgba(255, 255, 255, {alpha})",
+            wait_execute = True
+        )
+        
+        drawText(
+            w * 0.5,
+            h * 1.2 - h * 0.5 * ep,
+            "(1) 本项目是一款仿制作品，原作为Pigeon Games 鸽游创作的《Phigros》。",
+            f"{(w + h) / 100}px pgrFont",
+            textAlign = "center",
+            textBaseline = "top",
+            fillStyle = f"rgba(255, 255, 255, {alpha})",
+            wait_execute = True
+        )
+        
+        drawText(
+            w * 0.5,
+            h * 1.2 - h * 0.45 * ep,
+            "(2) 本项目仅为研究学习目的，不可商业使用、违法使用。",
+            f"{(w + h) / 100}px pgrFont",
+            textAlign = "center",
+            textBaseline = "top",
+            fillStyle = f"rgba(255, 255, 255, {alpha})",
             wait_execute = True
         )
         
@@ -1050,8 +1087,10 @@ def showStartAnimation():
         h * (100 / 230) - h * phigros_logo_width / Resource["phigros"].width * Resource["phigros"].height / 2,
         w * phigros_logo_width, w * phigros_logo_width / Resource["phigros"].width * Resource["phigros"].height
     )
+    
     if not abs(mixer.music.get_pos() - 8.0) <= 0.05:
         mixer.music.set_pos(8.0)
+        
     while True:
         atime = time.time() - a3_st
         
@@ -3037,6 +3076,12 @@ def settingRender(backUI: typing.Callable[[], typing.Any] = mainRender):
             checked = getUserData("setting-enableLowQuality"),
             command = updateConfig
         ),
+        "SceneTransitionAnimationCheckbox": phigame_obj.PhiCheckbox(
+            text = "开启场景过渡动画",
+            fontsize = (w + h) / 75,
+            checked = getUserData("setting-enableSceneTransitionAnimation"),
+            command = updateConfig
+        ),
         "importArchiveFromPhigros": phigame_obj.PhiButton(
             tonext = 0,
             text = "从 Phigros 官方导入游戏存档",
@@ -4915,6 +4960,9 @@ def chooseChartRender(chapter_item: phigame_obj.Chapter, isChallengeMode: bool =
     _whenexit()
 
 def loadingTransitionRender(nextUI: typing.Callable[[], typing.Any]):
+    if not getUserData("setting-enableSceneTransitionAnimation"):
+        return nextUI()
+        
     global dspSettingWidgets
     
     bg_path = random.choice([
@@ -5622,7 +5670,8 @@ def updateSettingConfig():
         "setting-clickSoundVolume": PlaySettingWidgets["ClickSoundVolumeSlider"].value,
         "setting-enableMorebetsAuxiliary": PlaySettingWidgets["MorebetsAuxiliaryCheckbox"].checked,
         "setting-enableFCAPIndicator": PlaySettingWidgets["FCAPIndicatorCheckbox"].checked,
-        "setting-enableLowQuality": PlaySettingWidgets["LowQualityCheckbox"].checked
+        "setting-enableLowQuality": PlaySettingWidgets["LowQualityCheckbox"].checked,
+        "setting-enableSceneTransitionAnimation": PlaySettingWidgets["SceneTransitionAnimationCheckbox"].checked,
     })
     
     Resource["CalibrationHit"].set_volume(getUserData("setting-clickSoundVolume"))
