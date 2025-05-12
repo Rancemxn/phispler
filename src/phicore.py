@@ -91,7 +91,6 @@ class PhiCoreConfig:
     noplaychart: bool = False
     clicksound_volume: float = 1.0
     musicsound_volume: float = 1.0
-    enable_controls: bool = False
     
 def CoreConfigure(config: PhiCoreConfig):
     global SETTER
@@ -108,7 +107,6 @@ def CoreConfigure(config: PhiCoreConfig):
     global speed, render_range_more
     global render_range_more_scale
     global debug, combotips, noplaychart
-    global enable_controls
     
     SETTER = config.SETTER
     root = config.root
@@ -132,7 +130,6 @@ def CoreConfigure(config: PhiCoreConfig):
     debug = config.debug
     combotips = config.combotips
     noplaychart = config.noplaychart
-    enable_controls = config.enable_controls
     
     if Resource["Note_Click_Audio"] is not None: # use in tools
         mixer.music.set_volume(config.musicsound_volume)

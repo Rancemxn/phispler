@@ -150,6 +150,13 @@ PPR_CMDARGS = {
         ("使用 16:9 的比例", "usu169"),
         ("渲染视频", "render-video"),
         ("渲染视频后自动退出", "render-video-autoexit"),
+        ("不检查二进制文件", "nocheck-bin"),
+        ("谱面镜像", "mirror"),
+        ("禁用水印", "disable-watermark"),
+        ("预生成打击音效", "prespwan-clicksound"),
+        ("在 main 中不应用动画 (快速预览)", "noanimation"),
+        ("应用演示模式鼠标", "presentation-arrow"),
+        ("强制懒加载资源", "force-lazy-respacker")
     ],
     "kwargs": [
         ("连击提示文本", "combotips", "AUTOPLAY", "string"),
@@ -176,6 +183,8 @@ PPR_CMDARGS = {
         ("设置生成视频编码", "render-video-fourcc", "mp4v", "string"),
         ("设置渲染视频的保存路径", "render-video-savefp", None, "path"),
         ("手动指定 rpe 谱面版本", "rpeversion", None, "int"),
+        ("渲染视频缓存帧大小", "render-video-buffer-size", 45, "int"),
+        ("加载 bpc 二进制谱面", "load-bpc", None, "path"),
     ]
 }
         

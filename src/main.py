@@ -49,7 +49,6 @@ temp_dir = tempdir.createTempDir()
 
 enable_clicksound = "--noclicksound" not in sys.argv
 debug = "--debug" in sys.argv
-debug_noshow_transparent_judgeline = "--debug-noshow-transparent-judgeline" in sys.argv
 loop = "--loop" in sys.argv
 render_range_more = "--render-range-more" in sys.argv
 render_range_more_scale = 2.0 if "--render-range-more-scale" not in sys.argv else eval(sys.argv[sys.argv.index("--render-range-more-scale") + 1])
@@ -65,7 +64,6 @@ clicksound_volume = float(sys.argv[sys.argv.index("--clicksound-volume") + 1]) i
 musicsound_volume = float(sys.argv[sys.argv.index("--musicsound-volume") + 1]) if "--musicsound-volume" in sys.argv else 1.0
 lowquality_imjscvscale_x = float(sys.argv[sys.argv.index("--lowquality-imjscvscale-x") + 1]) if "--lowquality-imjscvscale-x" in sys.argv else 1.0
 lowquality_imjs_maxsize = float(sys.argv[sys.argv.index("--lowquality-imjs-maxsize") + 1]) if "--lowquality-imjs-maxsize" in sys.argv else 256
-enable_controls = "--enable-controls" in sys.argv
 wl_more_chinese = "--wl-more-chinese" in sys.argv
 skip_time = float(sys.argv[sys.argv.index("--skip-time") + 1]) if "--skip-time" in sys.argv else 0.0
 enable_jscanvas_bitmap = "--enable-jscanvas-bitmap" in sys.argv
@@ -761,8 +759,7 @@ def updateCoreConfig():
         render_range_more_scale = render_range_more_scale,
         debug = debug, combotips = combotips, noplaychart = noplaychart,
         clicksound_volume = clicksound_volume,
-        musicsound_volume = musicsound_volume,
-        enable_controls = enable_controls
+        musicsound_volume = musicsound_volume
     )
     phicore.CoreConfigure(PhiCoreConfigObject)
 
