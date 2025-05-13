@@ -199,7 +199,8 @@ ppr_extended_tips = [
     "!! (python seg fault), 唔...",
     "如果帧率低可试试启用 BitmapImage 喵~",
     "你染上喵喵症了！？",
-    "计算机普及到傻逼手里不是什么好事。"
+    "计算机普及到傻逼手里不是什么好事。",
+    "> git push -f"
 ]
 
 tips = [
