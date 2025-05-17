@@ -668,7 +668,6 @@ class JudgeLine:
         
         if last_getev_cachei_time > t:
             getev_cachei.clear()
-            last_getev_cachei_time = t
         
         if (i := getev_cachei.get(esid)) is None:
             e, i = findevent(es, t, True)
@@ -679,8 +678,8 @@ class JudgeLine:
             
             e = es[i]
             getev_cachei[esid] = i
-            last_getev_cachei_time = t
         
+        last_getev_cachei_time = t
         return e.get(t)
     
     def getPos(self, t: float):
