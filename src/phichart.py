@@ -14,15 +14,19 @@ import tempdir
 type eventValueType = float|str|tuple[float, float, float]
 
 initialized_events: dict[int, int] = {}
-event_value_cache: dict[int, tuple[float, float]] = {}
-last_event_value_cache_time = 0.0
 
-def check_event_value_cache(t: float):
-    global last_event_value_cache_time
+getpos_cache: dict[int, tuple[float, float]] = {}
+last_getpos_cache_time = -float("inf")
+
+getev_cachei: dict[int, int] = {}
+last_getev_cachei_time = -float("inf")
+
+def check_getpos_cache(t: float):
+    global last_getpos_cache_time
     
-    if last_event_value_cache_time != t:
-        last_event_value_cache_time = t
-        event_value_cache.clear()
+    if last_getpos_cache_time != t:
+        last_getpos_cache_time = t
+        getpos_cache.clear()
 
 def _init_events(es: list[LineEvent], *, is_speed: bool = False, is_text: bool = False, default: eventValueType = 0.0):
     if not es: return
@@ -86,7 +90,7 @@ def _init_events(es: list[LineEvent], *, is_speed: bool = False, is_text: bool =
             e.floorPosotion = fp
             fp += (e.start + e.end) * (e.endTime - e.startTime) / 2
 
-def findevent(es: list[LineEvent], t: float) -> typing.Optional[LineEvent]:
+def findevent(es: list[LineEvent], t: float, needindex: bool = False) -> typing.Optional[LineEvent]:
     if not es:
         return None
     
@@ -96,11 +100,12 @@ def findevent(es: list[LineEvent], t: float) -> typing.Optional[LineEvent]:
         m = (l + r) // 2
         e = es[m]
         st, et = e.startTime, e.endTime
-        if st <= t < et: return e
+        if st <= t < et: return e if not needindex else (e, m)
         elif st > t: r = m - 1
         else: l = m + 1
     
-    return es[-1] if t >= es[-1].endTime else None
+    i = (len(es) - 1) if t >= es[-1].endTime else 0
+    return es[i] if not needindex else (es[i], i)
 
 def split_notes(notes: list[Note]) -> list[utils.IterRemovableList[Note]]:
     tempmap: dict[int, list[Note]] = {}
@@ -654,22 +659,37 @@ class JudgeLine:
         return self.getFloorPosition(e) - self.getFloorPosition(s)
 
     def getEventsValue(self, es: list[LineEvent], t: float, default: eventValueType = 0.0):
-        check_event_value_cache(t)
+        if not es:
+            return default
         
-        if (v := event_value_cache.get(id(es))) is not None:
-            return v
+        global last_getev_cachei_time
+        esid = id(es)
         
-        e = findevent(es, t)
-        v = e.get(t) if e is not None else default
+        if last_getev_cachei_time > t:
+            getev_cachei.clear()
+            last_getev_cachei_time = t
         
-        event_value_cache[id(es)] = v
+        if esid not in getev_cachei:
+            e, i = findevent(es, t, True)
+            getev_cachei[esid] = i
+        else:
+            i = getev_cachei[esid]
+            while not es[i].startTime <= t <= es[i].endTime:
+                i += 1
+                if i >= len(es):
+                    i -= 1
+                    break
+            
+            e = es[i]
+            getev_cachei[esid] = i
+            last_getev_cachei_time = t
         
-        return v
+        return e.get(t)
     
     def getPos(self, t: float):
-        check_event_value_cache(t)
+        check_getpos_cache(t)
         
-        if (linePos := event_value_cache.get(id(self))) is not None:
+        if (linePos := getpos_cache.get(id(self))) is not None:
             return linePos
         
         linePos = (
@@ -692,7 +712,7 @@ class JudgeLine:
                 )
             ))
         
-        event_value_cache[id(self)] = linePos
+        getpos_cache[id(self)] = linePos
         
         return linePos
     
