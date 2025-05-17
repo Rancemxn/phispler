@@ -640,26 +640,25 @@ def renderChart_Common(
                 texture_width, texture_height = utils.conimgsize(*chart_res[line.texture][1], w, h)
                 texture_width *= lineScaleX; texture_height *= lineScaleY
                 if utils.TextureLine_CanRender(w, h, (texture_width ** 2 + texture_height ** 2) ** 0.5 / 2, *linePos):
-                    texturename = root.get_img_jsvarname(f"lineTexture_{line.index}")
+                    texturename = f"lineTexture_{line.index}"
+                    texturename_js = root.get_img_jsvarname(texturename)
                     if line.isGifLine:
                         root.run_js_code(
-                            f"{texturename}.currentTime = {now_t} % {texturename}.duration;",
+                            f"{texturename_js}.currentTime = {now_t} % {texturename_js}.duration;",
                             wait_execute = True
                         )
                     with ColorMultiplyFilter(lineColor, const.CHART_RENDER_ORDERS.LINE):
-                        root.run_js_code(
-                            f"ctx.drawRotateImage(\
-                                {texturename},\
-                                {linePos[0]},\
-                                {linePos[1]},\
-                                {texture_width},\
-                                {texture_height},\
-                                {lineRotate},\
-                                {lineAlpha}\
-                            );",
-                            wait_execute = True,
-                            order = const.CHART_RENDER_ORDERS.LINE
+                        setOrder(const.CHART_RENDER_ORDERS.LINE)
+                        drawRotateImage(
+                            texturename,
+                            *linePos,
+                            texture_width,
+                            texture_height,
+                            lineRotate,
+                            lineAlpha,
+                            wait_execute = True
                         )
+                        setOrder(None)
             elif lineText is not None:
                 root.run_js_code(
                     f"ctx.drawRPEMultipleRotateText(\
@@ -676,15 +675,9 @@ def renderChart_Common(
                     order = const.CHART_RENDER_ORDERS.LINE
                 )
             elif utils.lineInScreen(w, h, lineDrawPos):
-                root.run_js_code(
-                    f"ctx.drawLineEx(\
-                        {",".join(map(str, lineDrawPos))},\
-                        {lineWidth},\
-                        '{lineWebColor}'\
-                    );",
-                    wait_execute = True,
-                    order = const.CHART_RENDER_ORDERS.LINE
-                )
+                setOrder(const.CHART_RENDER_ORDERS.LINE)
+                drawLine(*lineDrawPos, lineWidth, lineWebColor, wait_execute=True)
+                setOrder(None)
         
         if debug:
             drawDebugText(f"{line.index}{"" if not line.index == editing_line else " (editing)"}", *linePos, lineRotate - 90, "rgba(255, 255, 170, 0.5)")
