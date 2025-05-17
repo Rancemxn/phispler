@@ -250,6 +250,23 @@ def strokeRectEx(
 ):
     root.run_js_code(f"{ctx}.strokeRectEx({x}, {y}, {w}, {h}, '{color}', {lineWidth});", wait_execute, order)
 
+def drawCircle(
+    center: tuple[number, number],
+    width: number,
+    r: number,
+    fillStyle: str,
+    wait_execute: bool = False
+):
+    code = []
+    code.append(f"{ctx}.save();")
+    code.append(f"{ctx}.strokeStyle = '{fillStyle}';")
+    code.append(f"{ctx}.beginPath();")
+    code.append(f"{ctx}.lineWidth = {width};")
+    code.append(f"{ctx}.arc({center[0]}, {center[1]}, {r}, 0, 2 * Math.PI);")
+    code.append(f"{ctx}.stroke();")
+    code.append(f"{ctx}.restore();")
+    root.run_js_code("".join(code), wait_execute, order)
+
 class ColorMultiplyFilter:
     def __init__(self, color: tuple[number, number, number], jsorder: int = None):
         self.color = color
