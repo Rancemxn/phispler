@@ -82,8 +82,7 @@ class MidiFile:
                         self.frame_per_second = 29.97
                 
                 self.tick_per_second = self.frame_per_second * self.tick_per_frame
-                
-                raise MidiParseError("Unsupported time format")
+                self.tick_per_quarter_note = self.tick_per_second / 60
             
             case _:
                 assert False, "Invalid time format"
@@ -274,7 +273,7 @@ class MidiFile:
             else:
                 msg["global_sec_delta"] = msg["sec_time"]
         
-        self.second_length = sorted_msgs[-1]["sec_time"]
+        self.second_length = sorted_msgs[-1]["global_sec_delta"]
                     
     @staticmethod
     def second2tick(t: int|float, track: Track, tick_per_quarter_note: int) -> float:
