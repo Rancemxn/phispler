@@ -109,7 +109,7 @@ def reset_state():
     camera_position = Vector2()
     history_ball_positions = []
     camera_width = 15.0
-    pre_collide_time = 0.1
+    pre_collide_time = 0.0
     rd_face_random_pool_index = -1
 
 reset_state()
