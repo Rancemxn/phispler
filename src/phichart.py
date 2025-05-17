@@ -659,21 +659,21 @@ class JudgeLine:
         return self.getFloorPosition(e) - self.getFloorPosition(s)
 
     def getEventsValue(self, es: list[LineEvent], t: float, default: eventValueType = 0.0):
+        global last_getev_cachei_time
+        
         if not es:
             return default
         
-        global last_getev_cachei_time
         esid = id(es)
         
         if last_getev_cachei_time > t:
             getev_cachei.clear()
             last_getev_cachei_time = t
         
-        if esid not in getev_cachei:
+        if (i := getev_cachei.get(esid)) is None:
             e, i = findevent(es, t, True)
             getev_cachei[esid] = i
         else:
-            i = getev_cachei[esid]
             while not es[i].startTime <= t <= es[i].endTime:
                 i += 1
             
