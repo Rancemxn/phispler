@@ -613,6 +613,26 @@ def renderChart_Common(
             lineColor
         ) = line.getState(now_t, nowLineColor)
         
+        # (
+        #     linePos,
+        #     lineAlpha,
+        #     lineRotate,
+
+        #     lineScaleX,
+        #     lineScaleY,
+        #     lineText,
+        #     lineColor
+        # ) = (
+        #     chart_obj.options.posConverter(line.getPos(now_t)),
+        #     0.0,
+        #     0.0,
+
+        #     1.0,
+        #     1.0,
+        #     None,
+        #     (128, 128, 128)
+        # )
+        
         if line.index == editing_line:
             lineColor = (147, 255, 145)
         

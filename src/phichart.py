@@ -14,6 +14,15 @@ import tempdir
 type eventValueType = float|str|tuple[float, float, float]
 
 initialized_events: dict[int, int] = {}
+event_value_cache: dict[int, tuple[float, float]] = {}
+last_event_value_cache_time = 0.0
+
+def check_event_value_cache(t: float):
+    global last_event_value_cache_time
+    
+    if last_event_value_cache_time != t:
+        last_event_value_cache_time = t
+        event_value_cache.clear()
 
 def _init_events(es: list[LineEvent], *, is_speed: bool = False, is_text: bool = False, default: eventValueType = 0.0):
     if not es: return
@@ -399,15 +408,7 @@ class ChartFormat:
         }[t]
 
 @dataclasses.dataclass
-class MemEq:
-    def __hash__(self):
-        return id(self)
-    
-    def __eq__(self, value: typing.Any):
-        return self is value
-
-@dataclasses.dataclass
-class Note(MemEq):
+class Note:
     type: int = const.NOTE_TYPE.TAP
     time: float = 0.0
     holdTime: float = 0.0
@@ -526,7 +527,7 @@ class Note(MemEq):
         return callback, lineRotate
 
 @dataclasses.dataclass
-class LineEvent(MemEq):
+class LineEvent:
     startTime: float = 0.0
     endTime: float = 0.0
     start: eventValueType = 0.0
@@ -550,7 +551,7 @@ class LineEvent(MemEq):
         return (t - self.startTime) * (self.start + self.get(t)) / 2
 
 @dataclasses.dataclass
-class EventLayerItem(MemEq):
+class EventLayerItem:
     alphaEvents: list[LineEvent] = dataclasses.field(default_factory=list)
     moveXEvents: list[LineEvent] = dataclasses.field(default_factory=list)
     moveYEvents: list[LineEvent] = dataclasses.field(default_factory=list)
@@ -565,7 +566,7 @@ class EventLayerItem(MemEq):
         _init_events(self.speedEvents, is_speed=True)
 
 @dataclasses.dataclass
-class ExtendEventsItem(MemEq):
+class ExtendEventsItem:
     colorEvents: list[LineEvent] = dataclasses.field(default_factory=list)
     scaleXEvents: list[LineEvent] = dataclasses.field(default_factory=list)
     scaleYEvents: list[LineEvent] = dataclasses.field(default_factory=list)
@@ -580,12 +581,12 @@ class ExtendEventsItem(MemEq):
         _init_events(self.gifEvents, is_speed=True)
 
 @dataclasses.dataclass
-class BPMEvent(MemEq):
+class BPMEvent:
     time: float = 0.0
     bpm: float = 140.0
 
 @dataclasses.dataclass
-class JudgeLine(MemEq):
+class JudgeLine:
     bpms: list[BPMEvent] = dataclasses.field(default_factory=list)
     notes: list[Note] = dataclasses.field(default_factory=list)
     eventLayers: list[EventLayerItem] = dataclasses.field(default_factory=list)
@@ -653,10 +654,24 @@ class JudgeLine(MemEq):
         return self.getFloorPosition(e) - self.getFloorPosition(s)
 
     def getEventsValue(self, es: list[LineEvent], t: float, default: eventValueType = 0.0):
+        check_event_value_cache(t)
+        
+        if (v := event_value_cache.get(id(es))) is not None:
+            return v
+        
         e = findevent(es, t)
-        return e.get(t) if e is not None else default
+        v = e.get(t) if e is not None else default
+        
+        event_value_cache[id(es)] = v
+        
+        return v
     
     def getPos(self, t: float):
+        check_event_value_cache(t)
+        
+        if (linePos := event_value_cache.get(id(self))) is not None:
+            return linePos
+        
         linePos = (
             sum(self.getEventsValue(el.moveXEvents, t) for el in self.eventLayers),
             sum(self.getEventsValue(el.moveYEvents, t) for el in self.eventLayers)
@@ -666,7 +681,7 @@ class JudgeLine(MemEq):
             fatherPos = self.fatherLine.getPos(t)
             fatherRotate = sum(self.fatherLine.getEventsValue(el.rotateEvents, t) for el in self.fatherLine.eventLayers)
             
-            if fatherRotate == 0.0:
+            if fatherRotate % 360 == 0.0:
                 return list(map(lambda v1, v2: v1 + v2, fatherPos, linePos))
             
             return list(map(lambda v1, v2: v1 + v2, fatherPos,
@@ -676,6 +691,8 @@ class JudgeLine(MemEq):
                     utils.getLineLength(*linePos, 0.0, 0.0)
                 )
             ))
+        
+        event_value_cache[id(self)] = linePos
         
         return linePos
     
