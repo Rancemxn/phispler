@@ -12,4 +12,4 @@ requests==2.32.2
 PyYAML==6.0.2
 pygame==2.6.1
 websockets==13.1
-midi_prase==0.0.1
+midi_prase==0.0.4
