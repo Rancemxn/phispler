@@ -676,9 +676,6 @@ class JudgeLine:
             i = getev_cachei[esid]
             while not es[i].startTime <= t <= es[i].endTime:
                 i += 1
-                if i >= len(es):
-                    i -= 1
-                    break
             
             e = es[i]
             getev_cachei[esid] = i
