@@ -6,7 +6,11 @@ from pygame import mixer
 mixer.init(channels = 32)
 
 class directSound:
-    def __init__(self, data: bytes | str, enable_cache: bool = True):
+    def __init__(self, data: bytes|str, enable_cache: bool = True):
+        if isinstance(data, str):
+            with open(data, "rb") as f:
+                data = f.read()
+                
         self.sounds: list[tuple[mixer.Sound, float]] = [[mixer.Sound(io.BytesIO(data)), float("nan")] for _ in range(16)]
         self.length = self.sounds[0][0].get_length()
         
