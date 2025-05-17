@@ -90,9 +90,9 @@ def _init_events(es: list[LineEvent], *, is_speed: bool = False, is_text: bool =
             e.floorPosotion = fp
             fp += (e.start + e.end) * (e.endTime - e.startTime) / 2
 
-def findevent(es: list[LineEvent], t: float, needindex: bool = False) -> typing.Optional[LineEvent]:
+def findevent(es: list[LineEvent], t: float) -> tuple[typing.Optional[LineEvent], int]:
     if not es:
-        return None
+        return (None, 0)
     
     l, r = 0, len(es) - 1
     
@@ -100,12 +100,12 @@ def findevent(es: list[LineEvent], t: float, needindex: bool = False) -> typing.
         m = (l + r) // 2
         e = es[m]
         st, et = e.startTime, e.endTime
-        if st <= t < et: return e if not needindex else (e, m)
+        if st <= t < et: return (e, m)
         elif st > t: r = m - 1
         else: l = m + 1
     
     i = (len(es) - 1) if t >= es[-1].endTime else 0
-    return es[i] if not needindex else (es[i], i)
+    return es[i], i
 
 def split_notes(notes: list[Note]) -> list[utils.IterRemovableList[Note]]:
     tempmap: dict[int, list[Note]] = {}
@@ -649,7 +649,7 @@ class JudgeLine:
         fp = 0.0
         
         for el in self.eventLayers:
-            e = findevent(el.speedEvents, t)
+            e, _ = findevent(el.speedEvents, t)
             if e is not None:
                 fp += e.floorPosotion + e.speed_get(t)
         
@@ -670,15 +670,14 @@ class JudgeLine:
             getev_cachei.clear()
         
         if (i := getev_cachei.get(esid)) is None:
-            e, i = findevent(es, t, True)
-            getev_cachei[esid] = i
+            e, i = findevent(es, t)
         else:
             while not es[i].startTime <= t <= es[i].endTime:
                 i += 1
             
             e = es[i]
-            getev_cachei[esid] = i
-        
+            
+        getev_cachei[esid] = i
         last_getev_cachei_time = t
         return e.get(t)
     
