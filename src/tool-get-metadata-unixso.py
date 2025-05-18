@@ -24,7 +24,7 @@ getGlobalMetadata.argtypes = (ctypes.c_char_p, )
 getGlobalMetadata.restype = ctypes.c_void_p
 ggmresult_addr: int = getGlobalMetadata(b"./game.dat")
 
-metadata = light_utils.MetadataXorDecryptor(MemReader(ggmresult_addr)).get()
+metadata = light_utils.MetadataXorCryptor(MemReader(ggmresult_addr)).decrypt()
     
 with open("./global-metadata.dat", "wb") as f:
     f.write(metadata)

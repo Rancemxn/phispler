@@ -169,7 +169,7 @@ def generate_info():
     except FileExistsError: pass
     
     game_dat = getZipItem("/assets/bin/Data/Managed/Metadata/game.dat")
-    metadata = light_utils.raw_metadata_to_dec(game_dat)
+    metadata = light_utils.metadata_decrypt(game_dat)
     
     with open("./unpack-result/global-metadata.dat", "wb") as f:
         f.write(metadata)

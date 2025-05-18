@@ -1106,55 +1106,93 @@ class BasePositionByteReaderType(typing.Protocol):
     @abstractmethod
     def read_at(self, offset: int, size: int) -> bytes: ...
 
-class MetadataXorDecryptor:
+class MetadataXorCryptor:
     def __init__(self, reader: BasePositionByteReaderType):
         self.reader = reader
     
     def _read_int_at(self, offset: int) -> int:
         return struct.unpack_from("<I", self.reader.read_at(offset, 4))[0]
+
+    @staticmethod
+    def _string_pool_decrypt(data: bytearray):
+        i = 0
+        
+        while i < len(data):
+            xor = i % 0xFF
+            
+            while True:
+                xor ^= data[i]
+                data[i] = xor
+                i += 1
+                
+                if xor == 0:
+                    break
+
+        return data
     
-    def get(self):
+    @staticmethod
+    def _string_pool_encrypt(data: bytearray):
+        i = 0
+        
+        while i < len(data):
+            xor = i % 0xFF
+
+            while True:
+                data[i] ^= xor
+                xor ^= data[i]
+                i += 1
+                
+                if xor == 0:
+                    break
+        
+        return data
+    
+    def _read_metadata_from_reader(self):
         offset = self._read_int_at(8)
         size = self._read_int_at(offset - 8) + self._read_int_at(offset - 4)
-
-        metadata = bytearray(self.reader.read_at(0, size))
+        return bytearray(self.reader.read_at(0, size))
+    
+    def decrypt(self):
+        metadata = self._read_metadata_from_reader()
         stringSize = self._read_int_at(28)
-        string = self._read_int_at(24)
+        stringStart = self._read_int_at(24)
 
-        offset = 0
-        while offset < stringSize:
-            xor = offset % 0xFF
-            
-            i = 0
-            while i == 0 or xor != 0:
-                xor ^= metadata[string + offset]
-                metadata[string + offset] = xor
-                offset += 1
-                i = 1
+        metadata[stringStart:stringStart + stringSize] = \
+            MetadataXorCryptor._string_pool_decrypt(metadata[stringStart:stringStart + stringSize])
         
         return bytes(metadata)
-
-def raw_metadata_to_dec(raw: bytes): # game.dat -> global-metadata.dat
-    class ByteReader:
-        def __init__(self, data: bytes):
-            self.data = data
-            self.index = 0
-        
-        def read(self, length: int) -> bytes:
-            value = self.data[self.index:self.index + length]
-            self.index += length
-            return value
-        
-        def read_at(self, offset: int, length: int) -> bytes:
-            return self.data[offset:offset + length]
-        
-        def read_int(self) -> int:
-            return struct.unpack("<i", self.read(4))[0]
     
+    def encrypt(self):
+        metadata = self._read_metadata_from_reader()
+        stringSize = self._read_int_at(28)
+        stringStart = self._read_int_at(24)
+
+        metadata[stringStart:stringStart + stringSize] = \
+            MetadataXorCryptor._string_pool_encrypt(metadata[stringStart:stringStart + stringSize])
+
+        return bytes(metadata)
+
+class PgrSpecByteReader:
+    def __init__(self, data: bytes):
+        self.data = data
+        self.index = 0
+    
+    def read(self, length: int) -> bytes:
+        value = self.data[self.index:self.index + length]
+        self.index += length
+        return value
+    
+    def read_at(self, offset: int, length: int) -> bytes:
+        return self.data[offset:offset + length]
+    
+    def read_int(self) -> int:
+        return struct.unpack("<i", self.read(4))[0]
+
+def metadata_decrypt(raw: bytes): # game.dat -> global-metadata.dat
     def read_from_magic(magic: int):
         nonlocal raw
         
-        reader = ByteReader(raw)
+        reader = PgrSpecByteReader(raw)
         while True:
             try: v = reader.read_int()
             except struct.error: break
@@ -1163,15 +1201,34 @@ def raw_metadata_to_dec(raw: bytes): # game.dat -> global-metadata.dat
                 start, length = reader.index - 4 + 16, reader.read_int()
                 ret = raw[start:start + length]
                 if not ret: break
-                raw = raw[reader.index - 4 - 4:] + raw[:start + length]
+                raw = raw[:reader.index - 4 - 4] + raw[start + length:]
                 return ret
-        
-    rc4_decryptor = RC4(read_from_magic(1451223060))
-    metadata = MetadataXorDecryptor(ByteReader(rc4_decryptor.crypt(read_from_magic(-1124405112)))).get()
-    md5_check = read_from_magic(1277689693).hex()
+    
+    md5_check = read_from_magic(const.PGR_METADATA_MAGIC.MD5_CHECK).hex()
+    rc4_cryptor = RC4(read_from_magic(const.PGR_METADATA_MAGIC.RC4_KEY))
+    metadata = MetadataXorCryptor(PgrSpecByteReader(rc4_cryptor.crypt(read_from_magic(const.PGR_METADATA_MAGIC.METADATA)))).decrypt()
     
     real_md5 = hashlib.md5(metadata).digest().hex()
     if md5_check != real_md5:
         raise ValueError(f"MD5 check failed, expected {md5_check}, got {real_md5}")
     
     return metadata
+
+def metadata_encrypt(metadata: bytes, rc4_key: bytes = const.PGR_METADATA_DEFAULT_RC4_KEY): # global-metadata.dat -> game.dat
+    def write_block(magic: int, data: bytes):
+        writer.writeInt(magic)
+        writer.writeInt(len(data))
+        writer.write(b"\x00" * 4 * 2)
+        writer.write(data)
+    
+    writer = ByteWriter()
+    metadata_md5 = hashlib.md5(metadata).digest()
+    
+    rc4_cryptor = RC4(rc4_key)
+    rc4_encrypted = rc4_cryptor.crypt(MetadataXorCryptor(PgrSpecByteReader(metadata)).encrypt())
+    
+    write_block(const.PGR_METADATA_MAGIC.MD5_CHECK, metadata_md5)
+    write_block(const.PGR_METADATA_MAGIC.RC4_KEY, rc4_key)
+    write_block(const.PGR_METADATA_MAGIC.METADATA, rc4_encrypted)
+    
+    return bytes(writer.data)
