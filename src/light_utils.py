@@ -5,6 +5,7 @@ import typing
 import threading
 import random
 import struct
+import hashlib
 from abc import abstractmethod
 from os import listdir
 from os.path import isfile, abspath
@@ -1149,6 +1150,8 @@ def raw_metadata_to_dec(raw: bytes): # game.dat -> global-metadata.dat
             return struct.unpack("<i", self.read(4))[0]
     
     def read_from_magic(magic: int):
+        nonlocal raw
+        
         reader = ByteReader(raw)
         while True:
             try: v = reader.read_int()
@@ -1156,9 +1159,17 @@ def raw_metadata_to_dec(raw: bytes): # game.dat -> global-metadata.dat
 
             if v == magic:
                 start, length = reader.index - 4 + 16, reader.read_int()
-                return raw[start:start + length]
+                ret = raw[start:start + length]
+                if not ret: break
+                raw = raw[reader.index - 4 - 4:] + raw[:start + length]
+                return ret
         
     rc4_decryptor = RC4(read_from_magic(1451223060))
     metadata = MetadataXorDecryptor(ByteReader(rc4_decryptor.crypt(read_from_magic(-1124405112)))).get()
-
+    md5_check = read_from_magic(1277689693).hex()
+    
+    real_md5 = hashlib.md5(metadata).digest().hex()
+    if md5_check != real_md5:
+        raise ValueError(f"MD5 check failed, expected {md5_check}, got {real_md5}")
+    
     return metadata
