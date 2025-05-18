@@ -1198,10 +1198,11 @@ def metadata_decrypt(raw: bytes): # game.dat -> global-metadata.dat
             except struct.error: break
 
             if v == magic:
-                start, length = reader.index - 4 + 16, reader.read_int()
+                length = reader.read_int()
+                start = reader.index + 8
                 ret = raw[start:start + length]
                 if not ret: break
-                raw = raw[:reader.index - 4 - 4] + raw[start + length:]
+                raw = raw[:reader.index - 8] + raw[start + length:]
                 return ret
     
     md5_check = read_from_magic(const.PGR_METADATA_MAGIC.MD5_CHECK).hex()
