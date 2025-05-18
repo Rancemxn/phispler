@@ -1075,29 +1075,29 @@ def UnityCurve(curves: list[dict], t: float):
     )
 
 class RC4:
-	def __init__(self, key_bytes):
-		self.S = list(range(256))
-		key_len = len(key_bytes)
-		j = 0
-		for i in range(256):
-			j = (j + self.S[i] + key_bytes[i % key_len]) % 256
-			self.S[i], self.S[j] = self.S[j], self.S[i]
-		self.i_prga = 0
-		self.j_prga = 0
+    def __init__(self, key_bytes):
+        self.S = list(range(256))
+        key_len = len(key_bytes)
+        j = 0
+        for i in range(256):
+            j = (j + self.S[i] + key_bytes[i % key_len]) % 256
+            self.S[i], self.S[j] = self.S[j], self.S[i]
+        self.i_prga = 0
+        self.j_prga = 0
 
-	def _get_keystream_byte(self):
-		self.i_prga = (self.i_prga + 1) % 256
-		self.j_prga = (self.j_prga + self.S[self.i_prga]) % 256
-		self.S[self.i_prga], self.S[self.j_prga] = self.S[self.j_prga], self.S[self.i_prga]
-		k = self.S[(self.S[self.i_prga] + self.S[self.j_prga]) % 256]
-		return k
+    def _get_keystream_byte(self):
+        self.i_prga = (self.i_prga + 1) % 256
+        self.j_prga = (self.j_prga + self.S[self.i_prga]) % 256
+        self.S[self.i_prga], self.S[self.j_prga] = self.S[self.j_prga], self.S[self.i_prga]
+        k = self.S[(self.S[self.i_prga] + self.S[self.j_prga]) % 256]
+        return k
 
-	def crypt(self, data_bytes):
-		result = bytearray()
-		for byte_val in data_bytes:
-			keystream_byte = self._get_keystream_byte()
-			result.append(byte_val ^ keystream_byte)
-		return bytes(result)
+    def crypt(self, data_bytes):
+        result = bytearray()
+        for byte_val in data_bytes:
+            keystream_byte = self._get_keystream_byte()
+            result.append(byte_val ^ keystream_byte)
+        return bytes(result)
 
 class BasePositionByteReaderType(typing.Protocol):
     @abstractmethod
