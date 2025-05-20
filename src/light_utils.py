@@ -6,9 +6,13 @@ import threading
 import random
 import struct
 import hashlib
+import zipfile
+import io
 from abc import abstractmethod
 from os import listdir
 from os.path import isfile, abspath
+
+import requests
 
 import const
 import phi_easing
@@ -1233,3 +1237,33 @@ def metadata_encrypt(metadata: bytes, rc4_key: bytes = const.PGR_METADATA_DEFAUL
     write_block(const.PGR_METADATA_MAGIC.METADATA, rc4_encrypted)
     
     return bytes(writer.data)
+
+class PgrPlayerPrefs:
+    def __init__(self, value_map: dict):
+        self.value_map = value_map
+    
+    @staticmethod
+    def from_xml(xml: str):
+        ...
+    
+class PhigorsAPI:
+    def __init__(self, token: str):
+        self.token = token
+        self.headers = const.PGR_SERVER_REQHEADERS.copy()
+        self.headers["X-LC-Session"] = token
+    
+    def _reqget(self, path: str):
+        return requests.get(f"{const.PGR_SERVER_URL}{path}", headers=self.headers, verify=False)
+    
+    def me(self) -> dict:
+        return self._reqget("/users/me").json()
+    
+    def summary(self) -> dict:
+        return self._reqget("/classes/_GameSave?limit=1").json()["results"]
+
+    def full_summary(self, result_i: int = 0):
+        summary = self.summary()[result_i]
+        full_summary = requests.get(summary["gameFile"]["url"], verify=False).content
+        
+        save_zip = zipfile.ZipFile(io.BytesIO(full_summary))
+        print(save_zip.filelist)

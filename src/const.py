@@ -74,6 +74,13 @@ class PGR_METADATA_MAGIC:
     METADATA = -1124405112
 
 PGR_METADATA_DEFAULT_RC4_KEY = b"\x06\xee\xd3\xe8"
+PGR_SERVER_URL = "https://rak3ffdi.cloud.tds1.tapapis.cn/1.1"
+PGR_SERVER_REQHEADERS = {
+    "X-LC-Key": "Qr9AEqtuoSVS3zeD6iVbM4ZC0AtkJcQ89tywVyi0",
+    "X-LC-Id": "rAK3FfdieFob2Nn8Am",
+    "User-Agent": "LeanCloud-CSharp-SDK/1.0.3",
+    "Accept": "application/json"
+}
 
 TYPE_STRING_MAP = {
     NOTE_TYPE.TAP: "Tap",
