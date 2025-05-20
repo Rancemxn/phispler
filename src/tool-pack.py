@@ -30,7 +30,10 @@ compile_files = [
     *(map(lambda x: (x, False), filter(lambda x: (
         x.startswith("tool-")
         and x.endswith(".py")
-        and x not in ("tool-pack.py", "tool-create-innosetup-config.py")
+        and x not in (
+            "tool-pack.py",
+            "tool-create-innosetup-config.py"
+        )
     ), listdir())))
 ]
 res_files = [
