@@ -207,7 +207,7 @@ def conrpepos(pos: tuple[float, float]):
         1.0 - (pos[1] + const.RPE_HEIGHT / 2) / const.RPE_HEIGHT
     )
         
-def Format_Time(t: int|float) -> str:
+def fmtTime(t: int|float) -> str:
     if t < 0.0: t = 0.0
     m, s = t // 60, t % 60
     m, s = int(m), int(s)
