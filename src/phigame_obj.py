@@ -613,7 +613,6 @@ class SlideControler:
         )
         self._lastlastclickx, self._lastlastclicky = self._lastclickx, self._lastclicky
         self._lastclickx, self._lastclicky = x, y
-        self._set()
     
     def mouseMoveBy(self, x: int, y: int):
         self._dx += x
@@ -815,7 +814,6 @@ class ChooseChartControler:
             minValueY = 0.0, maxValueY = 0.0,
             w = h, h = h
         )
-        self._slideControl.resistance = 0.95
         
         self.scter_mousedown = self._slideControl.mouseDown
         self.scter_mouseup = self._slideControl.mouseUp
@@ -908,7 +906,7 @@ class ChooseChartControler:
         v1_vaild = max(0, min(v1, len(self.chapter.scsd_songs) - 1))
         v2_vaild = max(0, min(v2, len(self.chapter.scsd_songs) - 1))
         
-        for _ in range(int(abs(v1_vaild - v2_vaild)) if not _fromsetto else 0):
+        if v1_vaild != v2_vaild:
             self.changeUisound.play()
             self._start_preview()
             self._set_level_bar_rightx()

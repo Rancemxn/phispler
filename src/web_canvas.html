@@ -700,12 +700,8 @@ void main() {
             im._lowquality_pcsing = true;
             (async () => {
                 let tempcv = document.createElement("canvas");
-                tempcv.width = Math.floor(im.width / lowquality_imjscvscale_x);
-                tempcv.height = Math.floor(im.height / lowquality_imjscvscale_x);
-                if (tempcv.width < 1 || tempcv.height < 1) {
-                    tempcv.width = im.width;
-                    tempcv.height = im.height;
-                }
+                tempcv.width = Math.max(Math.floor(im.width / lowquality_imjscvscale_x), 1);
+                tempcv.height = Math.max(Math.floor(im.height / lowquality_imjscvscale_x), 1);
                 tempctx = tempcv.getContext("2d").drawImage(im, 0, 0, tempcv.width, tempcv.height);
                 lowquality_imweakmap.set(
                     im,
