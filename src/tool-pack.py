@@ -23,7 +23,7 @@ def compile(file: str, hideconsole: bool):
     system(f"del {file.replace(".py", ".spec")}")
 
 debug = "--debug" in argv
-compile_files = [
+pack_files: list[tuple[str, bool]] = [
     ("main.py", False),
     ("tk_launcher.py", False),
     ("phigros.py", False),
@@ -50,25 +50,30 @@ res_files = [
 ]
 extend = open("_compile_pyiextend.py", "r", encoding="utf-8").read()
 
-system("python -m venv compile_venv")
-py = ".\\compile_venv\\Scripts\\python.exe"
+system("python -m venv pack_venv")
+py = ".\\pack_venv\\Scripts\\python.exe"
 
 system(f"{py} -m pip install --upgrade pip")
 system(f"{py} -m pip install -r .\\requirements.txt")
 system(f"{py} -m pip install pyinstaller")
 
-pyinstaller = ".\\compile_venv\\Scripts\\pyinstaller.exe"
-pyi_makespec = ".\\compile_venv\\Scripts\\pyi-makespec.exe"
+pyinstaller = ".\\pack_venv\\Scripts\\pyinstaller.exe"
+pyi_makespec = ".\\pack_venv\\Scripts\\pyi-makespec.exe"
 
-executor = ThreadPoolExecutor(max_workers=6)
+spec_name = "spec_script"
+system(f"{pyi_makespec} -n {spec_name} -i icon.ico {" ".join(map(lambda x: f"\"{x[0]}\"", pack_files))}")
 
-for future in [executor.submit(compile, file, hideconsole) for file, hideconsole in compile_files]:
-    future.result()
+with open(f"{spec_name}.spec", "a", encoding="utf-8") as f:
+    f.seek(0)
+    f.write(extend)
+    f.write("\n")
 
-for file, _ in compile_files:
+system(f"{pyinstaller} {spec_name}.spec")
+
+for file, _ in pack_files:
     system(f"xcopy \".\\dist\\{file.replace(".py", "")}\\*\" .\\ /c /q /e /y")
 
-system("rmdir .\\compile_venv /s /q")
+system("rmdir .\\pack_venv /s /q")
 system("rmdir .\\build /s /q")
 system("rmdir .\\dist /s /q")
 
@@ -76,11 +81,11 @@ if "--zip" in argv:
     _copy = lambda src, tar: copy(src, tar) if isfile(src) else copytree(src, f"{tar}\\{src}")
     try: mkdir(".\\compile_result")
     except FileExistsError: pass
-    for i, _ in compile_files:
+    for i, _ in pack_files:
         _copy(i.replace(".py", ".exe"), ".\\compile_result")
     for i in res_files:
         _copy(i, ".\\compile_result")
     system("7z a compile_result.zip .\\compile_result\\*")
 
-print("\nCompile complete!")
+print("\Pack complete!")
 system("pause")
