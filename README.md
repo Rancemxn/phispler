@@ -14,8 +14,7 @@
 
 ## 环境配置
 
-- Python 版本: `3.12.8`
-- Windows
+- Python 版本: `3.12.8`, 如果你是 Win7 用户, 可尝试 [VxKex](https://github.com/i486/VxKex)
 
 ```batch
 git clone https://github.com/qaqFei/phispler
