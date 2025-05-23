@@ -687,6 +687,7 @@ void main() {
     function toLowQualityImage(im) {
         if (im.tagName && ["videos", "canvas"].includes(im.tagName.toLowerCase())) return im;
         if (im.nobitmap_tag) return im;
+        if (im._lowquality_pcsing) return im;
         if (lowquality_imweakmap.has(im)) return lowquality_imweakmap.get(im);
 
         addFunc(im, "onload", () => deleteLowQualityImage(im), "tag-tlqi");
@@ -695,7 +696,6 @@ void main() {
             lowquality_imjscvscale_x != 1.0
             && im.width > lowquality_imjs_maxsize
             && im.height > lowquality_imjs_maxsize
-            && !im._lowquality_pcsing
         ) {
             im._lowquality_pcsing = true;
             (async () => {
@@ -710,7 +710,7 @@ void main() {
                 im._lowquality_pcsing = undefined;
             })();
         }
-        else if (enable_jscanvas_bitmap && !(im instanceof ImageBitmap) && !im._lowquality_pcsing) {
+        else if (enable_jscanvas_bitmap && !(im instanceof ImageBitmap)) {
             im._lowquality_pcsing = true;
             (async () => {
                 let tempcv = document.createElement("canvas");
