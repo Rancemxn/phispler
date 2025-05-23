@@ -82,5 +82,5 @@ if "--zip" in argv:
         _copy(i, ".\\compile_result")
     system("7z a compile_result.zip .\\compile_result\\*")
 
-print("\Pack complete!")
+print("Pack complete!")
 system("pause")
