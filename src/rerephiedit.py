@@ -946,6 +946,14 @@ class ChartEditor:
             
         globalMsgShower.submit(Message(f"已创建备份文件: {fn}", Message.INFO_COLOR))
     
+    def toggle_play(self, k: str):
+        if k != " ": return
+        
+        if self.is_playing:
+            self.pause_play()
+        else:
+            self.unpause_play()
+    
     def render_edit_note(self):
         if self.is_playing: return
     
@@ -1215,9 +1223,6 @@ def editorRender(chart_config: dict):
     
     update_info_labels()
     
-    music_seek_eventui = BaseUI()
-    command_up_eventui = BaseUI()
-    
     def command_highlight(text: str):
         if not text: return []
         
@@ -1311,10 +1316,14 @@ def editorRender(chart_config: dict):
         cmd_input.do_highlight = command_highlight
         cmd_input.update_text()
         is_cmd_inputing = True
-        
+    
+    music_seek_eventui = BaseUI()
+    command_up_eventui = BaseUI()
+    control_play_eventui = BaseUI()
     
     music_seek_eventui.mouse_wheel = music_seek
     command_up_eventui.key_down = command_up
+    control_play_eventui.key_down = editor.toggle_play
     
     is_cmd_inputing = False
     
@@ -1325,7 +1334,7 @@ def editorRender(chart_config: dict):
         IconButton(*getButtonPos(0, 0), "menu", popupMenu),
         IconButton(*getButtonPos(1, 0), "unpause", editor.unpause_play),
         IconButton(*getButtonPos(2, 0), "pause", editor.pause_play),
-        music_seek_eventui, command_up_eventui
+        music_seek_eventui, command_up_eventui, control_play_eventui
     ], "editorRender")
     editor.unpause_play()
     
