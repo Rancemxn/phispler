@@ -12,16 +12,6 @@ if "-y" not in argv:
     if input("Sure? (y/n) ").lower() not in ("yes", "y"):
         raise SystemExit
 
-def compile(file: str, hideconsole: bool):
-    system(f"{pyi_makespec} \"{file}\" -i icon.ico {"-w" if hideconsole and not debug else ""}")
-    spec = f"{file.replace('.py', '')}.spec"
-    with open(spec, "r", encoding="utf-8") as f:
-        spec_data = f.read()
-    with open(spec, "w", encoding="utf-8") as f:
-        f.write(extend + spec_data)
-    system(f"{pyinstaller} \"{spec}\"")
-    system(f"del {file.replace(".py", ".spec")}")
-
 debug = "--debug" in argv
 pack_files: list[tuple[str, bool]] = [
     ("main.py", False),
@@ -87,5 +77,5 @@ if "--zip" in argv:
         _copy(i, ".\\compile_result")
     system("7z a compile_result.zip .\\compile_result\\*")
 
-print("\Pack complete!")
+print("Pack complete!")
 system("pause")
