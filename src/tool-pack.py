@@ -12,8 +12,18 @@ if "-y" not in argv:
     if input("Sure? (y/n) ").lower() not in ("yes", "y"):
         raise SystemExit
 
+def pack(file: str, hideconsole: bool):
+    system(f"{pyi_makespec} \"{file}\" -i icon.ico {"-w" if hideconsole and not debug else ""}")
+    spec = f"{file.replace('.py', '')}.spec"
+    with open(spec, "r", encoding="utf-8") as f:
+        spec_data = f.read()
+    with open(spec, "w", encoding="utf-8") as f:
+        f.write(extend + spec_data)
+    system(f"{pyinstaller} \"{spec}\"")
+    system(f"del {file.replace(".py", ".spec")}")
+
 debug = "--debug" in argv
-pack_files: list[tuple[str, bool]] = [
+pack_files = [
     ("main.py", False),
     ("tk_launcher.py", False),
     ("phigros.py", False),
@@ -50,15 +60,10 @@ system(f"{py} -m pip install pyinstaller")
 pyinstaller = ".\\pack_venv\\Scripts\\pyinstaller.exe"
 pyi_makespec = ".\\pack_venv\\Scripts\\pyi-makespec.exe"
 
-spec_name = "spec_script"
-system(f"{pyi_makespec} -n {spec_name} -i icon.ico {" ".join(map(lambda x: f"\"{x[0]}\"", pack_files))}")
+executor = ThreadPoolExecutor(max_workers=6)
 
-with open(f"{spec_name}.spec", "a", encoding="utf-8") as f:
-    f.seek(0)
-    f.write(extend)
-    f.write("\n")
-
-system(f"{pyinstaller} {spec_name}.spec")
+for future in [executor.submit(pack, file, hideconsole) for file, hideconsole in pack_files]:
+    future.result()
 
 for file, _ in pack_files:
     system(f"xcopy \".\\dist\\{file.replace(".py", "")}\\*\" .\\ /c /q /e /y")
@@ -77,5 +82,5 @@ if "--zip" in argv:
         _copy(i, ".\\compile_result")
     system("7z a compile_result.zip .\\compile_result\\*")
 
-print("Pack complete!")
+print("\Pack complete!")
 system("pause")
