@@ -38,13 +38,15 @@ compile_files = [
 ]
 res_files = [
     "_internal",
-    "bin", "lib",
+    
+    "bin", "lib", "js",
     "resources", "shaders",
     "7z.dll", "7z.exe",
     "ecwv_installer.exe",
     "icon.ico",
     "libogg.dll", "libvorbis.dll",
-    "web_canvas.html"
+    "web_canvas.html",
+    "clear_errs.bat"
 ]
 extend = open("_compile_pyiextend.py", "r", encoding="utf-8").read()
 
