@@ -93,7 +93,7 @@ class InfoLoader:
                     
                     case _:
                         return
-            except StopAsyncIteration:
+            except Exception:
                 logging.error(f"info file {filename} parse error")
                 return
             
