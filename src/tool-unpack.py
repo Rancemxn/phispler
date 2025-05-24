@@ -1,10 +1,9 @@
-import UnityPy.helpers.ResourceReader
-import UnityPy.helpers.TypeTreeGenerator
 import fix_workpath as _
 import check_bin as _
 
 import json
 import struct
+import sys
 from os import mkdir, popen, listdir
 from os.path import exists, isfile, basename, dirname
 from shutil import rmtree
@@ -17,13 +16,19 @@ import UnityPy
 import UnityPy.files
 import UnityPy.classes
 import UnityPy.helpers
+import UnityPy.helpers.ResourceReader
+import UnityPy.helpers.TypeTreeGenerator
 from UnityPy.enums import ClassIDType
 from fsb5 import FSB5
 
 import pgr_catalog
 import light_utils
-    
-iothread_num = 32
+import findlib_hook
+
+findlib_hook.register("vorbis", "./lib/libvorbis.dll")
+findlib_hook.register("ogg", "./lib/libogg.dll")
+
+iothread_num = 1
 packthread_num = 1
 p2rthread_num = 4
 
@@ -343,7 +348,7 @@ def generate_resources(need_otherillu: bool = False, need_otherres: bool = False
     
     def save_player_res(key: str, entry: UnityPy.files.BundleFile, fn: str):
         obj: UnityPy.classes.TextAsset | UnityPy.classes.Sprite | UnityPy.classes.AudioClip
-        obj = next(entry.get_filtered_objects((ClassIDType.TextAsset, ClassIDType.Sprite, ClassIDType.AudioClip))).read()
+        obj = next(entry.get_filtered_objects((ClassIDType.TextAsset, ClassIDType.Sprite, ClassIDType.AudioClip))).read(check_read=False)
         append_extinfo(key, fn, obj)
         
         key = key.replace("\\", "/")
